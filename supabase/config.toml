@@ -1,37 +1,19 @@
-# إعدادات Supabase المحلية (supabase start) — المشروع الحقيقي يُربط بـ supabase link
+# إعدادات Supabase المحلية (supabase start في CI). المشروع الحقيقي يُضبط من لوحة Supabase.
 project_id = "midad"
 
 [api]
 enabled = true
-port = 54321
 schemas = ["public"]
 max_rows = 1000
-
-[db]
-port = 54322
-major_version = 16
 
 [auth]
 enabled = true
 site_url = "http://127.0.0.1:3000"
-additional_redirect_urls = ["midad://auth-callback", "https://midad-iq.web.app"]
-jwt_expiry = 3600
+additional_redirect_urls = ["midad://auth-callback"]
 enable_signup = true
 
 [auth.email]
-enable_signup = true
 enable_confirmations = false
-double_confirm_changes = true
-
-# Google يُفعَّل من لوحة Supabase للمشروع الحقيقي (انظر docs/SETUP_TODO.md)
-[auth.external.google]
-enabled = false
-client_id = "env(GOOGLE_CLIENT_ID)"
-secret = "env(GOOGLE_CLIENT_SECRET)"
-skip_nonce_check = true
 
 [functions.push]
 verify_jwt = false
-
-[functions.delete-account]
-verify_jwt = true
