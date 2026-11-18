@@ -1,5 +1,5 @@
 /**
- * يولّد كل أيقونات «نَهج» (التطبيق، أندرويد، شاشة البداية، الإشعار، الموقع) من الرمز نفسه في
+ * يولّد كل أيقونات «نَهج» (التطبيق، أندرويد، شاشة البداية، الإشعار، الموقع) من الشعار الكوفي نفسه في
  * packages/shared/src/brand.ts — فتطابق LogoMark داخل التطبيق تماماً.
  *   node scripts/gen-icons.cjs
  */
@@ -9,39 +9,49 @@ const { chromium } = require('playwright');
 
 const ROOT = path.join(__dirname, '..');
 const brand = fs.readFileSync(path.join(ROOT, 'packages/shared/src/brand.ts'), 'utf8');
-const get = (name) => brand.match(new RegExp(`export const ${name} = '([^']+)'`))[1];
-const num = (name) => Number(brand.match(new RegExp(`export const ${name} = (\\d+)`))[1]);
-const BOWL = get('MARK_BOWL'), DOT = get('MARK_DOT'), STROKE = num('MARK_STROKE'), OY = num('MARK_OFFSET_Y');
+const ROWS = JSON.parse(brand.match(/export const KUFIC: readonly string\[\] = (\[[\s\S]*?\]);/)[1].replace(/'/g, '"').replace(/,\s*\]/, ']'));
+const N = ROWS.length;
 const WM = JSON.parse(fs.readFileSync(path.join(ROOT, 'brand/wordmark.json'), 'utf8'));
 const GREEN = '#0E3B33', PAPER = '#F7F5F0', GOLD = '#E3A535', WHITE = '#FFFFFF';
 
-function mark({ ink, dot, bg, scale = 1, radius = 0, size = 120 }) {
-  const t = (120 - 120 * scale) / 2;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 120 120">${bg ? `<rect width="120" height="120" rx="${radius}" fill="${bg}"/>` : ''}<g transform="translate(${t} ${t}) scale(${scale}) translate(0 ${OY})"><path d="${BOWL}" stroke="${ink}" stroke-width="${STROKE}" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="${DOT}" fill="${dot}"/></g></svg>`;
+function cells() {
+  let ink = '', dot = '';
+  ROWS.forEach((r, y) => { let x = 0; while (x < r.length) { const ch = r[x]; if (ch === '.') { x++; continue; } let e = x; while (e + 1 < r.length && r[e + 1] === ch) e++; const d = `M${x} ${y}h${e - x + 1}v1h-${e - x + 1}z`; if (ch === 'o') dot += d; else ink += d; x = e + 1; } });
+  return { ink, dot };
+}
+const C = cells();
+
+/** pad: الهامش بوحدة الخلية */
+function mark({ ink, dot, bg, pad = 0, radius = 0.225, size = 120 }) {
+  const n = N + 2 * pad;
+  const crisp = size <= 64 ? ' shape-rendering="crispEdges"' : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${-pad} ${-pad} ${n} ${n}"${crisp}>${bg ? `<rect x="${-pad}" y="${-pad}" width="${n}" height="${n}" rx="${(n * radius).toFixed(2)}" fill="${bg}"/>` : ''}${ink === 'none' ? '' : `<path d="${C.ink}" fill="${ink}"/><path d="${C.dot}" fill="${dot}"/>`}</svg>`;
 }
 
-/** شعار أفقي: الرمز يميناً والكلمة يساراً (اتجاه القراءة) */
+/** شعار أفقي: الرمز يميناً وكلمة «نَهج» يساراً */
 function lockup({ ink, dot, word }) {
-  const s = 0.62, wh = WM.ar_display.h * s, ww = WM.ar_display.w * s, mh = 120 * s;
-  const W = ww + 18 + mh, H = mh;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W.toFixed(1)} ${H.toFixed(1)}"><g transform="translate(0 ${((H - wh) / 2).toFixed(1)}) scale(${s})"><path d="${WM.ar_display.d}" fill="${word}"/></g><g transform="translate(${(ww + 18).toFixed(1)} 0) scale(${s}) translate(0 ${OY})"><path d="${BOWL}" stroke="${ink}" stroke-width="${STROKE}" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="${DOT}" fill="${dot}"/></g></svg>`;
+  const mh = 64, s = mh / N;                 // الرمز بارتفاع ٦٤
+  const ws = (mh * 0.92) / WM.ar_display.h;  // الكلمة بارتفاع قريب
+  const ww = WM.ar_display.w * ws, wh = WM.ar_display.h * ws, gap = 20;
+  const W = ww + gap + mh;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W.toFixed(1)} ${mh}"><g transform="translate(0 ${((mh - wh) / 2).toFixed(1)}) scale(${ws.toFixed(4)})"><path d="${WM.ar_display.d}" fill="${word}"/></g><g transform="translate(${(ww + gap).toFixed(1)} 0) scale(${s})"><path d="${C.ink}" fill="${ink}"/><path d="${C.dot}" fill="${dot}"/></g></svg>`;
 }
 
 const OUT = path.join(ROOT, 'apps/mobile/assets/images');
 const SITE = path.join(ROOT, 'apps/site');
 const jobs = [
-  [`${OUT}/icon.png`, 1024, { bg: GREEN, ink: PAPER, dot: GOLD, scale: 0.9 }],
-  [`${OUT}/android-icon-foreground.png`, 1024, { ink: PAPER, dot: GOLD, scale: 0.62 }],
-  [`${OUT}/android-icon-background.png`, 1024, { bg: GREEN, ink: 'none', dot: 'none' }],
-  [`${OUT}/android-icon-monochrome.png`, 1024, { ink: WHITE, dot: WHITE, scale: 0.62 }],
-  [`${OUT}/splash-icon.png`, 512, { ink: GREEN, dot: GOLD, scale: 1 }],
-  [`${OUT}/splash-icon-dark.png`, 512, { ink: PAPER, dot: GOLD, scale: 1 }],
-  [`${OUT}/favicon.png`, 96, { bg: GREEN, ink: PAPER, dot: GOLD, scale: 0.94, radius: 26 }],
-  [`${OUT}/notification-icon.png`, 96, { ink: WHITE, dot: WHITE, scale: 1 }],
-  [`${SITE}/icon-512.png`, 512, { bg: GREEN, ink: PAPER, dot: GOLD, scale: 0.9, radius: 27 }],
-  [`${SITE}/apple-touch-icon.png`, 180, { bg: GREEN, ink: PAPER, dot: GOLD, scale: 0.9 }],
-  [`${SITE}/favicon.png`, 64, { bg: GREEN, ink: PAPER, dot: GOLD, scale: 0.94, radius: 26 }],
-  [`${SITE}/og-icon.png`, 1024, { bg: GREEN, ink: PAPER, dot: GOLD, scale: 0.9 }],
+  [`${OUT}/icon.png`, 1024, { bg: GREEN, ink: PAPER, dot: GOLD, pad: 2.6, radius: 0 }],
+  [`${OUT}/android-icon-foreground.png`, 1024, { ink: PAPER, dot: GOLD, pad: 7.2 }],
+  [`${OUT}/android-icon-background.png`, 1024, { bg: GREEN, ink: 'none', dot: 'none', pad: 0, radius: 0 }],
+  [`${OUT}/android-icon-monochrome.png`, 1024, { ink: WHITE, dot: WHITE, pad: 7.2 }],
+  [`${OUT}/splash-icon.png`, 512, { ink: GREEN, dot: GOLD, pad: 0.6 }],
+  [`${OUT}/splash-icon-dark.png`, 512, { ink: PAPER, dot: GOLD, pad: 0.6 }],
+  [`${OUT}/favicon.png`, 96, { bg: GREEN, ink: PAPER, dot: GOLD, pad: 1.8 }],
+  [`${OUT}/notification-icon.png`, 96, { ink: WHITE, dot: WHITE, pad: 0.8 }],
+  [`${SITE}/icon-512.png`, 512, { bg: GREEN, ink: PAPER, dot: GOLD, pad: 2.6 }],
+  [`${SITE}/apple-touch-icon.png`, 180, { bg: GREEN, ink: PAPER, dot: GOLD, pad: 2.6, radius: 0 }],
+  [`${SITE}/favicon.png`, 64, { bg: GREEN, ink: PAPER, dot: GOLD, pad: 1.6 }],
+  [`${SITE}/og-icon.png`, 1024, { bg: GREEN, ink: PAPER, dot: GOLD, pad: 2.6, radius: 0 }],
 ];
 
 (async () => {
@@ -56,7 +66,7 @@ const jobs = [
   const B = path.join(ROOT, 'brand');
   fs.writeFileSync(`${B}/mark.svg`, mark({ ink: GREEN, dot: GOLD }));
   fs.writeFileSync(`${B}/mark-light.svg`, mark({ ink: PAPER, dot: GOLD }));
-  fs.writeFileSync(`${B}/app-icon.svg`, mark({ bg: GREEN, ink: PAPER, dot: GOLD, scale: 0.9, radius: 27 }));
+  fs.writeFileSync(`${B}/app-icon.svg`, mark({ bg: GREEN, ink: PAPER, dot: GOLD, pad: 2.6 }));
   fs.writeFileSync(`${B}/logo.svg`, lockup({ ink: GREEN, dot: GOLD, word: GREEN }));
   fs.writeFileSync(`${B}/logo-light.svg`, lockup({ ink: PAPER, dot: GOLD, word: PAPER }));
   fs.writeFileSync(`${SITE}/logo.svg`, lockup({ ink: GREEN, dot: GOLD, word: GREEN }));

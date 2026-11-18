@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppIcon, Icon, Wordmark, type IconName } from '@/components/icon';
+import { Icon, LogoMark, Wordmark, type IconName } from '@/components/icon';
 import { enter, PressScale } from '@/components/motion';
 import { Button, Chip, Field, Row, Segmented, T } from '@/components/ui';
 import { setSettings, useSettings } from '@/data/db';
@@ -31,10 +31,10 @@ function Intro({ onNext }: { onNext: () => void }) {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#0E3B33' }} contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 36, paddingBottom: insets.bottom + 24, gap: 26, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
       <Animated.View entering={enter(0)} style={{ gap: 10 }}>
-        <AppIcon size={76} />
+        <LogoMark size={72} ink="#F7F5F0" dot={c.gold} />
         <Wordmark height={64} color="#FFFFFF" />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: -6 }}>
-          <View style={{ width: 9, height: 9, backgroundColor: c.gold, transform: [{ rotate: '45deg' }] }} />
+          <View style={{ width: 8, height: 8, backgroundColor: c.gold }} />
           <T size={18} color="#AFC8C1">التدريس بنهجٍ أذكى.</T>
         </View>
       </Animated.View>

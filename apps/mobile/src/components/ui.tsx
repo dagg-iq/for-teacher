@@ -148,8 +148,8 @@ export function Header({ title, subtitle, right, back = true, big }: {
       <View style={{ gap: 2 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 48, gap: 12 }}>
           <View style={{ flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            {/* معيّن الهوية قبل عناوين الصفحات الرئيسية */}
-            <View style={{ width: 9, height: 9, backgroundColor: c.gold, transform: [{ rotate: '45deg' }], marginTop: 4 }} />
+            {/* خلية الهوية الذهبية قبل عناوين الصفحات الرئيسية */}
+            <View style={{ width: 8, height: 8, backgroundColor: c.gold, marginTop: 4 }} />
             <T display size={big ? 42 : 30} lines={1} style={{ flexShrink: 1 }}>{title}</T>
           </View>
           {right ? <View style={{ flexDirection: 'row', gap: 8 }}>{right}</View> : null}

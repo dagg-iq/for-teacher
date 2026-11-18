@@ -10,9 +10,10 @@ const read = (p) => fs.readFileSync(path.join(R, p), 'utf8');
 const b64 = (p) => fs.readFileSync(path.join(R, p)).toString('base64');
 
 const brand = read('packages/shared/src/brand.ts');
-const get = (n) => brand.match(new RegExp(`export const ${n} = '([^']+)'`))[1];
-const num = (n) => Number(brand.match(new RegExp(`export const ${n} = (\\d+)`))[1]);
-const BOWL = get('MARK_BOWL'), DOT = get('MARK_DOT'), STROKE = num('MARK_STROKE'), OY = num('MARK_OFFSET_Y');
+const ROWS = JSON.parse(brand.match(/export const KUFIC: readonly string\[\] = (\[[\s\S]*?\]);/)[1].replace(/'/g, '"').replace(/,\s*\]/, ']'));
+const N = ROWS.length;
+const cells = () => { let ink = '', dot = ''; ROWS.forEach((r, y) => { let x = 0; while (x < r.length) { const ch = r[x]; if (ch === '.') { x++; continue; } let e = x; while (e + 1 < r.length && r[e + 1] === ch) e++; const d = `M${x} ${y}h${e - x + 1}v1h-${e - x + 1}z`; if (ch === 'o') dot += d; else ink += d; x = e + 1; } }); return { ink, dot }; };
+const K = cells();
 const WM = JSON.parse(read('brand/wordmark.json'));
 
 // الأيقونات من ملف التطبيق نفسه
@@ -24,16 +25,23 @@ const objOf = (name) => {
   for (; i < icon.length; i++) { if (icon[i] === '{') depth++; if (icon[i] === '}') { depth--; if (!depth) break; } }
   return icon.slice(open, i + 1);
 };
-const rh = (x, y, r) => `M${x} ${y - r}L${x + r} ${y}L${x} ${y + r}L${x - r} ${y}Z`;
+const rh = (x, y, r) => { const h = r * 0.82; return `M${x - h} ${y - h}h${2 * h}v${2 * h}h${-2 * h}z`; };
 const PATHS = new Function(`return ${objOf('PATHS')}`)();
 const CIRCLES = new Function(`return ${objOf('CIRCLES')}`)();
 const ACCENTS = new Function('rh', `return ${objOf('ACCENTS')}`)(rh);
 const iconSvg = (name) => `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">${(PATHS[name] || []).map((d) => `<path d="${d}" class="i-s"${name === 'play' ? ' style="fill:currentColor"' : ''}/>`).join('')}${(CIRCLES[name] || []).map(([cx, cy, r]) => `<circle cx="${cx}" cy="${cy}" r="${r}" class="i-s"${r < 1 ? ' style="fill:currentColor"' : ''}/>`).join('')}${(ACCENTS[name] || []).map((d) => `<path d="${d}" class="i-a"/>`).join('')}</svg>`;
 
-const mark = (ink, dot, extra = '') => `<svg viewBox="0 0 120 120" ${extra}><g transform="translate(0 ${OY})"><path d="${BOWL}" stroke="${ink}" stroke-width="${STROKE}" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="${DOT}" fill="${dot}"/></g></svg>`;
-const s = 0.62, ww = WM.ar_display.w * s, wh = WM.ar_display.h * s, mh = 120 * s, LW = ww + 18 + mh;
-const lockup = (ink, dot) => `<svg viewBox="0 0 ${LW.toFixed(1)} ${mh.toFixed(1)}" class="lockup"><g transform="translate(0 ${((mh - wh) / 2).toFixed(1)}) scale(${s})"><path d="${WM.ar_display.d}" fill="${ink}"/></g><g transform="translate(${(ww + 18).toFixed(1)} 0) scale(${s}) translate(0 ${OY})"><path d="${BOWL}" stroke="${ink}" stroke-width="${STROKE}" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="${DOT}" fill="${dot}"/></g></svg>`;
-const appIcon = `<svg viewBox="0 0 120 120"><rect width="120" height="120" rx="27" fill="#0E3B33"/><g transform="translate(6 6) scale(.9) translate(0 ${OY})"><path d="${BOWL}" stroke="#F7F5F0" stroke-width="${STROKE}" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="${DOT}" fill="#E3A535"/></g></svg>`;
+const mark = (ink, dot, extra = '') => `<svg viewBox="-0.6 -0.6 ${N + 1.2} ${N + 1.2}" ${extra}><path d="${K.ink}" fill="${ink}"/><path d="${K.dot}" fill="${dot}"/></svg>`;
+/** الرمز على شبكته الظاهرة مع تعليقات: الحروف، خط القاعدة، الخلية الذهبية */
+const gridMark = () => {
+  let g = '';
+  for (let i = 0; i <= N; i++) g += `<path d="M${i} 0V${N}M0 ${i}H${N}" stroke="var(--line)" stroke-width="0.04"/>`;
+  return `<svg viewBox="-0.8 -0.8 ${N + 1.6} ${N + 1.6}" class="gridmark">${g}<path d="${K.ink}" fill="var(--ink)" opacity=".92"/><path d="${K.dot}" fill="#E3A535"/>
+  <path d="M-0.4 6.5H${N + 0.4}" stroke="#E3A535" stroke-width="0.08" stroke-dasharray="0.25 0.18"/></svg>`;
+};
+const MH = 64, WS = (MH * 0.92) / WM.ar_display.h, WW = WM.ar_display.w * WS, WH = WM.ar_display.h * WS, LW = WW + 20 + MH;
+const lockup = (ink, dot) => `<svg viewBox="0 0 ${LW.toFixed(1)} ${MH}" class="lockup"><g transform="translate(0 ${((MH - WH) / 2).toFixed(1)}) scale(${WS.toFixed(4)})"><path d="${WM.ar_display.d}" fill="${ink}"/></g><g transform="translate(${(WW + 20).toFixed(1)} 0) scale(${MH / N})"><path d="${K.ink}" fill="${ink}"/><path d="${K.dot}" fill="${dot}"/></g></svg>`;
+const appIcon = `<svg viewBox="-2.6 -2.6 ${N + 5.2} ${N + 5.2}"><rect x="-2.6" y="-2.6" width="${N + 5.2}" height="${N + 5.2}" rx="${((N + 5.2) * 0.225).toFixed(2)}" fill="#0E3B33"/><path d="${K.ink}" fill="#F7F5F0"/><path d="${K.dot}" fill="#E3A535"/></svg>`;
 
 const FEATURED = [
   ['home', 'الرئيسية'], ['school', 'الصفوف'], ['chart', 'الدرجات'], ['calendar', 'الجدول'], ['more', 'المزيد'],
@@ -45,7 +53,7 @@ const FEATURED = [
 const COLORS = [
   ['أخضر نَهج', '#0E3B33', 'الأسطح البارزة، الأيقونة، رأس الرئيسية', '#FFFFFF'],
   ['الأخضر المائي', '#0B6E5E', 'الأزرار والتفاعل والتبويب النشط', '#FFFFFF'],
-  ['ذهبي المعيّن', '#E3A535', 'نقطة الشعار ومعيّنات الأيقونات فقط', '#2B1E00'],
+  ['ذهبي الخلية', '#E3A535', 'الخلية المضيئة في الشعار والأيقونات فقط', '#2B1E00'],
   ['الورق', '#F7F5F0', 'خلفية التطبيق والموقع', '#14211E'],
   ['الحبر', '#14211E', 'النصوص', '#FFFFFF'],
   ['الخط الفاصل', '#E6E2D9', 'حدود البطاقات (بلا ظلال)', '#14211E'],
@@ -74,20 +82,21 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); fo
 .wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
 h1, h2, h3 { font-family: var(--display); font-weight: 900; line-height: 1.35; margin: 0; text-wrap: balance }
 h2 { font-size: clamp(26px, 4vw, 36px); display: flex; align-items: center; gap: 14px }
-h2::before { content: ''; width: 11px; height: 11px; background: var(--gold); transform: rotate(45deg); flex: none }
+h2::before { content: ''; width: 10px; height: 10px; background: var(--gold); flex: none }
 p { margin: 0; color: var(--ink2); max-width: 64ch }
 section { padding-block: 56px; border-top: 1px solid var(--line); display: grid; gap: 22px }
 .label { font-size: 12px; letter-spacing: .04em; color: var(--ink2); font-weight: 700 }
 
 .hero { background: #0E3B33; color: #fff; padding-block: 64px 56px }
 .hero .wrap { display: grid; gap: 26px }
-.hero .lockup { width: min(340px, 80vw); height: auto }
+.hero .lockup { width: min(380px, 84vw); height: auto }
 .hero p { color: #AFC8C1; font-size: 19px }
 .hero .tag { font-family: var(--display); font-size: clamp(30px, 5vw, 48px); color: #fff }
 .hero .tag span { color: #E3A535 }
 
-.anatomy { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 32px; align-items: center }
-.anatomy .big { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 28px; aspect-ratio: 1; max-width: 100% }
+.anatomy { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 32px; align-items: center }
+.anatomy .big { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px; aspect-ratio: 1; max-width: 100% }
+.gridmark { width: 100%; height: auto; display: block }
 .anatomy ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 16px }
 .anatomy li { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start }
 .anatomy li b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--soft); color: var(--teal); font-size: 14px }
@@ -95,7 +104,7 @@ section { padding-block: 56px; border-top: 1px solid var(--line); display: grid;
 
 .logos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px }
 .logo-tile { border-radius: 22px; border: 1px solid var(--line); padding: 30px; display: grid; place-items: center; min-height: 170px; gap: 12px }
-.logo-tile .lockup { width: 220px; max-width: 100%; height: auto }
+.logo-tile .lockup { width: 230px; max-width: 100%; height: auto }
 .logo-tile .m { width: 92px; height: 92px }
 .logo-tile .cap { font-size: 13px; color: inherit; opacity: .75 }
 .t-paper { background: #F7F5F0; color: #14211E } .t-green { background: #0E3B33; color: #fff } .t-card { background: var(--card); color: var(--ink) }
@@ -150,11 +159,12 @@ footer { padding-block: 32px 48px; border-top: 1px solid var(--line); color: var
   <section>
     <h2>الرمز</h2>
     <div class="anatomy">
-      <div class="big">${mark('var(--ink)', '#E3A535')}</div>
+      <div class="big">${gridMark()}</div>
       <ol>
-        <li><b>١</b><div><strong>حرف «ن» هندسي</strong>أول حروف «نَهج»، مرسوم بقوس واحد بسماكة ثابتة وأطراف دائرية.</div></li>
-        <li><b>٢</b><div><strong>طرف يرتفع</strong>الطرف الأيمن أعلى من الأيسر: نهج يتقدّم ويصعد، كما يتقدّم الطالب.</div></li>
-        <li><b>٣</b><div><strong>نقطة على شكل معيّن</strong>نقطة الخط العربي التي تُقاس بها نِسَب الحروف: رمز المنهج والدقة. والنقاط في كلمة «نَهج» معيّنات أيضاً، فالرمز والكلمة يتكلمان لغة واحدة.</div></li>
+        <li><b>١</b><div><strong>الخط الكوفي — من العراق</strong>وُلد الخط الكوفي في الكوفة، أقدم خطوط العربية. شعار تطبيق عراقي بخط عراقي الأصل.</div></li>
+        <li><b>٢</b><div><strong>الكلمة كاملة على شبكة</strong>«نهج» بالكوفي المربّع على شبكة ١٠×١٠ — مثل سجل الدرجات وجدول الحصص: كل حرف في خانته، وكل شيء في مكانه.</div></li>
+        <li><b>٣</b><div><strong>خط القاعدة هو النهج</strong>الخط الممتد تحت الحروف الثلاثة (المنقّط بالذهبي في الرسم) يربطها في سطر واحد: الطريق الذي يجمع عمل المدرّس كله.</div></li>
+        <li><b>٤</b><div><strong>خلية ذهبية واحدة</strong>نقطة النون هي الخانة الوحيدة المضيئة في الشبكة — الدرجة التي تُكتب، والحصة الحاضرة. وهي توقيع الهوية كلها: في الأيقونات وقبل العناوين.</div></li>
       </ol>
     </div>
   </section>
@@ -167,7 +177,7 @@ footer { padding-block: 32px 48px; border-top: 1px solid var(--line); color: var
       <div class="logo-tile t-card"><div class="m">${appIcon}</div><div class="cap">أيقونة التطبيق</div></div>
       <div class="logo-tile t-paper"><div class="m">${mark('#0E3B33', '#E3A535')}</div><div class="cap">الرمز وحده</div></div>
     </div>
-    <p>المسافة الآمنة حول الشعار تساوي عرض النقطة (المعيّن) مرتين على الأقل. أصغر حجم للرمز ١٦ بكسل، وللشعار الكامل ٩٦ بكسل عرضاً. لا يُمدّ الشعار ولا يُدوَّر ولا يُلوَّن بغير ألوان الهوية.</p>
+    <p>المسافة الآمنة حول الشعار خليتان من شبكته على الأقل. يبقى مقروءاً حتى ١٦ بكسل لأنه مبني على الشبكة نفسها. لا يُمدّ ولا يُدوَّر ولا يُلوَّن بغير ألوان الهوية، والخلية الذهبية لا تتغير.</p>
   </section>
 
   <section>
@@ -177,7 +187,7 @@ footer { padding-block: 32px 48px; border-top: 1px solid var(--line); color: var
     </div>
     <div class="label">ألوان النتائج (للدرجات والحضور فقط)</div>
     <div class="tones">${TONES.map(([n, bg, fg]) => `<span class="pill" style="background:${bg};color:${fg}">${n}</span>`).join('')}</div>
-    <p>الذهبي لا يُستخدم للأزرار ولا للخلفيات: هو لون النقطة وحدها، فيبقى نادراً ولافتاً.</p>
+    <p>الذهبي لا يُستخدم للأزرار ولا للخلفيات: هو لون الخلية المضيئة وحدها، فيبقى نادراً ولافتاً.</p>
   </section>
 
   <section>
@@ -192,7 +202,7 @@ footer { padding-block: 32px 48px; border-top: 1px solid var(--line); color: var
 
   <section>
     <h2>الأيقونات</h2>
-    <p>مجموعة مرسومة خصيصاً لنَهج على شبكة ٢٤، بخط ١٫٨ وأطراف دائرية. توقيعها: <strong style="color:var(--ink)">معيّن ذهبي صغير</strong> من نقطة الشعار، يظهر في الأيقونات الأساسية: نافذة البيت، قمّة أعلى عمود في الدرجات، اليوم في التقويم، وثلاثة معيّنات في «المزيد».</p>
+    <p>مجموعة مرسومة خصيصاً لنَهج على شبكة ٢٤، بخط ١٫٨ وأطراف دائرية. توقيعها: <strong style="color:var(--ink)">الخلية الذهبية</strong> من الشعار، تظهر في الأيقونات الأساسية: نافذة البيت، قمّة أعلى عمود في الدرجات، اليوم في التقويم، وثلاث خلايا في «المزيد».</p>
     <div class="icon-anatomy">
       ${['home', 'chart', 'calendar', 'more'].map((n) => `<div class="ic">${iconSvg(n)}</div>`).join('')}
     </div>
@@ -205,7 +215,7 @@ footer { padding-block: 32px 48px; border-top: 1px solid var(--line); color: var
     <h2>قواعد الواجهة</h2>
     <div class="rules">
       <div class="rule"><strong>مسطّحة بلا ظلال</strong><p>البطاقات بحدّ رفيع بلون الخط الفاصل، والتمييز بالمسافات لا بالظلال.</p></div>
-      <div class="rule"><strong>المعيّن علامة القسم</strong><p>معيّن ذهبي قبل عناوين الصفحات والأقسام، بدل الخطوط والزخارف.</p></div>
+      <div class="rule"><strong>الخلية علامة القسم</strong><p>خلية ذهبية مربعة قبل عناوين الصفحات والأقسام، بدل الخطوط والزخارف.</p></div>
       <div class="rule"><strong>لون تفاعل واحد</strong><p>الأخضر المائي للأزرار والتبويب النشط والاختيار، والأخضر العميق للأسطح البارزة.</p></div>
       <div class="rule"><strong>زوايا هادئة</strong><p>١٨–٢٢ للبطاقات، كاملة للأزرار والشرائح، وأهداف لمس ٤٤ بكسل على الأقل.</p></div>
       <div class="rule"><strong>حركة قصيرة</strong><p>٢٢٠ مللي ثانية أو أقل، بلا ارتداد، وتحترم «تقليل الحركة».</p></div>

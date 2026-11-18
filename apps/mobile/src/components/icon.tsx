@@ -1,5 +1,5 @@
-import { BRAND, MARK_BOWL, MARK_DOT, MARK_OFFSET_Y, MARK_STROKE, WORDMARK_AR } from '@nahj/shared';
-import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
+import { BRAND, KUFIC_SIZE, kuficPaths, WORDMARK_AR } from '@nahj/shared';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 /** أيقونات خطية بسماكة ١٫٨ — مرسومة لواجهة من اليمين لليسار (الرجوع ← يشير لليمين) */
 const PATHS: Record<string, string[]> = {
@@ -104,10 +104,10 @@ const CIRCLES: Record<string, [number, number, number][]> = {
   instagram: [[12, 12, 4], [17.5, 6.5, 0.6]],
 };
 
-/** معيّن (نقطة الخط العربي) — توقيع أيقونات «نَهج» */
-const rh = (x: number, y: number, r: number) => `M${x} ${y - r}L${x + r} ${y}L${x} ${y + r}L${x - r} ${y}Z`;
+/** خلية مربعة (الخلية الذهبية في الشعار الكوفي) — توقيع أيقونات «نَهج» */
+const rh = (x: number, y: number, r: number) => { const h = r * 0.82; return `M${x - h} ${y - h}h${2 * h}v${2 * h}h${-2 * h}z`; };
 
-/** أجزاء مملوءة بلون التمييز (الذهبي) — تربط الأيقونات بنقطة الشعار */
+/** أجزاء مملوءة بلون التمييز (الذهبي) — تربط الأيقونات بخلية الشعار */
 const ACCENTS: Record<string, string[]> = {
   home: [rh(12, 15.2, 2.5)],
   chart: [rh(12, 6.3, 2.3)],
@@ -143,27 +143,27 @@ export function Icon({ name, size = 24, color, strokeWidth = 1.8, fill, accent }
   );
 }
 
-/** رمز «نَهج»: حرف «ن» هندسي ونقطته معيّن (المصدر: packages/shared/src/brand.ts) */
+const KP = kuficPaths();
+
+/** رمز «نَهج»: كلمة «نهج» بالكوفي المربّع على شبكة، ونقطة النون خلية ذهبية (المصدر: packages/shared/src/brand.ts) */
 export function LogoMark({ size = 40, ink, dot }: { size?: number; ink: string; dot: string }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 120 120">
-      <G transform={`translate(0 ${MARK_OFFSET_Y})`}>
-        <Path d={MARK_BOWL} stroke={ink} strokeWidth={MARK_STROKE} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        <Path d={MARK_DOT} fill={dot} />
-      </G>
+    <Svg width={size} height={size} viewBox={`0 0 ${KUFIC_SIZE} ${KUFIC_SIZE}`}>
+      <Path d={KP.ink} fill={ink} />
+      <Path d={KP.dot} fill={dot} />
     </Svg>
   );
 }
 
-/** أيقونة التطبيق: مربع أخضر عميق، «ن» بلون الورق، ونقطة ذهبية */
+/** أيقونة التطبيق: مربع أخضر عميق، الكوفي بلون الورق، والخلية الذهبية */
 export function AppIcon({ size = 64 }: { size?: number }) {
+  const pad = 2.6;
+  const n = KUFIC_SIZE + 2 * pad;
   return (
-    <Svg width={size} height={size} viewBox="0 0 120 120">
-      <Rect width={120} height={120} rx={27} fill={BRAND.green} />
-      <G transform="translate(6 6) scale(0.9) translate(0 6)">
-        <Path d={MARK_BOWL} stroke={BRAND.paper} strokeWidth={MARK_STROKE} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        <Path d={MARK_DOT} fill={BRAND.gold} />
-      </G>
+    <Svg width={size} height={size} viewBox={`${-pad} ${-pad} ${n} ${n}`}>
+      <Rect x={-pad} y={-pad} width={n} height={n} rx={n * 0.225} fill={BRAND.green} />
+      <Path d={KP.ink} fill={BRAND.paper} />
+      <Path d={KP.dot} fill={BRAND.gold} />
     </Svg>
   );
 }
