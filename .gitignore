@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.expo/
+web-build/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+__MACOSX/
+android/
+# الوحدات الأصلية المحلية (كود Kotlin نكتبه بأنفسنا) ليست مولّدة
+!apps/mobile/modules/*/android/
+ios/
+*.keystore
+*.jks
+supabase/.temp/
+supabase/.branches/
+hosting/
