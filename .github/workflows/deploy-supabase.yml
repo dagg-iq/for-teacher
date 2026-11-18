@@ -25,7 +25,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         if: steps.check.outputs.ok == 'true'
         with:
-          version: latest
+          version: 3.2.0
       - name: Link project and apply migrations
         if: steps.check.outputs.ok == 'true'
         run: |
