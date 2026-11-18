@@ -8,6 +8,7 @@ import type { ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PortalProvider } from '@/components/portal';
+import { UpdateSheet } from '@/components/update-sheet';
 import { loadDB, useSettings } from '@/data/db';
 import { startSync } from '@/data/sync';
 import { AuthProvider, useAuth } from '@/lib/auth';
@@ -104,6 +105,7 @@ function Navigator() {
             <Stack.Screen name="book/new" options={{ animation: 'fade_from_bottom' }} />
           </Stack>
         )}
+        {ready ? <UpdateSheet /> : null}
         <ToastHost />
         <DialogHost />
       </PortalProvider>
