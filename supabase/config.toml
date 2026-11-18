@@ -13,18 +13,19 @@ major_version = 16
 
 [auth]
 enabled = true
-site_url = "midad://"
+site_url = "http://127.0.0.1:3000"
 additional_redirect_urls = ["midad://auth-callback", "https://midad-iq.web.app"]
 jwt_expiry = 3600
 enable_signup = true
 
 [auth.email]
 enable_signup = true
-enable_confirmations = true
+enable_confirmations = false
 double_confirm_changes = true
 
+# Google يُفعَّل من لوحة Supabase للمشروع الحقيقي (انظر docs/SETUP_TODO.md)
 [auth.external.google]
-enabled = true
+enabled = false
 client_id = "env(GOOGLE_CLIENT_ID)"
 secret = "env(GOOGLE_CLIENT_SECRET)"
 skip_nonce_check = true

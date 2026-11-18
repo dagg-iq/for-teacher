@@ -4,7 +4,7 @@
  * يعمل عند فتح التطبيق، وعند العودة إليه، وبعد كل تعديل بثوانٍ، ويدوياً من «الحساب».
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { chunk, SYNC_TABLES, type Base, type TableName, type TableRow } from '@midad/shared';
+import { chunk, fromServerRow, SYNC_TABLES, toServerRow, type Base, type TableName, type TableRow } from '@midad/shared';
 import { useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import { isConfigured, supabase } from '@/lib/supabase';
@@ -23,11 +23,6 @@ export function useSyncStatus(): SyncStatus {
 const CURSOR = 'midad.sync.cursor';
 const LAST = 'midad.sync.last';
 
-/** الحقول المحلية فقط (نحذف ما يضيفه الخادم) */
-function toLocal(r: Record<string, unknown>): Base {
-  const { owner_id: _o, synced_at: _s, ...rest } = r;
-  return rest as unknown as Base;
-}
 
 let running: Promise<void> | null = null;
 let userId: string | null = null;
@@ -63,8 +58,9 @@ async function run() {
       for (const part of chunk(ids, 400)) {
         const rows = syncState.rowsByIds(t, part);
         if (!rows.length) continue;
-        const payload = rows.map((r) => ({ ...r, owner_id: uid }));
-        const { error } = await supabase.from(t).upsert(payload, { onConflict: 'id' });
+        // الحقول غير الموجودة تأخذ القيمة الافتراضية في الخادم (لا null) — وإلا رُفضت الأعمدة الإلزامية
+        const payload = rows.map((r) => toServerRow(r, uid));
+        const { error } = await supabase.from(t).upsert(payload, { onConflict: 'id', defaultToNull: false });
         if (error) throw error;
         syncState.markClean(t, rows);
       }
@@ -83,7 +79,7 @@ async function run() {
         const { data, error } = await supabase.from(t).select('*').gt('synced_at', from).order('synced_at', { ascending: true }).limit(1000);
         if (error) throw error;
         if (!data?.length) break;
-        syncState.applyRemote(t as TableName, data.map((r) => toLocal(r as Record<string, unknown>)) as TableRow[TableName][]);
+        syncState.applyRemote(t as TableName, data.map((r) => fromServerRow<Base>(r as Record<string, unknown>)) as TableRow[TableName][]);
         since = String((data[data.length - 1] as { synced_at: string }).synced_at);
         cursor[t] = since;
         if (data.length < 1000) break;

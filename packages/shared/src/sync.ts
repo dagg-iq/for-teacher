@@ -51,3 +51,16 @@ export function purgeable<T extends Base>(rows: Iterable<T>, dirty: Set<string>,
   for (const r of rows) if (r.deleted && !dirty.has(r.id) && Date.parse(r.updated_at) < limit) out.push(r.id);
   return out;
 }
+
+/** سجل محلي ← صف للخادم: يضيف المالك ويحذف الحقول غير المعرّفة (لتأخذ القيمة الافتراضية) */
+export function toServerRow(row: object, ownerId: string): Record<string, unknown> {
+  const o: Record<string, unknown> = { owner_id: ownerId };
+  for (const [k, v] of Object.entries(row)) if (v !== undefined) o[k] = v;
+  return o;
+}
+
+/** صف من الخادم ← سجل محلي: يحذف ما يضيفه الخادم */
+export function fromServerRow<T>(row: Record<string, unknown>): T {
+  const { owner_id: _o, synced_at: _s, ...rest } = row;
+  return rest as T;
+}

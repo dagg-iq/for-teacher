@@ -61,3 +61,24 @@ jobs:
       - name: Type-check every function
         working-directory: supabase/functions
         run: for f in */index.ts; do echo "== $f"; deno check --node-modules-dir=none "$f"; done
+
+  # المزامنة الحقيقية: Supabase كامل محلياً (Docker) + supabase-js بنفس شكل بيانات التطبيق
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start Supabase
+        run: supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor,realtime,storage-api
+      - name: Sync end-to-end
+        run: |
+          eval "$(supabase status -o env | sed 's/^/export /')"
+          SUPABASE_TEST_URL="$API_URL" SUPABASE_TEST_ANON="$ANON_KEY" SUPABASE_TEST_SERVICE="$SERVICE_ROLE_KEY" npx vitest run --root supabase/tests
