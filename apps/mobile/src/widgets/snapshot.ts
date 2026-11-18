@@ -10,6 +10,8 @@ export interface WidgetSnapshot {
   periods: { start: string; end: string }[];
   slots: { day: number; period: number; title: string; room: string | null }[];
   theme: 'system' | 'light' | 'dark';
+  /** شكل الأرقام كما في إعدادات التطبيق */
+  digits?: 'latn' | 'arab';
   configured: boolean;
   updatedAt: string;
 }

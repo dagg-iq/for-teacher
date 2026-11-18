@@ -13,7 +13,7 @@ const TABS: { name: string; label: string; icon: IconName }[] = [
   { name: 'classes', label: 'الصفوف', icon: 'school' },
   { name: 'grades', label: 'الدرجات', icon: 'chart' },
   { name: 'schedule', label: 'الجدول', icon: 'calendar' },
-  { name: 'more', label: 'المزيد', icon: 'more' },
+  { name: 'more', label: 'المزيد', icon: 'apps' },
 ];
 
 

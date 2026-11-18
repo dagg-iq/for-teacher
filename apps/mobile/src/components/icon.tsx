@@ -52,6 +52,7 @@ const PATHS: Record<string, string[]> = {
   refresh: ['M20 11a8 8 0 1 0-2.3 5.7', 'M20 5v6h-6'],
   at: ['M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-4 7.5'],
   more: [],
+  apps: ['M5.5 4h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4A1.5 1.5 0 0 1 4 9.5v-4A1.5 1.5 0 0 1 5.5 4z', 'M14.5 4h4A1.5 1.5 0 0 1 20 5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4A1.5 1.5 0 0 1 13 9.5v-4A1.5 1.5 0 0 1 14.5 4z', 'M5.5 13h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4A1.5 1.5 0 0 1 4 18.5v-4A1.5 1.5 0 0 1 5.5 13z'],
   target: [],
   info: ['M12 11v5.5', 'M12 7.6v.4'],
   minus: ['M5 12h14'],
@@ -107,6 +108,29 @@ const CIRCLES: Record<string, [number, number, number][]> = {
 /** خلية مربعة (الخلية الذهبية في الشعار الكوفي) — توقيع أيقونات «نَهج» */
 const rh = (x: number, y: number, r: number) => { const h = r * 0.82; return `M${x - h} ${y - h}h${2 * h}v${2 * h}h${-2 * h}z`; };
 
+/** تعبئة خفيفة بلون الأيقونة نفسه (أسلوب ثنائي اللون) تعطي الأيقونات حجماً بلا ظلال */
+const TINTS: Record<string, string[]> = {
+  home: ['M4 10.6 12 4.2l8 6.4V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z'],
+  school: ['M3.5 5.5a1 1 0 0 1 1-1h15a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z'],
+  calendar: ['M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3H4z'],
+  table: ['M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v4.5H4z'],
+  clipboard: ['M6 4.5h12a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1z'],
+  'check-square': ['M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z'],
+  mic: ['M12 3.5a3 3 0 0 1 3 3V12a3 3 0 0 1-6 0V6.5a3 3 0 0 1 3-3z'],
+  users: ['M12.5 8a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0z'],
+  excel: ['M5 3h10l4 4v14H5z'],
+  print: ['M4 10h16v8H4z'],
+  timer: ['M20 13a8 8 0 1 1-16 0 8 8 0 0 1 16 0z'],
+  flag: ['M5 4h12l-2 4 2 4H5z'],
+  bell: ['M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z'],
+  cloud: ['M7 18a4 4 0 0 1-.5-8 6 6 0 0 1 11.5 1.5A3.5 3.5 0 0 1 17.5 18z'],
+  pie: ['M12 3v9h9a9 9 0 0 0-9-9z'],
+  apps: ['M5.5 4h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4A1.5 1.5 0 0 1 4 9.5v-4A1.5 1.5 0 0 1 5.5 4z'],
+  chat: ['M4 5h16v11H9l-5 4z'],
+  note: [],
+  file: ['M7 3h7l5 5v13H7z'],
+};
+
 /** أجزاء مملوءة بلون التمييز (الذهبي) — تربط الأيقونات بخلية الشعار */
 const ACCENTS: Record<string, string[]> = {
   home: [rh(12, 15.2, 2.5)],
@@ -114,6 +138,10 @@ const ACCENTS: Record<string, string[]> = {
   calendar: [rh(15.5, 15.5, 2.3)],
   school: [rh(12, 10, 2.4)],
   more: [rh(5.5, 12, 2.1), rh(12, 12, 2.1), rh(18.5, 12, 2.1)],
+  apps: ['M13 13h7v7h-7z'],
+  mic: [],
+  excel: [],
+  bell: [],
   table: [rh(15, 17.2, 1.7)],
   'check-square': [],
   clipboard: [rh(12, 5, 1.4)],
@@ -130,6 +158,7 @@ export function Icon({ name, size = 24, color, strokeWidth = 1.8, fill, accent }
 }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {fill ? null : (TINTS[name] ?? []).map((d, i) => <Path key={`t${i}`} d={d} fill={color} fillOpacity={0.14} />)}
       {PATHS[name].map((d, i) => (
         <Path key={i} d={d} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
           fill={name === 'play' ? color : fill ?? 'none'} />

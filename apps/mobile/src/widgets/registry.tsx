@@ -1,4 +1,5 @@
 'use no memo';
+import { setDigitStyle } from '@nahj/shared';
 import type { WidgetInfo, WidgetRepresentation } from 'react-native-android-widget';
 import type { WidgetSnapshot } from './snapshot';
 import { TodayWidget } from './views';
@@ -7,6 +8,8 @@ import { TodayWidget } from './views';
 export const WIDGET_NAMES = ['Today'] as const;
 
 export function renderWidgetFor(name: string, s: WidgetSnapshot, info: Pick<WidgetInfo, 'width' | 'height'>): WidgetRepresentation | null {
+  // الويدجت يعمل والتطبيق مغلق: نضبط شكل الأرقام من اللقطة
+  setDigitStyle(s.digits ?? 'latn');
   const both = (f: (mode: 'light' | 'dark') => React.JSX.Element): WidgetRepresentation =>
     s.theme === 'light' ? f('light') : s.theme === 'dark' ? f('dark') : { light: f('light'), dark: f('dark') };
   if (name === 'Today') return both((mode) => <TodayWidget s={s} mode={mode} height={info.height} />);

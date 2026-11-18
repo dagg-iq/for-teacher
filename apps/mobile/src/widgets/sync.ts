@@ -19,6 +19,7 @@ function build(theme: WidgetSnapshot['theme']): WidgetSnapshot {
       return title ? [{ day: x.day, period: x.period, title, room: x.room ?? null }] : [];
     }),
     theme,
+    digits: getSettings().prefs.digits ?? 'latn',
     configured: !!getSettings().timetable,
     updatedAt: new Date().toISOString(),
   };
@@ -30,7 +31,7 @@ async function push(theme: WidgetSnapshot['theme']) {
   if (!widgetsSupported) return;
   const s = build(theme);
   // لا نعيد الرسم إن لم يتغير ما يعرضه الويدجت (الدرجات والحضور لا تهمه)
-  const hash = JSON.stringify([s.days, s.periods, s.slots, s.theme, s.configured]);
+  const hash = JSON.stringify([s.days, s.periods, s.slots, s.theme, s.configured, s.digits]);
   if (hash === lastHash) return;
   lastHash = hash;
   await writeSnapshot(s);

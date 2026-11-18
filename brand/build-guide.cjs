@@ -27,7 +27,8 @@ const rh = (x, y, r) => { const h = r * 0.82; return `M${x - h} ${y - h}h${2 * h
 const PATHS = new Function(`return ${objOf('PATHS')}`)();
 const CIRCLES = new Function(`return ${objOf('CIRCLES')}`)();
 const ACCENTS = new Function('rh', `return ${objOf('ACCENTS')}`)(rh);
-const iconSvg = (name) => `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">${(PATHS[name] || []).map((d) => `<path d="${d}" class="i-s"${name === 'play' ? ' style="fill:currentColor"' : ''}/>`).join('')}${(CIRCLES[name] || []).map(([cx, cy, r]) => `<circle cx="${cx}" cy="${cy}" r="${r}" class="i-s"${r < 1 ? ' style="fill:currentColor"' : ''}/>`).join('')}${(ACCENTS[name] || []).map((d) => `<path d="${d}" class="i-a"/>`).join('')}</svg>`;
+const TINTS = new Function(`return ${objOf('TINTS')}`)();
+const iconSvg = (name) => `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">${(TINTS[name] || []).map((d) => `<path d="${d}" style="fill:currentColor;fill-opacity:.14;stroke:none"/>`).join('')}${(PATHS[name] || []).map((d) => `<path d="${d}" class="i-s"${name === 'play' ? ' style="fill:currentColor"' : ''}/>`).join('')}${(CIRCLES[name] || []).map(([cx, cy, r]) => `<circle cx="${cx}" cy="${cy}" r="${r}" class="i-s"${r < 1 ? ' style="fill:currentColor"' : ''}/>`).join('')}${(ACCENTS[name] || []).map((d) => `<path d="${d}" class="i-a"/>`).join('')}</svg>`;
 
 const mark = (ink, dot, extra = '') => `<svg viewBox="-0.6 -0.6 ${N + 1.2} ${N + 1.2}" ${extra}><path d="${K.ink}" fill="${ink}"/><path d="${K.dot}" fill="${dot}"/></svg>`;
 /** الرمز على شبكته الظاهرة مع تعليقات: الحروف، خط القاعدة، الخلية الذهبية */
@@ -43,7 +44,7 @@ const lockup = (ink, dot) => `<svg viewBox="0 0 ${LW.toFixed(1)} ${MH}" class="l
 const appIcon = `<svg viewBox="-2.6 -2.6 ${N + 5.2} ${N + 5.2}"><rect x="-2.6" y="-2.6" width="${N + 5.2}" height="${N + 5.2}" rx="${((N + 5.2) * 0.225).toFixed(2)}" fill="#0E3B33"/><path d="${K.ink}" fill="#F7F5F0"/><path d="${K.dot}" fill="#E3A535"/></svg>`;
 
 const FEATURED = [
-  ['home', 'الرئيسية'], ['school', 'الصفوف'], ['chart', 'الدرجات'], ['calendar', 'الجدول'], ['more', 'المزيد'],
+  ['home', 'الرئيسية'], ['school', 'الصفوف'], ['chart', 'الدرجات'], ['calendar', 'الجدول'], ['apps', 'المزيد'],
   ['table', 'السجل'], ['clipboard', 'التحضير'], ['check-square', 'الحضور'], ['mic', 'الإدخال الصوتي'], ['formula', 'المعادلات'],
   ['users', 'الطلاب'], ['excel', 'Excel'], ['print', 'طباعة'], ['timer', 'المؤقت'], ['shuffle', 'القرعة'], ['flag', 'المهام'],
   ['pie', 'الإحصاء'], ['bell', 'التذكير'], ['cloud', 'المزامنة'], ['settings', 'الإعدادات'],
@@ -203,7 +204,7 @@ footer { padding-block: 32px 48px; border-top: 1px solid var(--line); color: var
     <h2>الأيقونات</h2>
     <p>مجموعة مرسومة خصيصاً لنَهج على شبكة ٢٤، بخط ١٫٨ وأطراف دائرية. توقيعها: <strong style="color:var(--ink)">الخلية الذهبية</strong> من الشعار، تظهر في الأيقونات الأساسية: نافذة البيت، قمّة أعلى عمود في الدرجات، اليوم في التقويم، وثلاث خلايا في «المزيد».</p>
     <div class="icon-anatomy">
-      ${['home', 'chart', 'calendar', 'more'].map((n) => `<div class="ic">${iconSvg(n)}</div>`).join('')}
+      ${['home', 'chart', 'calendar', 'apps'].map((n) => `<div class="ic">${iconSvg(n)}</div>`).join('')}
     </div>
     <div class="icons">
       ${FEATURED.map(([n, l]) => `<div class="ic">${iconSvg(n)}<span>${l}</span></div>`).join('')}
