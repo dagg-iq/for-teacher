@@ -10,9 +10,7 @@ const read = (p) => fs.readFileSync(path.join(R, p), 'utf8');
 const b64 = (p) => fs.readFileSync(path.join(R, p)).toString('base64');
 
 const brand = read('packages/shared/src/brand.ts');
-const ROWS = JSON.parse(brand.match(/export const KUFIC: readonly string\[\] = (\[[\s\S]*?\]);/)[1].replace(/'/g, '"').replace(/,\s*\]/, ']'));
-const N = ROWS.length;
-const cells = () => { let ink = '', dot = ''; ROWS.forEach((r, y) => { let x = 0; while (x < r.length) { const ch = r[x]; if (ch === '.') { x++; continue; } let e = x; while (e + 1 < r.length && r[e + 1] === ch) e++; const d = `M${x} ${y}h${e - x + 1}v1h-${e - x + 1}z`; if (ch === 'o') dot += d; else ink += d; x = e + 1; } }); return { ink, dot }; };
+const { ROWS, N, LX, LY, BASELINE, TAIL, cells } = require('./kufic.cjs');
 const K = cells();
 const WM = JSON.parse(read('brand/wordmark.json'));
 
@@ -35,9 +33,10 @@ const mark = (ink, dot, extra = '') => `<svg viewBox="-0.6 -0.6 ${N + 1.2} ${N +
 /** الرمز على شبكته الظاهرة مع تعليقات: الحروف، خط القاعدة، الخلية الذهبية */
 const gridMark = () => {
   let g = '';
-  for (let i = 0; i <= N; i++) g += `<path d="M${i} 0V${N}M0 ${i}H${N}" stroke="var(--line)" stroke-width="0.04"/>`;
+  for (const v of LX) g += `<path d="M${v} ${LY[0]}V${LY.at(-1)}" stroke="var(--line)" stroke-width="0.04"/>`;
+  for (const v of LY) g += `<path d="M${LX[0]} ${v}H${LX.at(-1)}" stroke="var(--line)" stroke-width="0.04"/>`;
   return `<svg viewBox="-0.8 -0.8 ${N + 1.6} ${N + 1.6}" class="gridmark">${g}<path d="${K.ink}" fill="var(--ink)" opacity=".92"/><path d="${K.dot}" fill="#E3A535"/>
-  <path d="M-0.4 6.5H${N + 0.4}" stroke="#E3A535" stroke-width="0.08" stroke-dasharray="0.25 0.18"/></svg>`;
+  <path d="M${LX[0] - 0.4} ${BASELINE}H${LX.at(-1) + 0.4}M${LX[0] - 0.4} ${TAIL}H${LX.at(-1) + 0.4}" stroke="#E3A535" stroke-width="0.08" stroke-dasharray="0.25 0.18"/></svg>`;
 };
 const MH = 64, WS = (MH * 0.92) / WM.ar_display.h, WW = WM.ar_display.w * WS, WH = WM.ar_display.h * WS, LW = WW + 20 + MH;
 const lockup = (ink, dot) => `<svg viewBox="0 0 ${LW.toFixed(1)} ${MH}" class="lockup"><g transform="translate(0 ${((MH - WH) / 2).toFixed(1)}) scale(${WS.toFixed(4)})"><path d="${WM.ar_display.d}" fill="${ink}"/></g><g transform="translate(${(WW + 20).toFixed(1)} 0) scale(${MH / N})"><path d="${K.ink}" fill="${ink}"/><path d="${K.dot}" fill="${dot}"/></g></svg>`;
@@ -162,8 +161,8 @@ footer { padding-block: 32px 48px; border-top: 1px solid var(--line); color: var
       <div class="big">${gridMark()}</div>
       <ol>
         <li><b>١</b><div><strong>الخط الكوفي — من العراق</strong>وُلد الخط الكوفي في الكوفة، أقدم خطوط العربية. شعار تطبيق عراقي بخط عراقي الأصل.</div></li>
-        <li><b>٢</b><div><strong>الكلمة كاملة على شبكة</strong>«نهج» بالكوفي المربّع على شبكة ١٠×١٠ — مثل سجل الدرجات وجدول الحصص: كل حرف في خانته، وكل شيء في مكانه.</div></li>
-        <li><b>٣</b><div><strong>خط القاعدة هو النهج</strong>الخط الممتد تحت الحروف الثلاثة (المنقّط بالذهبي في الرسم) يربطها في سطر واحد: الطريق الذي يجمع عمل المدرّس كله.</div></li>
+        <li><b>٢</b><div><strong>الكلمة كاملة على شبكة</strong>«نهج» بالكوفي المربّع على شبكة ١١×١٣ — مثل سجل الدرجات وجدول الحصص: كل حرف في خانته. النون قائمة، والهاء بعروتين فوق القاعدة وتحتها، والجيم برأسها ونقطتها وذيل يمتد تحت الكلمة كلها. الخطوط أعرض من الفراغات (٥ إلى ٣) فيبقى الرمز واضحاً حتى في أصغر أيقونة.</div></li>
+        <li><b>٣</b><div><strong>خط القاعدة هو النهج</strong>خطّا القاعدة (المنقّطان بالذهبي في الرسم): الأول يربط الحروف الثلاثة في سطر واحد، والثاني ذيل الجيم يحمل الكلمة كلها: الطريق الذي يجمع عمل المدرّس كله.</div></li>
         <li><b>٤</b><div><strong>خلية ذهبية واحدة</strong>نقطة النون هي الخانة الوحيدة المضيئة في الشبكة — الدرجة التي تُكتب، والحصة الحاضرة. وهي توقيع الهوية كلها: في الأيقونات وقبل العناوين.</div></li>
       </ol>
     </div>

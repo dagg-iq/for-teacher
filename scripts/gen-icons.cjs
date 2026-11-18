@@ -9,16 +9,10 @@ const { chromium } = require('playwright');
 
 const ROOT = path.join(__dirname, '..');
 const brand = fs.readFileSync(path.join(ROOT, 'packages/shared/src/brand.ts'), 'utf8');
-const ROWS = JSON.parse(brand.match(/export const KUFIC: readonly string\[\] = (\[[\s\S]*?\]);/)[1].replace(/'/g, '"').replace(/,\s*\]/, ']'));
-const N = ROWS.length;
+const { ROWS, N, LX, LY, BASELINE, TAIL, cells } = require('../brand/kufic.cjs');
 const WM = JSON.parse(fs.readFileSync(path.join(ROOT, 'brand/wordmark.json'), 'utf8'));
 const GREEN = '#0E3B33', PAPER = '#F7F5F0', GOLD = '#E3A535', WHITE = '#FFFFFF';
 
-function cells() {
-  let ink = '', dot = '';
-  ROWS.forEach((r, y) => { let x = 0; while (x < r.length) { const ch = r[x]; if (ch === '.') { x++; continue; } let e = x; while (e + 1 < r.length && r[e + 1] === ch) e++; const d = `M${x} ${y}h${e - x + 1}v1h-${e - x + 1}z`; if (ch === 'o') dot += d; else ink += d; x = e + 1; } });
-  return { ink, dot };
-}
 const C = cells();
 
 /** pad: الهامش بوحدة الخلية */

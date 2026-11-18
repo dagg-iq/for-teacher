@@ -2,28 +2,46 @@
  * هوية «نَهج» — مصدر واحد للشعار في التطبيق والأيقونات والموقع والويدجت.
  *
  * الرمز: كلمة «نهج» كاملة بالخط الكوفي المربّع (وُلد الخط الكوفي في الكوفة، في العراق)،
- * مبنية على شبكة ١٠×١٠ مثل سجل الدرجات وجدول الحصص: كل حرف في خانته.
- * خط القاعدة الممتد تحت الحروف الثلاثة هو «النهج» الذي يربط كل شيء،
+ * مبنية على شبكة ١١×١٣ مثل سجل الدرجات وجدول الحصص: كل حرف في خانته.
+ * النون قائمة، والهاء بعروتين فوق خط القاعدة وتحته (ـهـ)، والجيم برأسها ونقطتها وذيلها الممتد تحت الكلمة كلها.
+ * خط القاعدة الممتد بين الحروف هو «النهج» الذي يربط كل شيء،
  * وخلية ذهبية واحدة — نقطة النون — هي الخانة المضيئة في السجل.
  *
  * '#' خلية بلون الحبر، 'o' الخلية الذهبية، '.' فراغ. الأعمدة من اليسار لليمين (الكلمة تُقرأ من اليمين).
+ * المسارات الزوجية خطوط بسماكة KUFIC_LANES.stroke والفردية فراغات بسماكة KUFIC_LANES.gap،
+ * فيبدو الرمز ثقيلاً واضحاً، ثم يُقاس كله إلى مربع ١٠×١٠ (KUFIC_SIZE) ويوسَّط فيه.
  */
 export const KUFIC: readonly string[] = [
-  '.........o',
-  '..........',
-  '###.####.#',
-  '..#.#..#.#',
-  '#.#.#..#.#',
-  '..#.####.#',
-  '##########',
-  '#.........',
-  '#.........',
-  '###.......',
+  '..........o',
+  '...........',
+  '###.#####.#',
+  '#.#.#...#.#',
+  '#.#.#...#.#',
+  '#.#.#...#.#',
+  '#.#########',
+  '#...#...#..',
+  '#.#.#...#..',
+  '#...#...#..',
+  '#...#####..',
+  '#..........',
+  '###########',
 ];
+export const KUFIC_LANES = { stroke: 5, gap: 3 } as const;
 export const KUFIC_SIZE = 10;
 
-/** مسارات SVG للرمز (الخلايا المتجاورة مدموجة حتى لا تظهر فواصل عند التصغير)، بوحدة الخلية */
+/** حدود المسارات (أعمدة وصفوف) بعد قياس الرمز إلى مربع KUFIC_SIZE وتوسيطه فيه */
+export function kuficLanes(rows: readonly string[] = KUFIC): { x: number[]; y: number[] } {
+  const acc = (n: number) => { const at = [0]; for (let i = 0; i < n; i++) at.push(at[i] + (i % 2 ? KUFIC_LANES.gap : KUFIC_LANES.stroke)); return at; };
+  const ax = acc(rows[0].length), ay = acc(rows.length);
+  const W = ax[ax.length - 1], H = ay[ay.length - 1];
+  const k = KUFIC_SIZE / Math.max(W, H);
+  const r = (v: number) => Math.round(v * 10000) / 10000;
+  return { x: ax.map((v) => r(v * k + (KUFIC_SIZE - W * k) / 2)), y: ay.map((v) => r(v * k + (KUFIC_SIZE - H * k) / 2)) };
+}
+
+/** مسارات SVG للرمز (الخلايا المتجاورة مدموجة حتى لا تظهر فواصل عند التصغير)، داخل مربع KUFIC_SIZE */
 export function kuficPaths(rows: readonly string[] = KUFIC): { ink: string; dot: string } {
+  const { x: X, y: Y } = kuficLanes(rows);
   let ink = '';
   let dot = '';
   rows.forEach((r, y) => {
@@ -33,7 +51,7 @@ export function kuficPaths(rows: readonly string[] = KUFIC): { ink: string; dot:
       if (ch === '.') { x++; continue; }
       let e = x;
       while (e + 1 < r.length && r[e + 1] === ch) e++;
-      const d = `M${x} ${y}h${e - x + 1}v1h-${e - x + 1}z`;
+      const d = `M${X[x]} ${Y[y]}H${X[e + 1]}V${Y[y + 1]}H${X[x]}z`;
       if (ch === 'o') dot += d; else ink += d;
       x = e + 1;
     }
