@@ -112,8 +112,11 @@ jobs:
           "$APKSIGNER" sign --ks "$NAHJ_KEYSTORE" --ks-key-alias "$NAHJ_KEY_ALIAS" --ks-pass env:NAHJ_STORE_PASSWORD --key-pass env:NAHJ_STORE_PASSWORD \
             --min-sdk-version 21 --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --out out/signed.apk out/nahj.apk
           mv out/signed.apk out/nahj.apk; rm -f out/nahj.apk.idsig
-          "$APKSIGNER" verify -v --print-certs out/nahj.apk | grep -E 'Verified using|DN|SHA-256'
-          "$APKSIGNER" verify -v out/nahj.apk | grep -q 'v1 scheme (JAR signing): true' || { echo "::error::توقيع v1 مفقود"; exit 1; }
+          # verify يتجاهل v1 إن لم نخبره بأن الهاتف قد يكون أقدم من أندرويد ٧، فنمرّر --min-sdk-version 21 هنا أيضاً
+          "$APKSIGNER" verify -v --print-certs --min-sdk-version 21 out/nahj.apk | tee out/verify.txt | grep -E 'Verified using|DN|SHA-256'
+          grep -q 'v1 scheme (JAR signing): true' out/verify.txt || { echo "::error::توقيع v1 مفقود"; exit 1; }
+          unzip -l out/nahj.apk | grep -E 'META-INF/.*\.(SF|RSA)$'
+          rm -f out/verify.txt
           ls -lh out
 
       - uses: actions/upload-artifact@v4
