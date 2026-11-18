@@ -157,7 +157,7 @@ async function fontCss(): Promise<string> {
 const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const n = (v: unknown) => (typeof v === 'number' ? formatScore(v, 2) : esc(v));
 
-async function page(title: string, body: string, landscape = false) {
+export async function renderPage(title: string, body: string, landscape = false) {
   const fonts = await fontCss();
   return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${esc(title)}</title>
 <style>
@@ -242,7 +242,7 @@ export async function printBook(bookId: string, mode: 'print' | 'pdf' = 'print')
     const st = columnStats(rows.map((r) => r.values[decider.id]), decider.max, book.result);
     stats = `<div class="stats"><span>عدد الطلاب: <b>${arDigits(st.total)}</b></span><span>الناجحون: <b>${arDigits(st.passCount)}</b></span><span>الراسبون: <b>${arDigits(st.failCount)}</b></span><span>نسبة النجاح: <b>${st.passRate == null ? '—' : `${formatScore(st.passRate)}٪`}</b></span><span>المعدل: <b>${formatScore(st.avg)}</b></span>${st.bands.map((b) => `<span>${esc(b.label)}: <b>${arDigits(b.count)}</b></span>`).join('')}</div>`;
   }
-  const html = await page(book.title, `${headBlock(h, book.title, h.section)}<table><thead>${head}</thead><tbody>${body}</tbody></table>${stats}${signBlock(h)}`, landscape);
+  const html = await renderPage(book.title, `${headBlock(h, book.title, h.section)}<table><thead>${head}</thead><tbody>${body}</tbody></table>${stats}${signBlock(h)}`, landscape);
   await outputHtml(html, `${book.title} - ${h.section}`, mode, landscape);
 }
 
@@ -260,7 +260,7 @@ export async function printStudentList(sectionId: string, mode: 'print' | 'pdf' 
   const students = studentsOf(sectionId);
   const blank = Array.from({ length: 8 }, () => '<td></td>').join('');
   const body = `${headBlock(h, 'قائمة أسماء الطلاب', h.section)}<table><thead><tr><th>ت</th><th>اسم الطالب</th>${Array.from({ length: 8 }, () => '<th></th>').join('')}</tr></thead><tbody>${students.map((s, i) => `<tr><td>${arDigits(i + 1)}</td><td class="name">${esc(s.name)}</td>${blank}</tr>`).join('')}</tbody></table>${signBlock(h)}`;
-  await outputHtml(await page('قائمة الأسماء', body, true), `قائمة ${h.section}`, mode, true);
+  await outputHtml(await renderPage('قائمة الأسماء', body, true), `قائمة ${h.section}`, mode, true);
 }
 
 /** سجل الغياب لشعبة (كل الأيام المسجلة) */
@@ -301,7 +301,7 @@ export async function printStudentReport(studentId: string, mode: 'print' | 'pdf
 ${parts || '<p>لا درجات بعد.</p>'}
 ${notes.length ? `<h3 style="margin:14px 0 6px;font-size:12pt">الملاحظات</h3><ul>${notes.map((x) => `<li>${esc(formatDate(parseIsoDay(x.date)))}: ${esc(x.text)}</li>`).join('')}</ul>` : ''}
 ${signBlock(h)}`;
-  await outputHtml(await page(`تقرير ${s.name}`, body), `تقرير ${s.name}`, mode);
+  await outputHtml(await renderPage(`تقرير ${s.name}`, body), `تقرير ${s.name}`, mode);
 }
 
 // ------------------------------------------------------------------ الجدول
@@ -318,7 +318,7 @@ export async function printTimetable(mode: 'print' | 'pdf' = 'print') {
     const label = sl.section_id ? sectionLabel(sl.section_id) : sl.label ?? '';
     return `<td>${esc(label)}${sl.room ? `<small>${esc(sl.room)}</small>` : ''}</td>`;
   }).join('')}</tr>`).join('');
-  const html = await page('جدول الحصص', `<div class="head"><div class="r">${esc(p?.school ?? '')}</div><div class="c"><h1>جدول الحصص الأسبوعي</h1><h2>${esc(p ? `${p.gender === 'f' ? 'المدرّسة' : 'المدرّس'}: ${p.name}` : '')}</h2></div><div class="l">${esc(p?.subject ?? '')}<br>${esc(arDigits(p?.year ?? schoolYear()))}</div></div><table class="grid"><thead>${head}</thead><tbody>${body}</tbody></table>`, true);
+  const html = await renderPage('جدول الحصص', `<div class="head"><div class="r">${esc(p?.school ?? '')}</div><div class="c"><h1>جدول الحصص الأسبوعي</h1><h2>${esc(p ? `${p.gender === 'f' ? 'المدرّسة' : 'المدرّس'}: ${p.name}` : '')}</h2></div><div class="l">${esc(p?.subject ?? '')}<br>${esc(arDigits(p?.year ?? schoolYear()))}</div></div><table class="grid"><thead>${head}</thead><tbody>${body}</tbody></table>`, true);
   await outputHtml(html, 'جدول الحصص', mode, true);
 }
 

@@ -6,7 +6,7 @@ import { Bars, Pill, Ring, Stat } from '@/components/kit';
 import { PressScale } from '@/components/motion';
 import { Card, Chip, Empty, Header, Row, Screen, SectionTitle, T } from '@/components/ui';
 import { get, useQuery } from '@/data/db';
-import { sectionLabel, sheetOf } from '@/data/queries';
+import { sectionLabel, sheetOf, statsColumn } from '@/data/queries';
 import { useTheme } from '@/lib/theme';
 
 export default function Stats() {
@@ -16,7 +16,7 @@ export default function Stats() {
   const rows = useQuery(() => (book ? sheetOf(book) : []), [book]);
   const [colId, setColId] = useState<string | null>(null);
   if (!book) return <Screen><Header /><Empty title="السجل غير موجود" /></Screen>;
-  const col = book.columns.find((x) => x.id === (colId ?? book.result.column_id)) ?? book.columns[0];
+  const col = book.columns.find((x) => x.id === colId) ?? statsColumn(book, rows) ?? book.columns[0];
   const st = columnStats(rows.map((r) => r.values[col.id]), col.max, book.result);
   const ranked = rows.filter((r) => r.values[col.id] != null).sort((a, b) => b.values[col.id]! - a.values[col.id]!);
   const top = ranked.slice(0, 5);

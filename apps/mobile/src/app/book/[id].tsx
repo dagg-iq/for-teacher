@@ -104,7 +104,7 @@ function EntryList({ bookId, columns, active, onColumn, rows, decider, focusStud
         {columns.map((col) => <Chip key={col.id} label={col.name} active={col.id === active.id} onPress={() => onColumn(col.id)} />)}
       </ScrollView>
       <Row style={{ justifyContent: 'space-between' }}>
-        <T dim size={13}>من {arDigits(active.max)} · أُدخل {arDigits(filled)} من {arDigits(rows.length)}</T>
+        <T size={13} weight="bold" style={{ flexShrink: 1 }} lines={1}>{active.name} <T dim size={13}>· من {arDigits(active.max)} · أُدخل {arDigits(filled)} من {arDigits(rows.length)}</T></T>
         <T dim size={12}>«غ» = غائب</T>
       </Row>
       <Card style={{ paddingVertical: 4 }}>

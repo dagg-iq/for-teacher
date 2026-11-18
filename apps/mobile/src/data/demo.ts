@@ -1,5 +1,5 @@
 /** بيانات تجريبية واقعية (لتجربة التطبيق ولقطات الموقع) */
-import { DEFAULT_TIMETABLE, gradeId, isoDay, schoolYear, TEMPLATES, uuid, type AttendanceStatus } from '@midad/shared';
+import { DEFAULT_TIMETABLE, gradeId, isoDay, schoolYear, sortArabic, TEMPLATES, uuid, type AttendanceStatus } from '@midad/shared';
 import { insert, insertMany, setSettings, upsertMany } from './db';
 import { attendanceId } from './queries';
 
@@ -37,7 +37,7 @@ export function seedDemo() {
       const n = `${pick(FIRST)} ${pick(FATHER)} ${pick(GRAND)}`;
       if (!used.has(n)) { used.add(n); names.push(n); }
     }
-    const students = insertMany('students', names.map((name, i) => ({ section_id: sec.id, name, number: i + 1, sort: i, parent_phone: r() > 0.5 ? `077${Math.floor(10000000 + r() * 89999999)}` : null })));
+    const students = insertMany('students', sortArabic(names).map((name, i) => ({ section_id: sec.id, name, number: i + 1, sort: i, parent_phone: r() > 0.5 ? `077${Math.floor(10000000 + r() * 89999999)}` : null })));
     // سجل السعي السنوي ونصف الأعمدة مملوءة
     const tpl = TEMPLATES.find((t) => t.key === 'saey')!.build();
     const book = insert('gradebooks', { section_id: sec.id, title: 'سجل السعي السنوي', template: 'saey', columns: tpl.columns, result: tpl.result, year: schoolYear(), pinned: si === 0 });

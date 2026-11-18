@@ -119,7 +119,7 @@ function Setup({ sectionId, bookId, columnId, mode, onSection, onBook, onColumn,
             <T weight="bold" size={14} color={c.softInk}>أوامر تفهمها</T>
             <T size={13} color={c.softInk}>«نعم» تثبيت فوري · «لا» إلغاء · «تراجع» حذف آخر درجة · «غائب» · «التالي» · «السابق» · «توقف»</T>
           </Card>
-          <Button title={n ? `ابدأ (${arDigits(n)} طالب)` : 'لا طلاب في الشعبة'} icon="mic" disabled={!columnId || !n} onPress={onStart} />
+          <Button title={!columnId ? 'ابدأ' : n ? `ابدأ (${arDigits(n)} طالب)` : 'لا طلاب في الشعبة'} icon="mic" disabled={!columnId || !n} onPress={onStart} />
         </>
       )}
     </Screen>

@@ -72,10 +72,22 @@ export function bookProgress(book: Gradebook): { filled: number; total: number }
   return { filled, total: students * inputs.length };
 }
 
+/**
+ * العمود الأنسب للإحصاء: عمود النتيجة إن كانت فيه درجات،
+ * وإلا آخر عمود فيه درجات (مثلاً في بداية السنة: الشهر الأول قبل أن يُحسب السعي).
+ */
+export function statsColumn(book: Gradebook, rows: ReturnType<typeof sheetOf>): GradeColumn | null {
+  const has = (id: string) => rows.some((r) => r.values[id] != null);
+  const decider = deciderOf(book);
+  if (decider && has(decider.id)) return decider;
+  for (let i = book.columns.length - 1; i >= 0; i--) if (has(book.columns[i].id)) return book.columns[i];
+  return decider ?? book.columns[book.columns.length - 1] ?? null;
+}
+
 export function bookStats(book: Gradebook, columnId?: string) {
-  const col = book.columns.find((c) => c.id === (columnId ?? book.result.column_id)) ?? book.columns[book.columns.length - 1];
-  if (!col) return null;
   const rows = sheetOf(book);
+  const col = (columnId ? book.columns.find((c) => c.id === columnId) : null) ?? statsColumn(book, rows);
+  if (!col) return null;
   return { column: col, rows, stats: columnStats(rows.map((r) => r.values[col.id]), col.max, book.result) };
 }
 

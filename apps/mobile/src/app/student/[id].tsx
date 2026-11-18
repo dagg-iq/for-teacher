@@ -6,7 +6,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Icon } from '@/components/icon';
-import { Pill, Stat } from '@/components/kit';
+import { Pill } from '@/components/kit';
 import { Sheet, SheetItem } from '@/components/sheet';
 import { Button, Card, Chip, Empty, Field, Header, IconButton, Row, Screen, SectionTitle, T } from '@/components/ui';
 import { all, get, insert, remove, update, useQuery, useSettings } from '@/data/db';
@@ -48,11 +48,19 @@ export default function StudentScreen() {
     <Screen>
       <Header title={s.name} subtitle={`${sectionLabel(s.section_id)}${s.number ? ` · رقم ${arDigits(s.number)}` : ''}`}
         right={<IconButton name="more" label="خيارات" onPress={() => setMenu(true)} />} />
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Stat label="غياب" value={ab.absent} icon="check-square" tone={ab.absent >= 5 ? 'bad' : ab.absent ? 'warn' : undefined} />
-        <Stat label="تأخير" value={ab.late} icon="clock" />
-        <Stat label="ملاحظات" value={notes.length} icon="note" />
-      </View>
+      <Card style={{ flexDirection: 'row', paddingVertical: 12 }}>
+        {[
+          { label: 'غياب', v: ab.absent, bad: ab.absent >= 5 },
+          { label: 'تأخير', v: ab.late, bad: false },
+          { label: 'إجازة', v: ab.excused, bad: false },
+          { label: 'ملاحظات', v: notes.length, bad: false },
+        ].map((x, i) => (
+          <View key={x.label} style={{ flex: 1, alignItems: 'center', borderRightWidth: i ? 1 : 0, borderRightColor: c.line }}>
+            <T display size={24} color={x.bad ? '#C8312B' : c.ink}>{arDigits(x.v)}</T>
+            <T dim size={12} style={{ marginTop: -4 }}>{x.label}</T>
+          </View>
+        ))}
+      </Card>
 
       {phone ? (
         <Row gap={8}>
