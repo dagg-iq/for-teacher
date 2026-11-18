@@ -1,4 +1,4 @@
-import { formatDayDate, formatTime } from '@midad/shared';
+import { formatDayDate, formatTime } from '@rasd/shared';
 import { View } from 'react-native';
 import { Stepper } from './kit';
 import { Chip, Row, T } from './ui';

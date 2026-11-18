@@ -1,4 +1,4 @@
-import { gradeId, type GradeMark } from '@midad/shared';
+import { gradeId, type GradeMark } from '@rasd/shared';
 import { get, upsert } from './db';
 
 /** يكتب درجة طالب في عمود (value = null يمسحها) */

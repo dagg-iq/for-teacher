@@ -1,6 +1,6 @@
 import {
   arDigits, ATTENDANCE_LABEL, formatDayDate, isoDay, nowState, parseIsoDay, type AttendanceStatus,
-} from '@midad/shared';
+} from '@rasd/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Share, View } from 'react-native';

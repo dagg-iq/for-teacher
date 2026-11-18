@@ -3,7 +3,7 @@
 # (محلياً: su postgres -c "bash supabase/tests/run.sh")
 set -euo pipefail
 cd "$(dirname "$0")/.."
-DB=midad_test
+DB=rasd_test
 PSQL="psql -v ON_ERROR_STOP=1 -q -U postgres"
 $PSQL -c "drop database if exists $DB" -c "create database $DB" >/dev/null
 $PSQL -d $DB -f tests/auth_stub.sql >/dev/null

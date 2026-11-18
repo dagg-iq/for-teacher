@@ -1,4 +1,4 @@
-import { arDigits } from '@midad/shared';
+import { arDigits } from '@rasd/shared';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, Share, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';

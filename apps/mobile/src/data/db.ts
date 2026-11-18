@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   DEFAULT_TIMETABLE, SYNC_TABLES, uuid,
   type Base, type TableName, type TableRow, type TeacherProfile, type TimetableConfig,
-} from '@midad/shared';
+} from '@rasd/shared';
 import { useMemo, useSyncExternalStore } from 'react';
 
 export interface Settings {
@@ -56,9 +56,9 @@ const state = {
   version: 0,
 };
 
-const KEY = (t: string) => `midad.t.${t}`;
-const DIRTY_KEY = 'midad.dirty';
-const SETTINGS_KEY = 'midad.settings';
+const KEY = (t: string) => `rasd.t.${t}`;
+const DIRTY_KEY = 'rasd.dirty';
+const SETTINGS_KEY = 'rasd.settings';
 
 // ------------------------------------------------------------------ الاشتراك
 const listeners = new Set<() => void>();
@@ -398,7 +398,7 @@ export async function wipeLocal() {
 
 // ------------------------------------------------------------------ النسخ الاحتياطي
 export interface Backup {
-  app: 'midad';
+  app: 'rasd';
   version: 1;
   exported_at: string;
   settings: Settings;
@@ -407,7 +407,7 @@ export interface Backup {
 
 export function exportBackup(): Backup {
   return {
-    app: 'midad',
+    app: 'rasd',
     version: 1,
     exported_at: nowIso(),
     settings: state.settings,
@@ -417,7 +417,7 @@ export function exportBackup(): Backup {
 
 /** يستورد نسخة احتياطية (يدمجها مع الموجود: الأحدث يفوز) */
 export function importBackup(b: Backup): number {
-  if (!b || b.app !== 'midad' || !b.tables) throw new Error('هذا الملف ليس نسخة احتياطية من مِداد');
+  if (!b || b.app !== 'rasd' || !b.tables) throw new Error('هذا الملف ليس نسخة احتياطية من رَصد');
   let n = 0;
   for (const t of SYNC_TABLES) {
     const rows = (b.tables[t] ?? []) as Base[];

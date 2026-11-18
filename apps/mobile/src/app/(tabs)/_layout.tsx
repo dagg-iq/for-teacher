@@ -27,7 +27,7 @@ export default function TabsLayout() {
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.bg } }}
       tabBar={({ state, navigation }) => (
         <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: Math.max(insets.bottom, 12), paddingHorizontal: 14 }}>
-          {/* زر الإدخال الصوتي: علامة مِداد */}
+          {/* زر الإدخال الصوتي: علامة رَصد */}
           <View pointerEvents="box-none" style={{ alignItems: 'flex-start', marginBottom: 10, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
             <PressScale onPress={() => { tap('medium'); router.push('/voice'); }} scaleTo={0.9} accessibilityRole="button" accessibilityLabel="الإدخال الصوتي"
               style={{

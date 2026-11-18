@@ -26,8 +26,8 @@ const now = () => new Date().toISOString();
 
 run('sync against real Supabase', () => {
   it('push rows with missing optional fields, pull them back, isolate users', async () => {
-    const a = await user(`a${Date.now()}@midad.test`);
-    const b = await user(`b${Date.now()}@midad.test`);
+    const a = await user(`a${Date.now()}@rasd.test`);
+    const b = await user(`b${Date.now()}@rasd.test`);
     const t = now();
     const base = { created_at: t, updated_at: t, deleted: false };
     const tpl = TEMPLATES[0].build();

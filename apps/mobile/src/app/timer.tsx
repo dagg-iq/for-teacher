@@ -1,4 +1,4 @@
-import { arDigits } from '@midad/shared';
+import { arDigits } from '@rasd/shared';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';

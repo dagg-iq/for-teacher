@@ -1,4 +1,4 @@
-import { arDigits } from '@midad/shared';
+import { arDigits } from '@rasd/shared';
 import * as Linking from 'expo-linking';
 import { useEffect, useState } from 'react';
 import { Platform, View } from 'react-native';

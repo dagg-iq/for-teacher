@@ -1,4 +1,4 @@
-import { arDigits, columnStats, formatScore } from '@midad/shared';
+import { arDigits, columnStats, formatScore } from '@rasd/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';

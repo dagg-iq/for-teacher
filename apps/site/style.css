@@ -24,9 +24,9 @@ h2::after { content: ''; display: block; width: 40px; height: 5px; border-radius
 .final h2::after { margin-inline: auto; }
 .note { color: var(--ink2); font-size: 15px; }
 
-.mark .m-drop { fill: var(--hero); }
-.mark .m-check { stroke: #F5F2EA; }
-.mark .m-d { fill: var(--gold); }
+.mark .m-ra { fill: var(--hero); }
+.mark .m-fatha { stroke: var(--gold); }
+@media (prefers-color-scheme: dark) { .mark .m-ra { fill: #F5F2EA; } }
 
 /* ── الشريط العلوي */
 .nav { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 20px; padding: 12px clamp(16px, 4vw, 48px); background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }

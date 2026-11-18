@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { classHues, palette, toneColors, type ThemeColors, type TonePalette } from '@midad/shared';
+import { classHues, palette, toneColors, type ThemeColors, type TonePalette } from '@rasd/shared';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useColorScheme, type ViewStyle } from 'react-native';
 
@@ -40,7 +40,7 @@ interface ThemeValue {
 }
 
 const Ctx = createContext<ThemeValue | null>(null);
-const KEY = 'midad.theme';
+const KEY = 'rasd.theme';
 
 export function AppThemeProvider({ children }: { children: ReactNode }) {
   const system = useColorScheme();

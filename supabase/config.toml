@@ -1,5 +1,5 @@
 # إعدادات Supabase المحلية (supabase start في CI). المشروع الحقيقي يُضبط من لوحة Supabase.
-project_id = "midad"
+project_id = "rasd"
 
 [api]
 enabled = true
@@ -9,7 +9,7 @@ max_rows = 1000
 [auth]
 enabled = true
 site_url = "http://127.0.0.1:3000"
-additional_redirect_urls = ["midad://auth-callback"]
+additional_redirect_urls = ["rasd://auth-callback"]
 enable_signup = true
 
 [auth.email]

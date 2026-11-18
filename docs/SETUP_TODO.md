@@ -20,21 +20,21 @@
    - `PUSH_SECRET` (أي نص سري طويل — لإرسال الإعلانات)
 4. أضف **متغيراً** (Variables) باسم `SUPABASE_PROJECT_REF` = رمز المشروع (الجزء الأول من الرابط).
 5. Actions ← **Deploy Supabase** ← Run workflow (يطبّق الجداول والصلاحيات ويرفع الدوال).
-6. Authentication ← URL Configuration: أضف `midad://auth-callback` في Redirect URLs.
+6. Authentication ← URL Configuration: أضف `rasd://auth-callback` في Redirect URLs.
 7. (اختياري) تسجيل Google: Authentication ← Providers ← Google، وأدخل Client ID/Secret من Google Cloud Console (OAuth، نوع Web، Redirect = `https://<ref>.supabase.co/auth/v1/callback`).
 8. أعد تشغيل **Build APK** لتأخذ النسخة الجديدة مفاتيح Supabase.
 
 ## ٣) Firebase (الإشعارات + الموقع) — ١٠ دقائق
-1. console.firebase.google.com ← مشروع جديد (مثلاً `midad-iq`).
-2. أضف تطبيق Android بالحزمة **`app.midad.teacher`** ← نزّل `google-services.json` ← ضع محتواه كاملاً في السر `GOOGLE_SERVICES_JSON`.
+1. console.firebase.google.com ← مشروع جديد (مثلاً `rasd-iq`).
+2. أضف تطبيق Android بالحزمة **`app.rasd.teacher`** ← نزّل `google-services.json` ← ضع محتواه كاملاً في السر `GOOGLE_SERVICES_JSON`.
 3. Project Settings ← Service accounts ← Generate new private key ← ضع محتوى ملف JSON في السرين:
    `FIREBASE_SERVICE_ACCOUNT` (نشر الموقع) و `FCM_SERVICE_ACCOUNT` (إرسال الإشعارات).
-4. فعّل Hosting من لوحة Firebase. أضف متغيراً `FIREBASE_PROJECT_ID` = معرّف المشروع إن اختلف عن `midad-iq`.
+4. فعّل Hosting من لوحة Firebase. أضف متغيراً `FIREBASE_PROJECT_ID` = معرّف المشروع إن اختلف عن `rasd-iq`.
 5. Actions ← **Deploy Site** ← Run workflow. الموقع على `https://<project>.web.app`.
-6. **النطاق الخاص** (مثل midad.iq أو midad.app): Hosting ← Add custom domain، ثم أضف سجلات DNS التي يعطيك إياها Firebase عند مزوّد النطاق. وأضف متغيراً `SITE_URL` بالرابط الجديد.
+6. **النطاق الخاص** (مثل rasd.iq أو rasd.app): Hosting ← Add custom domain، ثم أضف سجلات DNS التي يعطيك إياها Firebase عند مزوّد النطاق. وأضف متغيراً `SITE_URL` بالرابط الجديد.
 
 ## ٤) التنزيل والتحديث التلقائي
-1. أنشئ مستودعاً **عاماً** فارغاً `dagg-iq/midad-releases` (أو غيّر المتغير `RELEASES_REPO`).
+1. أنشئ مستودعاً **عاماً** فارغاً `dagg-iq/rasd-releases` (أو غيّر المتغير `RELEASES_REPO`).
 2. أنشئ Personal Access Token (Fine-grained، صلاحية Contents: Read & Write على ذلك المستودع) وضعه في السر `RELEASES_TOKEN`.
 3. من الآن كل بناء APK ناجح: يُنشر في المستودع العام ← يُحدَّث زر التنزيل في الموقع تلقائياً.
 

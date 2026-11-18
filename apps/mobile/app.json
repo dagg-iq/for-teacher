@@ -1,25 +1,25 @@
 {
   "expo": {
-    "name": "مِداد",
-    "slug": "midad",
+    "name": "رَصد",
+    "slug": "rasd",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "midad",
+    "scheme": "rasd",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#F5F2EA",
     "ios": {
-      "bundleIdentifier": "app.midad.teacher",
+      "bundleIdentifier": "app.rasd.teacher",
       "supportsTablet": true,
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "يحتاج مِداد الميكروفون لإدخال الدرجات بالصوت.",
-        "NSSpeechRecognitionUsageDescription": "يحتاج مِداد التعرّف على الكلام لفهم أسماء الطلاب والدرجات."
+        "NSMicrophoneUsageDescription": "يحتاج رَصد الميكروفون لإدخال الدرجات بالصوت.",
+        "NSSpeechRecognitionUsageDescription": "يحتاج رَصد التعرّف على الكلام لفهم أسماء الطلاب والدرجات."
       }
     },
     "android": {
-      "package": "app.midad.teacher",
+      "package": "app.rasd.teacher",
       "adaptiveIcon": {
-        "backgroundColor": "#173A33",
+        "backgroundColor": "#F2B544",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -68,8 +68,8 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "يحتاج مِداد الميكروفون لإدخال الدرجات بالصوت.",
-          "speechRecognitionPermission": "يحتاج مِداد التعرّف على الكلام لفهم أسماء الطلاب والدرجات.",
+          "microphonePermission": "يحتاج رَصد الميكروفون لإدخال الدرجات بالصوت.",
+          "speechRecognitionPermission": "يحتاج رَصد التعرّف على الكلام لفهم أسماء الطلاب والدرجات.",
           "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox", "com.google.android.tts"]
         }
       ],

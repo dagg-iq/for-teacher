@@ -1,8 +1,8 @@
-import { timeAgo } from '@midad/shared';
+import { timeAgo } from '@rasd/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { Icon, LogoMark, type IconName } from '@/components/icon';
+import { AppIcon, Icon, type IconName } from '@/components/icon';
 import { Group } from '@/components/kit';
 import { Button, Card, Divider, Field, Header, ListItem, Row, Screen, Segmented, T } from '@/components/ui';
 import { syncNow, useSyncStatus } from '@/data/sync';
@@ -94,7 +94,7 @@ function SignIn() {
     <Screen edges={['top', 'bottom']}>
       <Header title="الحساب" subtitle="احفظ بياناتك في السحابة" />
       <Card tone="hero" style={{ gap: 12 }}>
-        <LogoMark size={36} ink="#F5F2EA" dot="#F2B544" check="#173A33" />
+        <AppIcon size={44} />
         {PERKS.map((p) => (
           <Row key={p.text} gap={10}>
             <Icon name={p.icon} size={18} color={c.heroInk2} />

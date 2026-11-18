@@ -1,7 +1,7 @@
 import {
   arDigits, countStudents, formatClock, formatDayDate, formatScore, greeting, inMinutes, nextClass, nowState, periodName,
   relativeDays, teacherTitle, TASK_KIND_LABEL, type Slot,
-} from '@midad/shared';
+} from '@rasd/shared';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -125,7 +125,7 @@ function NowCard({ now }: { now: Date }) {
           <Icon name="calendar" size={22} color={c.gold} />
           <T weight="bold" size={17} color={c.heroInk}>أضف جدول حصصك</T>
         </Row>
-        <T size={14} color={c.heroInk2}>تعرف حصتك القادمة دائماً، ويذكّرك مِداد قبلها بدقائق.</T>
+        <T size={14} color={c.heroInk2}>تعرف حصتك القادمة دائماً، ويذكّرك رَصد قبلها بدقائق.</T>
         <Button title="إعداد الجدول" small variant="secondary" onPress={() => router.push('/schedule/setup')} style={{ alignSelf: 'flex-start' }} />
       </View>
     );

@@ -7,7 +7,7 @@
 import {
   arDigits, ATTENDANCE_LABEL, buildSheet, columnStats, DAY_NAMES, formatClock, formatDate, formatScore, MARK_LABEL,
   parseIsoDay, periodName, schoolYear, STAGE_LABEL, WEEK_ORDER, type Gradebook,
-} from '@midad/shared';
+} from '@rasd/shared';
 import { Asset } from 'expo-asset';
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
@@ -20,7 +20,7 @@ import { absencesOf, attendanceDays, gradesOf, sectionClass, sectionLabel, stude
 
 // ------------------------------------------------------------------ الملفات
 function safeName(name: string) {
-  return name.replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'midad';
+  return name.replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'rasd';
 }
 
 /** يحفظ الملف ويفتح نافذة المشاركة (واتساب، تيليجرام، Drive…) */
@@ -131,9 +131,9 @@ let fontCache: string | null = null;
 async function fontCss(): Promise<string> {
   if (fontCache != null) return fontCache;
   const faces: [string, number, number][] = [
-    ['Midad', 400, require('../../assets/fonts/thmanyahsans-Regular.otf')],
-    ['Midad', 700, require('../../assets/fonts/thmanyahsans-Bold.otf')],
-    ['MidadDisplay', 900, require('../../assets/fonts/thmanyahserifdisplay-Black.otf')],
+    ['Rasd', 400, require('../../assets/fonts/thmanyahsans-Regular.otf')],
+    ['Rasd', 700, require('../../assets/fonts/thmanyahsans-Bold.otf')],
+    ['RasdDisplay', 900, require('../../assets/fonts/thmanyahserifdisplay-Black.otf')],
   ];
   const out: string[] = [];
   for (const [family, weight, mod] of faces) {
@@ -164,11 +164,11 @@ export async function renderPage(title: string, body: string, landscape = false)
 ${fonts}
 @page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: 12mm 10mm; }
 * { box-sizing: border-box; }
-body { font-family: Midad, 'Noto Naskh Arabic', 'Noto Sans Arabic', Tahoma, sans-serif; color: #111; margin: 0; font-size: 11pt; direction: rtl; }
+body { font-family: Rasd, 'Noto Naskh Arabic', 'Noto Sans Arabic', Tahoma, sans-serif; color: #111; margin: 0; font-size: 11pt; direction: rtl; }
 .head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 10px; gap: 12px; }
 .head .r, .head .l { font-size: 10pt; line-height: 1.7; }
 .head .c { text-align: center; }
-.head h1 { font-family: MidadDisplay, Midad, serif; font-size: 18pt; margin: 0; }
+.head h1 { font-family: RasdDisplay, Rasd, serif; font-size: 18pt; margin: 0; }
 .head h2 { font-size: 11pt; margin: 2px 0 0; font-weight: 700; color: #333; }
 table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
 tr { page-break-inside: avoid; }
@@ -186,7 +186,7 @@ tr:nth-child(even) td { background: #FAFAF8; }
 .foot { margin-top: 14px; font-size: 8pt; color: #8A8A85; text-align: center; }
 .grid td { height: 52px; vertical-align: middle; }
 .grid td small { display: block; color: #555; font-size: 8.5pt; }
-</style></head><body>${body}<div class="foot">أُعدّ بتطبيق مِداد</div></body></html>`;
+</style></head><body>${body}<div class="foot">أُعدّ بتطبيق رَصد</div></body></html>`;
 }
 
 function headBlock(h: ReturnType<typeof headerInfo>, title: string, sub: string) {

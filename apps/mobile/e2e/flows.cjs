@@ -30,7 +30,7 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   const page = await (await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ar-IQ' })).newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  const db = (t) => page.evaluate((t) => JSON.parse(localStorage.getItem(`midad.t.${t}`) || '[]').filter((r) => !r.deleted), t);
+  const db = (t) => page.evaluate((t) => JSON.parse(localStorage.getItem(`rasd.t.${t}`) || '[]').filter((r) => !r.deleted), t);
   const wait = (ms = 400) => page.waitForTimeout(ms);
   const click = async (text, exact = true) => { await page.getByText(text, { exact }).first().click(); await wait(); };
 
@@ -44,7 +44,7 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   await click('ابدأ');
   await wait(800);
   ok(page.url().endsWith('/'), 'الملف حُفظ والانتقال للرئيسية');
-  const settings = await page.evaluate(() => JSON.parse(localStorage.getItem('midad.settings') || '{}'));
+  const settings = await page.evaluate(() => JSON.parse(localStorage.getItem('rasd.settings') || '{}'));
   ok(settings.profile?.name === 'زينب كاظم' && settings.profile?.gender === 'f', 'الاسم واللقب محفوظان');
 
   // صف جديد
@@ -165,6 +165,32 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
     ok(gi('أحمد علي حسين')?.value === 66 && gi('زيد خالد')?.value === 70, 'الاستيراد: كُتبت درجات Excel في الشهر الأول');
   }
 
+  // ٥ج) تصدير Excel حقيقي: يُنزَّل ملف ويُقرأ ويُتحقق من محتواه
+  {
+    await page.goto(base + `/book/${book.id}`, { waitUntil: 'networkidle' });
+    await wait(800);
+    await page.getByLabel('خيارات').click();
+    await wait(400);
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.getByText('تصدير Excel', { exact: true }).click()]);
+    const file = await dl.path();
+    const XLSX = require('xlsx');
+    const wb = XLSX.read(require('fs').readFileSync(file));
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+    const flat = rows.flat().map(String);
+    ok(flat.includes('أحمد علي حسين') && flat.includes('66') && wb.Workbook?.Views?.[0]?.RTL, 'تصدير Excel: الأسماء والدرجات، والورقة من اليمين لليسار');
+    ok(flat.some((x) => /نسبة النجاح/.test(x)), 'تصدير Excel: فيه الإحصاء');
+    // الطباعة: تفتح نافذة فيها الجدول والترويسة
+    await page.getByLabel('خيارات').click();
+    await wait(400);
+    const [popup] = await Promise.all([page.waitForEvent('popup'), page.getByText('طباعة', { exact: true }).click()]);
+    await popup.waitForLoadState();
+    const html = await popup.content();
+    ok(/وزارة التربية/.test(html) && /أحمد علي حسين/.test(html) && /@font-face/.test(html), 'الطباعة: ترويسة رسمية وأسماء وخط مضمّن');
+    await popup.setViewportSize({ width: 1123, height: 794 });
+    await popup.screenshot({ path: `${shots}/flow-print.png` });
+    await popup.close();
+  }
+
   // ٦) الحضور
   await page.goto(base + `/attendance?section=${sec.id}`, { waitUntil: 'networkidle' });
   await wait(800);
@@ -178,7 +204,7 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   await wait(800);
   await click('حفظ');
   await wait(800);
-  const s2 = await page.evaluate(() => JSON.parse(localStorage.getItem('midad.settings') || '{}'));
+  const s2 = await page.evaluate(() => JSON.parse(localStorage.getItem('rasd.settings') || '{}'));
   ok(s2.timetable?.periods?.length === 6, 'أُعدّ الجدول بستة حصص');
 
   ok(errors.length === 0, `بلا أخطاء JavaScript ${errors.length ? errors.join(' | ') : ''}`);

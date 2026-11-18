@@ -1,4 +1,4 @@
-import { arDigits, countStudents, formatDayDate, parseIsoDay } from '@midad/shared';
+import { arDigits, countStudents, formatDayDate, parseIsoDay } from '@rasd/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { TextInput, View } from 'react-native';
@@ -13,7 +13,7 @@ import { Alert } from '@/lib/dialog';
 import { exportStudentList, printStudentList } from '@/lib/export';
 import { fonts, useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
-import { normalizeArabic } from '@midad/shared';
+import { normalizeArabic } from '@rasd/shared';
 
 type Tab = 'students' | 'books' | 'attendance';
 

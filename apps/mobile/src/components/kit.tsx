@@ -1,5 +1,5 @@
-/** مكونات إضافية خاصة بمِداد: بطاقات الأرقام، الشارات، حلقة النسبة، الأعمدة، المفاتيح */
-import { arDigits, formatScore, radius, type Tone } from '@midad/shared';
+/** مكونات إضافية خاصة برَصد: بطاقات الأرقام، الشارات، حلقة النسبة، الأعمدة، المفاتيح */
+import { arDigits, formatScore, radius, type Tone } from '@rasd/shared';
 import { useEffect, type ReactNode } from 'react';
 import { Pressable, Switch, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';

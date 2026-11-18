@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  
+  <g transform="translate(60 60) scale(1) translate(-60 -60)">
+  <path d="M73.47 24H70.78L61.66 45.73C68.5 52.57 77.49 60.75 83.12 69.87C78.83 84.62 59.12 94.27 34.31 98.7V101.38L63.14 116C76.42 100.58 85.94 80.33 85.94 60.48C85.94 58.33 85.8 56.05 85.4 53.77L89.69 43.98Z" fill="#123A33"/>
+  <path d="M54 14 L76 5" stroke="#F2B544" stroke-width="8" stroke-linecap="round" fill="none"/>
+</g>
+</svg>

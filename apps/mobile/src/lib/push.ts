@@ -15,7 +15,7 @@ export async function registerDevice(uid: string) {
     const ok = await ensurePermission(false);
     if (!ok) return;
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('news', { name: 'أخبار مِداد', importance: Notifications.AndroidImportance.DEFAULT }).catch(() => {});
+      await Notifications.setNotificationChannelAsync('news', { name: 'أخبار رَصد', importance: Notifications.AndroidImportance.DEFAULT }).catch(() => {});
     }
     const t = await Notifications.getDevicePushTokenAsync();
     if (!t?.data || typeof t.data !== 'string') return;

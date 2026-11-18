@@ -1,14 +1,14 @@
 {
-  "name": "midad",
+  "name": "rasd",
   "private": true,
   "workspaces": [
     "apps/mobile",
     "packages/*"
   ],
   "scripts": {
-    "test": "npm run test -w @midad/shared",
+    "test": "npm run test -w @rasd/shared",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "mobile:start": "npm run start -w @midad/mobile",
-    "mobile:web": "npm run web -w @midad/mobile"
+    "mobile:start": "npm run start -w @rasd/mobile",
+    "mobile:web": "npm run web -w @rasd/mobile"
   }
 }

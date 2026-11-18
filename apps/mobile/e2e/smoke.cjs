@@ -56,7 +56,7 @@ const ROUTES = (process.env.ROUTES || [
   }
   // معرفات من البيانات المحفوظة
   const ids = await page.evaluate(() => {
-    const get = (t) => JSON.parse(localStorage.getItem(`midad.t.${t}`) || '[]');
+    const get = (t) => JSON.parse(localStorage.getItem(`rasd.t.${t}`) || '[]');
     return { classes: get('classes'), sections: get('sections'), students: get('students'), books: get('gradebooks') };
   });
   const extra = [];

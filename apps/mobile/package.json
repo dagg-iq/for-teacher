@@ -1,5 +1,5 @@
 {
-  "name": "@midad/mobile",
+  "name": "@rasd/mobile",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "private": true,
@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@midad/shared": "*",
+    "@rasd/shared": "*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.117.2",
     "expo": "~57.0.26",

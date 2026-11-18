@@ -1,4 +1,4 @@
-# يبني ملف APK لتطبيق مِداد وينشره في صفحة Releases.
+# يبني ملف APK لتطبيق رَصد وينشره في صفحة Releases.
 # الأسرار (اختيارية، والبناء ينجح بدونها):
 #   SUPABASE_URL و SUPABASE_ANON_KEY  ← المزامنة السحابية والحساب
 #   GOOGLE_SERVICES_JSON              ← الإشعارات البعيدة (Firebase)
@@ -28,11 +28,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      RELEASES_REPO: ${{ vars.RELEASES_REPO || 'dagg-iq/midad-releases' }}
+      RELEASES_REPO: ${{ vars.RELEASES_REPO || 'dagg-iq/rasd-releases' }}
       HAS_RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN != '' }}
       EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-      EXPO_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://midad-iq.web.app' }}
+      EXPO_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://rasd-iq.web.app' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -70,12 +70,12 @@ jobs:
         env:
           SIGNING_PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
         run: |
-          ENC=signing/midad-release.keystore.enc
+          ENC=signing/rasd-release.keystore.enc
           if [ -f "$ENC" ]; then
             [ -n "$SIGNING_PASSPHRASE" ] || { echo "::error::مفتاح التوقيع موجود لكن السر SIGNING_PASSPHRASE غير مضاف."; exit 1; }
-            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SIGNING_PASSPHRASE -in "$ENC" -out "$RUNNER_TEMP/midad.keystore"
-            { echo "MIDAD_KEYSTORE=$RUNNER_TEMP/midad.keystore"; echo "MIDAD_KEY_ALIAS=midad"; } >> "$GITHUB_ENV"
-            MIDAD_KEYSTORE="$RUNNER_TEMP/midad.keystore" MIDAD_STORE_PASSWORD="$SIGNING_PASSPHRASE" MIDAD_KEY_ALIAS=midad MIDAD_KEY_PASSWORD="$SIGNING_PASSPHRASE" node scripts/apply-signing.js
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SIGNING_PASSPHRASE -in "$ENC" -out "$RUNNER_TEMP/rasd.keystore"
+            { echo "RASD_KEYSTORE=$RUNNER_TEMP/rasd.keystore"; echo "RASD_KEY_ALIAS=rasd"; } >> "$GITHUB_ENV"
+            RASD_KEYSTORE="$RUNNER_TEMP/rasd.keystore" RASD_STORE_PASSWORD="$SIGNING_PASSPHRASE" RASD_KEY_ALIAS=rasd RASD_KEY_PASSWORD="$SIGNING_PASSPHRASE" node scripts/apply-signing.js
           else
             echo "::notice::لا يوجد مفتاح توقيع خاص بعد — النسخة موقّعة بمفتاح Expo العام. شغّل Create Signing Key قبل النشر للمدرسين."
           fi
@@ -84,8 +84,8 @@ jobs:
         working-directory: apps/mobile/android
         env:
           APK_BUILD: ${{ github.run_number }}
-          MIDAD_STORE_PASSWORD: ${{ secrets.SIGNING_PASSPHRASE }}
-          MIDAD_KEY_PASSWORD: ${{ secrets.SIGNING_PASSPHRASE }}
+          RASD_STORE_PASSWORD: ${{ secrets.SIGNING_PASSPHRASE }}
+          RASD_KEY_PASSWORD: ${{ secrets.SIGNING_PASSPHRASE }}
         run: |
           printf '\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g\n' >> gradle.properties
           ./gradlew assembleRelease --no-daemon --stacktrace -PreactNativeArchitectures=arm64-v8a,armeabi-v7a 2>&1 | tee ../../../gradle.log
@@ -97,34 +97,34 @@ jobs:
 
       - name: Rename and verify APK
         env:
-          MIDAD_STORE_PASSWORD: ${{ secrets.SIGNING_PASSPHRASE }}
+          RASD_STORE_PASSWORD: ${{ secrets.SIGNING_PASSPHRASE }}
         run: |
           mkdir -p out
-          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk out/midad.apk
+          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk out/rasd.apk
           APKSIGNER=$(ls -d "${ANDROID_HOME:-/usr/local/lib/android/sdk}"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
-          if [ -n "$APKSIGNER" ] && [ -n "${MIDAD_KEYSTORE:-}" ]; then
-            "$APKSIGNER" sign --ks "$MIDAD_KEYSTORE" --ks-key-alias "$MIDAD_KEY_ALIAS" --ks-pass env:MIDAD_STORE_PASSWORD --key-pass env:MIDAD_STORE_PASSWORD \
-              --min-sdk-version 24 --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --out out/signed.apk out/midad.apk
-            mv out/signed.apk out/midad.apk; rm -f out/midad.apk.idsig
+          if [ -n "$APKSIGNER" ] && [ -n "${RASD_KEYSTORE:-}" ]; then
+            "$APKSIGNER" sign --ks "$RASD_KEYSTORE" --ks-key-alias "$RASD_KEY_ALIAS" --ks-pass env:RASD_STORE_PASSWORD --key-pass env:RASD_STORE_PASSWORD \
+              --min-sdk-version 24 --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --out out/signed.apk out/rasd.apk
+            mv out/signed.apk out/rasd.apk; rm -f out/rasd.apk.idsig
           fi
-          [ -n "$APKSIGNER" ] && "$APKSIGNER" verify --print-certs out/midad.apk | grep -E 'DN|SHA-256' || true
+          [ -n "$APKSIGNER" ] && "$APKSIGNER" verify --print-certs out/rasd.apk | grep -E 'DN|SHA-256' || true
           ls -lh out
 
       - uses: actions/upload-artifact@v4
         with:
-          name: midad-apk
-          path: out/midad.apk
+          name: rasd-apk
+          path: out/rasd.apk
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-${{ github.run_number }}
-          name: مِداد — نسخة ${{ github.run_number }}
+          name: رَصد — نسخة ${{ github.run_number }}
           body: |
-            ملف APK لتطبيق مِداد (أندرويد). حمّل midad.apk وثبّته.
+            ملف APK لتطبيق رَصد (أندرويد). حمّل rasd.apk وثبّته.
             الفرع: ${{ github.ref_name }} — الكود: ${{ github.sha }}
           prerelease: true
-          files: out/midad.apk
+          files: out/rasd.apk
 
       - name: Publish to public releases repo
         if: env.HAS_RELEASES_TOKEN == 'true'
@@ -133,10 +133,10 @@ jobs:
           repository: ${{ env.RELEASES_REPO }}
           token: ${{ secrets.RELEASES_TOKEN }}
           tag_name: apk-${{ github.run_number }}
-          name: مِداد — نسخة ${{ github.run_number }}
-          body: ملف APK لتطبيق مِداد (أندرويد).
+          name: رَصد — نسخة ${{ github.run_number }}
+          body: ملف APK لتطبيق رَصد (أندرويد).
           make_latest: true
-          files: out/midad.apk
+          files: out/rasd.apk
 
       - name: Point the site's download button at the new version
         if: env.HAS_RELEASES_TOKEN == 'true'
@@ -144,9 +144,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           N: ${{ github.run_number }}
         run: |
-          SIZE=$(( ($(stat -c %s out/midad.apk) + 524288) / 1048576 ))
-          URL="https://github.com/$RELEASES_REPO/releases/download/apk-$N/midad.apk"
-          git config user.name "midad-bot"
+          SIZE=$(( ($(stat -c %s out/rasd.apk) + 524288) / 1048576 ))
+          URL="https://github.com/$RELEASES_REPO/releases/download/apk-$N/rasd.apk"
+          git config user.name "rasd-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           for i in 1 2 3 4; do
             git fetch origin "$GITHUB_REF_NAME" && git reset --hard "origin/$GITHUB_REF_NAME"

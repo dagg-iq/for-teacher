@@ -1,5 +1,5 @@
 /** بيانات تجريبية واقعية (لتجربة التطبيق ولقطات الموقع) */
-import { DEFAULT_TIMETABLE, gradeId, isoDay, schoolYear, sortArabic, TEMPLATES, uuid, type AttendanceStatus } from '@midad/shared';
+import { DEFAULT_TIMETABLE, gradeId, isoDay, schoolYear, sortArabic, TEMPLATES, uuid, type AttendanceStatus } from '@rasd/shared';
 import { insert, insertMany, setSettings, upsertMany } from './db';
 import { attendanceId } from './queries';
 

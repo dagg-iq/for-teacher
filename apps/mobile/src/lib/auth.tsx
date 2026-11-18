@@ -24,7 +24,7 @@ interface AuthValue {
 }
 
 const Ctx = createContext<AuthValue | null>(null);
-const OWNER = 'midad.owner';
+const OWNER = 'rasd.owner';
 
 export const authRedirectUrl = () => Linking.createURL('auth-callback');
 

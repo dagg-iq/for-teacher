@@ -1,4 +1,4 @@
-import { arDigits, STAGE_LABEL } from '@midad/shared';
+import { arDigits, STAGE_LABEL } from '@rasd/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';

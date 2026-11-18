@@ -1,4 +1,4 @@
-import { arDigits, countSections, countStudents, STAGE_LABEL } from '@midad/shared';
+import { arDigits, countSections, countStudents, STAGE_LABEL } from '@rasd/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -9,7 +9,7 @@ import { Card, Empty, Fab, Header, IconButton, Row, Screen, T } from '@/componen
 import { all, count, useQuery } from '@/data/db';
 import { classesSorted, sectionLabel, sectionsOf } from '@/data/queries';
 import { useTheme } from '@/lib/theme';
-import { normalizeArabic } from '@midad/shared';
+import { normalizeArabic } from '@rasd/shared';
 
 export default function Classes() {
   const { c, hue } = useTheme();

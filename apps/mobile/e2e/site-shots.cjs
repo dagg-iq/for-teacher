@@ -28,7 +28,7 @@ async function shoot(base, scheme, plan) {
   await page.getByText('جرّب ببيانات تجريبية').click();
   await page.waitForTimeout(1500);
   const ids = await page.evaluate(() => {
-    const g = (t) => JSON.parse(localStorage.getItem(`midad.t.${t}`) || '[]');
+    const g = (t) => JSON.parse(localStorage.getItem(`rasd.t.${t}`) || '[]');
     const books = g('gradebooks');
     const saey = books.find((b) => b.template === 'saey');
     return { book: saey.id, col: saey.columns.find((c) => c.kind === 'input' && c.name === 'نصف السنة').id, monthly: books.find((b) => b.template === 'monthly').id };
@@ -53,7 +53,7 @@ async function shoot(base, scheme, plan) {
     await page.getByText(/^ابدأ/).first().click(); await page.waitForTimeout(700);
     await page.getByLabel('إعدادات الصوت').click(); await page.waitForTimeout(300);
     await page.getByText('خانة الكتابة', { exact: true }).click(); await page.mouse.click(200, 60); await page.waitForTimeout(400);
-    const names = await page.evaluate(() => JSON.parse(localStorage.getItem('midad.t.students') || '[]').map((s) => s.name));
+    const names = await page.evaluate(() => JSON.parse(localStorage.getItem('rasd.t.students') || '[]').map((s) => s.name));
     const box = page.getByPlaceholder('أو اكتب: أحمد علي ٨٥');
     const say = async (t) => { await box.fill(t); await box.press('Enter'); await page.waitForTimeout(250); };
     const sorted = await page.evaluate(() => [...document.querySelectorAll('div')].length);

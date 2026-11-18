@@ -1,4 +1,4 @@
-import { COMMON_SUBJECTS, GOVERNORATES, isoDay, type TeacherProfile } from '@midad/shared';
+import { COMMON_SUBJECTS, GOVERNORATES, isoDay, type TeacherProfile } from '@rasd/shared';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { router } from 'expo-router';
@@ -25,7 +25,7 @@ export default function Settings() {
   const backup = async () => {
     try {
       const data = new TextEncoder().encode(JSON.stringify(exportBackup()));
-      await saveAndShare(`نسخة مداد ${isoDay()}.json`, data, 'application/json');
+      await saveAndShare(`نسخة رَصد ${isoDay()}.json`, data, 'application/json');
     } catch (e) { toast(e instanceof Error ? e.message : 'تعذّر', { tone: 'bad' }); }
   };
   const restore = async () => {
@@ -108,7 +108,7 @@ export default function Settings() {
       <Group>
         <ListItem icon="cloud" title="الحساب والمزامنة" onPress={() => router.push('/account')} />
         <Divider />
-        <ListItem icon="info" title="عن مِداد" onPress={() => router.push('/about')} />
+        <ListItem icon="info" title="عن رَصد" onPress={() => router.push('/about')} />
         <Divider />
         <ListItem icon="trash" title="مسح كل البيانات من الهاتف" danger onPress={wipe} />
       </Group>

@@ -1,4 +1,4 @@
-import { arDigits, initials, radius } from '@midad/shared';
+import { arDigits, initials, radius } from '@rasd/shared';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, type ReactNode } from 'react';
@@ -254,7 +254,7 @@ export function Button({
 }
 
 // ---------------------------------------------------------------- البطاقات والقوائم
-/** ظل ناعم مائل للأخضر (بدل الحدود) — هوية مِداد */
+/** ظل ناعم مائل للأخضر (بدل الحدود) — هوية رَصد */
 export function elevation(color: string): ViewStyle {
   return { shadowColor: '#173A33', shadowOpacity: 1, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2, boxShadow: `0 4px 14px ${color}` } as ViewStyle;
 }

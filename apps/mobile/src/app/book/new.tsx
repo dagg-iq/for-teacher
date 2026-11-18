@@ -1,4 +1,4 @@
-import { cloneColumns, countSections, schoolYear, TEMPLATES, type TemplateDef } from '@midad/shared';
+import { cloneColumns, countSections, schoolYear, TEMPLATES, type TemplateDef } from '@rasd/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';

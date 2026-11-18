@@ -1,4 +1,4 @@
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 
 /** أيقونات خطية بسماكة ١٫٨ — مرسومة لواجهة من اليمين لليسار (الرجوع ← يشير لليمين) */
 const PATHS: Record<string, string[]> = {
@@ -123,14 +123,27 @@ export function Icon({ name, size = 24, color, strokeWidth = 1.8, fill }: {
   );
 }
 
-/** رمز «مِداد»: قطرة حبر فيها علامة صح (التصحيح)، ونقطة طباشير ذهبية */
-export const DROP_PATH = 'M60 8C60 8 22 50 22 77A38 38 0 0 0 98 77C98 50 60 8 60 8Z';
-export function LogoMark({ size = 40, ink, dot, check = '#FFFFFF' }: { size?: number; ink: string; dot: string; check?: string }) {
+/** رمز «رَصد»: حرف الراء بخط ثمانية العريض وفتحته طبشورة — المصدر scripts/ra-path.txt */
+export const RA_PATH = 'M73.47 24H70.78L61.66 45.73C68.5 52.57 77.49 60.75 83.12 69.87C78.83 84.62 59.12 94.27 34.31 98.7V101.38L63.14 116C76.42 100.58 85.94 80.33 85.94 60.48C85.94 58.33 85.8 56.05 85.4 53.77L89.69 43.98Z';
+export const FATHA_PATH = 'M54 14 L76 5';
+export function LogoMark({ size = 40, ink, dot }: { size?: number; ink: string; dot: string; check?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 120 120">
-      <Path d={DROP_PATH} fill={ink} />
-      <Path d="M43 77l12 12 23-25" stroke={check} strokeWidth={10} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <Circle cx={96} cy={22} r={9} fill={dot} />
+      <Path d={RA_PATH} fill={ink} />
+      <Path d={FATHA_PATH} stroke={dot} strokeWidth={8} strokeLinecap="round" fill="none" />
+    </Svg>
+  );
+}
+
+/** أيقونة التطبيق: مربع ذهبي والحرف بأخضر السبورة (نفس أيقونة الهاتف) */
+export function AppIcon({ size = 64 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 120 120">
+      <Rect width={120} height={120} rx={30} fill="#F2B544" />
+      <G transform="translate(60 60) scale(0.74) translate(-60 -60)">
+        <Path d={RA_PATH} fill="#123A33" />
+        <Path d={FATHA_PATH} stroke="#123A33" strokeWidth={8} strokeLinecap="round" fill="none" />
+      </G>
     </Svg>
   );
 }

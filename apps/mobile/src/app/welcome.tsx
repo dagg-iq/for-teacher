@@ -1,10 +1,10 @@
-import { COMMON_SUBJECTS, GOVERNORATES, schoolYear, type TeacherProfile } from '@midad/shared';
+import { COMMON_SUBJECTS, GOVERNORATES, schoolYear, type TeacherProfile } from '@rasd/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Icon, LogoMark, type IconName } from '@/components/icon';
+import { AppIcon, Icon, type IconName } from '@/components/icon';
 import { enter, PressScale } from '@/components/motion';
 import { Button, Chip, Field, Row, Segmented, T } from '@/components/ui';
 import { setSettings, useSettings } from '@/data/db';
@@ -14,7 +14,7 @@ import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
 
 const FEATURES: { icon: IconName; title: string; body: string }[] = [
-  { icon: 'mic', title: 'الدرجات بصوتك', body: 'قل اسم الطالب ودرجته، ومِداد يكتبها في مكانها.' },
+  { icon: 'mic', title: 'الدرجات بصوتك', body: 'قل اسم الطالب ودرجته، ورَصد يكتبها في مكانها.' },
   { icon: 'formula', title: 'سجل يحسب وحده', body: 'السعي السنوي والمعدلات والتقديرات بمعادلات جاهزة أو من تصميمك.' },
   { icon: 'calendar', title: 'جدولك وحضورك', body: 'حصتك القادمة، الغيابات، التحضير اليومي، وتذكير قبل كل حصة.' },
   { icon: 'excel', title: 'Excel وطباعة', body: 'صدّر السجل أو اطبعه بترويسة رسمية بضغطة واحدة.' },
@@ -31,11 +31,11 @@ function Intro({ onNext }: { onNext: () => void }) {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#173A33' }} contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 36, paddingBottom: insets.bottom + 24, gap: 26, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
       <Animated.View entering={enter(0)} style={{ gap: 10 }}>
-        <LogoMark size={76} ink="#F5F2EA" dot={c.gold} check="#173A33" />
-        <T display size={56} color="#FFFFFF">مِداد</T>
+        <AppIcon size={84} />
+        <T display size={56} color="#FFFFFF">رَصد</T>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: -6 }}>
           <View style={{ width: 26, height: 4, borderRadius: 2, backgroundColor: c.gold }} />
-          <T size={18} color="#B9D2CB">دفترك كلّه، بصوتك.</T>
+          <T size={18} color="#B9D2CB">ارصد بصوتك.</T>
         </View>
       </Animated.View>
       <View style={{ gap: 16, flex: 1 }}>
