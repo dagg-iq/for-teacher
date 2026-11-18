@@ -29,7 +29,12 @@
 7. ✅ (جلسة ٤) هوية جديدة: الاسم **نَهج**، واجهة مسطّحة بلا ظلال، أيقونات مرسومة خصيصاً بخلايا ذهبية مربعة.
 8. ✅ الشعار: «نهج» بالكوفي المربّع (شبكة ١١×١٣، خطوط ٥:٣، الجيم بذيل ممتد، نقطة النون ذهبية) — المصدر `packages/shared/src/brand.ts` + `brand/kufic.cjs`، ودليل `brand/guide.html`.
 9. ✅ إصلاح «الحزمة تبدو غير صالحة» على ColorOS: إعادة التوقيع بـ v1+v2+v3 (`--min-sdk-version 21`) وفحص v1 في البناء — apk-16.
-10. التالي: تجربة المستخدم على هاتفه، ثم إعداد Supabase/Firebase/مفتاح التوقيع (`docs/SETUP_TODO.md`).
+10. ✅ (جلسة ٥) الصوت: احتمالات المحرك (maxAlternatives 5 + `chooseHeard`) وتصحيح الرقم بلمسة «أو قصدت: 18»، صيغ عامية لـ١١–١٩، وكلمات الأعداد تُرسل للمحرك.
+11. ✅ الأرقام إنكليزية افتراضياً (`setDigitStyle`/`formatPercent`) وعربية من الإعدادات — في الواجهة والطباعة وExcel والويدجت.
+12. ✅ حركة شعار عند الفتح (`components/intro.tsx`)، بطاقة المطوّر (`components/developer.tsx`)، «عن التطبيق» جديدة.
+13. ✅ التحديثات: OTA عبر expo-updates (`RUNTIME_VERSION` في app.config.js + `.github/workflows/ota-update.yml`) وتحميل APK داخل التطبيق (`lib/updater.ts`).
+14. ✅ التراخيص (`scripts/gen-licenses.cjs` → شاشة `/licenses`)، شروط الاستخدام `apps/site/terms.html`، أيقونات ثنائية اللون.
+15. التالي: تجربة المستخدم على هاتفه، ثم إعداد Supabase/Firebase/مفتاح التوقيع/EAS (`docs/SETUP_TODO.md`).
 
 ## أوامر التحقق
 ```bash

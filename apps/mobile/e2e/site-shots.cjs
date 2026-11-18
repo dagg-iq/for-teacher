@@ -1,6 +1,6 @@
 /**
  * يلتقط صور التطبيق للموقع التعريفي (بيانات تجريبية، دقة ×٢):
- *   node e2e/site-shots.cjs /tmp/web out-dir     ثم python3 scripts/to-webp.py
+ *   node e2e/site-shots.cjs /tmp/web out-dir     ثم حوّلها إلى webp في apps/site/screens (Pillow: quality 82)
  */
 const http = require('http');
 const fs = require('fs');
@@ -54,7 +54,7 @@ async function shoot(base, scheme, plan) {
     await page.getByLabel('إعدادات الصوت').click(); await page.waitForTimeout(300);
     await page.getByText('خانة الكتابة', { exact: true }).click(); await page.mouse.click(200, 60); await page.waitForTimeout(400);
     const names = await page.evaluate(() => JSON.parse(localStorage.getItem('nahj.t.students') || '[]').map((s) => s.name));
-    const box = page.getByPlaceholder('أو اكتب: أحمد علي ٨٥');
+    const box = page.getByPlaceholder(/أو اكتب: أحمد علي (٨٥|85)/);
     const say = async (t) => { await box.fill(t); await box.press('Enter'); await page.waitForTimeout(250); };
     const sorted = await page.evaluate(() => [...document.querySelectorAll('div')].length);
     void sorted; void names;
@@ -64,7 +64,7 @@ async function shoot(base, scheme, plan) {
     if (visible[2]) { await say(`${visible[2].split(' ').slice(0, 2).join(' ')} خمسة وسبعين`); await say('نعم'); }
     if (visible[3]) { await say(`${visible[3].split(' ').slice(0, 2).join(' ')} سبعطعش`); await say('نعم'); }
     if (visible[4]) await say(`${visible[4].split(' ').slice(0, 2).join(' ')} ثمانين ونص`);
-    await page.getByPlaceholder('أو اكتب: أحمد علي ٨٥').blur();
+    await page.getByPlaceholder(/أو اكتب: أحمد علي (٨٥|85)/).blur();
     await page.waitForTimeout(300);
     await snap(page, 'voice');
   });
