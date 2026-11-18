@@ -11,12 +11,17 @@
 - ✅ الشاشات: الترحيب، الرئيسية، الصفوف، الصف، الشعبة، الاستيراد، الطالب، الدرجات، سجل جديد، السجل (إدخال سريع + جدول)، الأعمدة والمعادلات، الإحصاء، الإدخال الصوتي، الجدول، إعداد الجدول، المزيد.
 - ✅ اختبار دخان ويب بـ Playwright: `apps/mobile/e2e/smoke.cjs`.
 
+## أُنجز أيضاً
+- ✅ كل الشاشات + اختبار المسارات `e2e/flows.cjs` (١٧ فحصاً) + اختبار الشاشات فاتح/داكن.
+- ✅ Supabase: migrations + RLS مختبرة (`supabase/tests`) + دوال `push` و `delete-account`.
+- ✅ الموقع `apps/site` (+ privacy.html، صور التطبيق `e2e/site-shots.cjs`).
+- ✅ GitHub Actions: CI، Build APK، Create Signing Key، Deploy Site، Deploy Supabase، Keepalive.
+- ✅ التوثيق: README، `docs/BRAND.md`، **`docs/SETUP_TODO.md`**.
+- ✅ تنبيه التحديث داخل التطبيق، تسجيل الجهاز للإشعارات، حذف الحساب.
+
 ## التالي
-1. ✅ الشاشات الباقية (الحضور، التحضير، المهام، القرعة، المؤقت، الحساب، الإعدادات، عن التطبيق) + اختبار المسارات `e2e/flows.cjs` (١٧ فحصاً ناجحاً).
-2. Supabase: migrations + RLS + اختبارات + دالة push.
-3. الموقع التعريفي `apps/site` + Firebase Hosting.
-4. GitHub Actions: CI، بناء APK، نشر الموقع، نشر Supabase، keepalive.
-5. اختبار شامل لكل الشاشات (فاتح/غامق)، تلميع، `docs/SETUP_TODO.md`.
+1. متابعة أول بناء APK في Actions وإصلاح أي خطأ.
+2. تحسينات اختيارية: ويدجت أندرويد لجدول اليوم، شاشة الإعلانات، استيراد درجات من Excel.
 
 ## أوامر التحقق
 ```bash
