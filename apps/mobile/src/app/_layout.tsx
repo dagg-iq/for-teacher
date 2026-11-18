@@ -17,6 +17,7 @@ import { useClassReminders } from '@/lib/notify';
 import { registerDevice } from '@/lib/push';
 import { AppThemeProvider, fontAssets, useTheme } from '@/lib/theme';
 import { ToastHost } from '@/lib/toast';
+import { useWidgetSync } from '@/widgets/sync';
 
 // التطبيق عربي بالكامل: من اليمين لليسار
 if (Platform.OS !== 'web') {
@@ -87,6 +88,9 @@ function Navigator() {
 
   // تذكير الحصص (إشعارات محلية)
   useClassReminders();
+
+  // ويدجت «حصص اليوم» (أندرويد)
+  useWidgetSync();
 
   const navTheme = {
     ...(dark ? DarkTheme : DefaultTheme),

@@ -70,12 +70,39 @@
         {
           "microphonePermission": "يحتاج رَصد الميكروفون لإدخال الدرجات بالصوت.",
           "speechRecognitionPermission": "يحتاج رَصد التعرّف على الكلام لفهم أسماء الطلاب والدرجات.",
-          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox", "com.google.android.tts"]
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox",
+            "com.google.android.tts"
+          ]
         }
       ],
       "expo-web-browser",
       "expo-sharing",
-      "expo-font"
+      "expo-font",
+      [
+        "react-native-android-widget",
+        {
+          "fonts": [
+            "./assets/fonts/thmanyahsans-Regular.otf",
+            "./assets/fonts/thmanyahsans-Bold.otf",
+            "./assets/fonts/thmanyahserifdisplay-Black.otf"
+          ],
+          "widgets": [
+            {
+              "name": "Today",
+              "label": "حصص اليوم",
+              "description": "حصصك اليوم والحصة الحالية والقادمة",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000,
+              "resizeMode": "horizontal|vertical",
+              "maxResizeHeight": "400dp"
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false,
