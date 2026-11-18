@@ -80,5 +80,10 @@ jobs:
         run: supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor,realtime,storage-api
       - name: Sync end-to-end
         run: |
+          supabase status -o env | sed 's/=.*//' | tr '\n' ' '; echo
           eval "$(supabase status -o env | sed 's/^/export /')"
-          SUPABASE_TEST_URL="$API_URL" SUPABASE_TEST_ANON="$ANON_KEY" SUPABASE_TEST_SERVICE="$SERVICE_ROLE_KEY" npx vitest run --root supabase/tests
+          export SUPABASE_TEST_URL="${API_URL:-http://127.0.0.1:54321}"
+          export SUPABASE_TEST_ANON="${ANON_KEY:-$PUBLISHABLE_KEY}"
+          export SUPABASE_TEST_SERVICE="${SERVICE_ROLE_KEY:-$SECRET_KEY}"
+          [ -n "$SUPABASE_TEST_ANON" ] && [ -n "$SUPABASE_TEST_SERVICE" ] || { echo "::error::لم أجد مفاتيح Supabase المحلية"; exit 1; }
+          npx vitest run --root supabase/tests
