@@ -13,6 +13,7 @@ import { startSync } from '@/data/sync';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { DialogHost } from '@/lib/dialog';
 import { useClassReminders } from '@/lib/notify';
+import { registerDevice } from '@/lib/push';
 import { AppThemeProvider, fontAssets, useTheme } from '@/lib/theme';
 import { ToastHost } from '@/lib/toast';
 
@@ -81,6 +82,7 @@ function Navigator() {
   // المزامنة عند وجود حساب
   const uid = session?.user.id ?? null;
   useEffect(() => startSync(uid), [uid]);
+  useEffect(() => { if (uid) registerDevice(uid); }, [uid]);
 
   // تذكير الحصص (إشعارات محلية)
   useClassReminders();

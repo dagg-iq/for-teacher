@@ -1,0 +1,36 @@
+# إعدادات Supabase المحلية (supabase start) — المشروع الحقيقي يُربط بـ supabase link
+project_id = "midad"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 16
+
+[auth]
+enabled = true
+site_url = "midad://"
+additional_redirect_urls = ["midad://auth-callback", "https://midad-iq.web.app"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+double_confirm_changes = true
+
+[auth.external.google]
+enabled = true
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"
+skip_nonce_check = true
+
+[functions.push]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = true

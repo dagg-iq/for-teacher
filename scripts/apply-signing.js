@@ -1,0 +1,38 @@
+// يضبط توقيع نسخة الإصدار على مفتاح مِداد الخاص بدل مفتاح Expo العام (debug).
+// يُشغَّل بعد expo prebuild، ويقرأ المفتاح من متغيرات البيئة التي يجهزها build-apk.yml:
+//   MIDAD_KEYSTORE (مسار الملف)، MIDAD_STORE_PASSWORD، MIDAD_KEY_ALIAS، MIDAD_KEY_PASSWORD
+const fs = require('fs');
+const path = require('path');
+
+const file = path.join(__dirname, '..', 'apps', 'mobile', 'android', 'app', 'build.gradle');
+let g = fs.readFileSync(file, 'utf8');
+for (const v of ['MIDAD_KEYSTORE', 'MIDAD_STORE_PASSWORD', 'MIDAD_KEY_ALIAS', 'MIDAD_KEY_PASSWORD']) {
+  if (!process.env[v]) throw new Error(`المتغير ${v} غير موجود`);
+}
+if (!fs.existsSync(process.env.MIDAD_KEYSTORE)) throw new Error('ملف المفتاح غير موجود');
+
+const releaseCfg = `    signingConfigs {
+        release {
+            storeFile file(System.getenv('MIDAD_KEYSTORE'))
+            storePassword System.getenv('MIDAD_STORE_PASSWORD')
+            keyAlias System.getenv('MIDAD_KEY_ALIAS')
+            keyPassword System.getenv('MIDAD_KEY_PASSWORD')
+            // التوقيع القديم (v1) مع الحديث: بعض الهواتف القديمة (ريلمي/أوبو) ترفض الملف بـ«الحزمة غير صالحة» بدونه.
+            // Gradle قد يتجاهل v1 عند minSdk ≥ 24، لذلك يعيد build-apk.yml التوقيع بـ apksigner ويتحقق منه
+            enableV1Signing true
+            enableV2Signing true
+            enableV3Signing true
+        }
+`;
+if (!g.includes('    signingConfigs {\n')) throw new Error('لم أجد signingConfigs في build.gradle (تغيّر قالب Expo؟)');
+g = g.replace('    signingConfigs {\n', releaseCfg);
+
+// داخل buildTypes.release فقط: نستبدل توقيع debug بتوقيع release
+const i = g.indexOf('        release {', g.indexOf('buildTypes {'));
+if (i < 0) throw new Error('لم أجد buildTypes.release');
+const j = g.indexOf('signingConfig signingConfigs.debug', i);
+if (j < 0 || j - i > 600) throw new Error('لم أجد signingConfig داخل release');
+g = g.slice(0, j) + 'signingConfig signingConfigs.release' + g.slice(j + 'signingConfig signingConfigs.debug'.length);
+
+fs.writeFileSync(file, g);
+console.log('✓ نسخة الإصدار ستُوقَّع بمفتاح مِداد الخاص');

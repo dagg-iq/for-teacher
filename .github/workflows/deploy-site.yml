@@ -1,0 +1,34 @@
+# ينشر الموقع التعريفي على Firebase Hosting (يحتاج السر FIREBASE_SERVICE_ACCOUNT والمتغير FIREBASE_PROJECT_ID)
+name: Deploy Site
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, claude/fervent-faraday-pi2wwb]
+    paths: ['apps/site/**', 'firebase.json', 'scripts/build-hosting.sh', '.github/workflows/deploy-site.yml']
+concurrency:
+  group: deploy-site
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build site
+        env:
+          DOWNLOAD_URL: ${{ vars.DOWNLOAD_URL }}
+        run: bash scripts/build-hosting.sh
+      - name: Check Firebase secret
+        id: check
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA" ]; then echo "::warning::السر FIREBASE_SERVICE_ACCOUNT غير مضاف — تخطّي النشر (راجع docs/SETUP_TODO.md)."; echo "ok=false" >> "$GITHUB_OUTPUT"; else echo "ok=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Deploy to Firebase Hosting
+        if: steps.check.outputs.ok == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID || 'midad-iq' }}
+          channelId: live

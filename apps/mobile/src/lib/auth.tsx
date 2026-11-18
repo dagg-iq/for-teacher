@@ -4,6 +4,7 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { syncState, wipeLocal } from '@/data/db';
+import { unregisterDevice } from './push';
 import { isConfigured, supabase } from './supabase';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -18,6 +19,8 @@ interface AuthValue {
   resetPassword: (email: string) => Promise<void>;
   /** wipe: يمسح بيانات الهاتف أيضاً */
   signOut: (wipe?: boolean) => Promise<void>;
+  /** يحذف الحساب وكل بياناته من السحابة نهائياً */
+  deleteAccount: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthValue | null>(null);
@@ -107,11 +110,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
     },
     signOut: async (wipe) => {
+      await unregisterDevice();
       await supabase.auth.signOut().catch(() => {});
       if (wipe) {
         await wipeLocal();
         await AsyncStorage.removeItem(OWNER).catch(() => {});
       }
+    },
+    deleteAccount: async () => {
+      const { error } = await supabase.functions.invoke('delete-account', { body: {} });
+      if (error) throw new Error('تعذّر حذف الحساب. تأكد من الإنترنت وحاول مرة أخرى.');
+      await supabase.auth.signOut().catch(() => {});
+      await wipeLocal();
+      await AsyncStorage.removeItem(OWNER).catch(() => {});
     },
   }), [ready, session]);
 

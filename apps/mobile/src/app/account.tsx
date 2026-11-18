@@ -38,7 +38,7 @@ export default function Account() {
 }
 
 function Signed({ email }: { email: string | null }) {
-  const { signOut } = useAuth();
+  const { signOut, deleteAccount } = useAuth();
   const sync = useSyncStatus();
   const [busy, setBusy] = useState(false);
   const out = () => Alert.alert('تسجيل الخروج', 'هل تبقى بياناتك على هذا الهاتف؟', [
@@ -60,7 +60,12 @@ function Signed({ email }: { email: string | null }) {
         <Button title="زامن الآن" icon="refresh" loading={busy || sync.state === 'syncing'} onPress={async () => { setBusy(true); await syncNow(); setBusy(false); }} />
       </Card>
       <Group>
-        <ListItem icon="logout" title="تسجيل الخروج" danger onPress={out} />
+        <ListItem icon="logout" title="تسجيل الخروج" onPress={out} />
+        <Divider />
+        <ListItem icon="trash" title="حذف الحساب نهائياً" subtitle="يحذف حسابك وكل بياناتك من السحابة" danger onPress={() => Alert.alert('حذف الحساب نهائياً؟', 'ستُحذف كل صفوفك ودرجاتك من السحابة ومن هذا الهاتف ولا يمكن استرجاعها. خذ نسخة احتياطية أولاً إن احتجت.', [
+          { text: 'إلغاء', style: 'cancel' },
+          { text: 'حذف نهائياً', style: 'destructive', onPress: async () => { try { await deleteAccount(); toast('حُذف الحساب'); router.replace('/welcome'); } catch (e) { Alert.alert('تعذّر', e instanceof Error ? e.message : ''); } } },
+        ])} />
       </Group>
     </Screen>
   );

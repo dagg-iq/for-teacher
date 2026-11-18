@@ -78,7 +78,9 @@ async function run() {
     for (const t of SYNC_TABLES) {
       let since = cursor[t] ?? '1970-01-01T00:00:00Z';
       for (let page = 0; page < 50; page++) {
-        const { data, error } = await supabase.from(t).select('*').gt('synced_at', since).order('synced_at', { ascending: true }).limit(1000);
+        // الصفحة الأولى تتداخل ١٠ ثوانٍ مع السحب السابق (معاملات انتهت متأخرة) — الدمج لا يتأثر بالتكرار
+        const from = page === 0 && cursor[t] ? new Date(Date.parse(since) - 10000).toISOString() : since;
+        const { data, error } = await supabase.from(t).select('*').gt('synced_at', from).order('synced_at', { ascending: true }).limit(1000);
         if (error) throw error;
         if (!data?.length) break;
         syncState.applyRemote(t as TableName, data.map((r) => toLocal(r as Record<string, unknown>)) as TableRow[TableName][]);

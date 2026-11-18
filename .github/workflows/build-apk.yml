@@ -1,0 +1,160 @@
+# يبني ملف APK لتطبيق مِداد وينشره في صفحة Releases.
+# الأسرار (اختيارية، والبناء ينجح بدونها):
+#   SUPABASE_URL و SUPABASE_ANON_KEY  ← المزامنة السحابية والحساب
+#   GOOGLE_SERVICES_JSON              ← الإشعارات البعيدة (Firebase)
+#   SIGNING_PASSPHRASE                ← مفتاح التوقيع الخاص (بعد تشغيل Create Signing Key)
+#   RELEASES_TOKEN                    ← نشر النسخة في مستودع عام + تحديث زر التنزيل في الموقع
+name: Build APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, claude/fervent-faraday-pi2wwb]
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/shared/**'
+      - 'package-lock.json'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      RELEASES_REPO: ${{ vars.RELEASES_REPO || 'dagg-iq/midad-releases' }}
+      HAS_RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN != '' }}
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      EXPO_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://midad-iq.web.app' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci
+      - run: npm test
+
+      - name: Firebase config (notifications)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > apps/mobile/google-services.json
+            node -e "JSON.parse(require('fs').readFileSync('apps/mobile/google-services.json','utf8')); console.log('✓ google-services.json')"
+          else
+            echo "::warning::السر GOOGLE_SERVICES_JSON غير موجود — النسخة بلا إشعارات بعيدة (التذكير المحلي يعمل)."
+          fi
+          [ -n "$EXPO_PUBLIC_SUPABASE_URL" ] || echo "::warning::السر SUPABASE_URL غير موجود — النسخة تعمل محلياً بلا مزامنة سحابية."
+
+      - name: Generate Android project
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform android --no-install
+        env:
+          CI: 1
+          APK_BUILD: ${{ github.run_number }}
+
+      - name: Release signing key
+        env:
+          SIGNING_PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
+        run: |
+          ENC=signing/midad-release.keystore.enc
+          if [ -f "$ENC" ]; then
+            [ -n "$SIGNING_PASSPHRASE" ] || { echo "::error::مفتاح التوقيع موجود لكن السر SIGNING_PASSPHRASE غير مضاف."; exit 1; }
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SIGNING_PASSPHRASE -in "$ENC" -out "$RUNNER_TEMP/midad.keystore"
+            { echo "MIDAD_KEYSTORE=$RUNNER_TEMP/midad.keystore"; echo "MIDAD_KEY_ALIAS=midad"; } >> "$GITHUB_ENV"
+            MIDAD_KEYSTORE="$RUNNER_TEMP/midad.keystore" MIDAD_STORE_PASSWORD="$SIGNING_PASSPHRASE" MIDAD_KEY_ALIAS=midad MIDAD_KEY_PASSWORD="$SIGNING_PASSPHRASE" node scripts/apply-signing.js
+          else
+            echo "::notice::لا يوجد مفتاح توقيع خاص بعد — النسخة موقّعة بمفتاح Expo العام. شغّل Create Signing Key قبل النشر للمدرسين."
+          fi
+
+      - name: Build release APK
+        working-directory: apps/mobile/android
+        env:
+          APK_BUILD: ${{ github.run_number }}
+          MIDAD_STORE_PASSWORD: ${{ secrets.SIGNING_PASSPHRASE }}
+          MIDAD_KEY_PASSWORD: ${{ secrets.SIGNING_PASSPHRASE }}
+        run: |
+          printf '\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g\n' >> gradle.properties
+          ./gradlew assembleRelease --no-daemon --stacktrace -PreactNativeArchitectures=arm64-v8a,armeabi-v7a 2>&1 | tee ../../../gradle.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Show error details
+        if: failure()
+        run: grep -n -i -E "error|exception|caused by|what went wrong" gradle.log | grep -v -i warning | head -150 || true
+
+      - name: Rename and verify APK
+        env:
+          MIDAD_STORE_PASSWORD: ${{ secrets.SIGNING_PASSPHRASE }}
+        run: |
+          mkdir -p out
+          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk out/midad.apk
+          APKSIGNER=$(ls -d "${ANDROID_HOME:-/usr/local/lib/android/sdk}"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          if [ -n "$APKSIGNER" ] && [ -n "${MIDAD_KEYSTORE:-}" ]; then
+            "$APKSIGNER" sign --ks "$MIDAD_KEYSTORE" --ks-key-alias "$MIDAD_KEY_ALIAS" --ks-pass env:MIDAD_STORE_PASSWORD --key-pass env:MIDAD_STORE_PASSWORD \
+              --min-sdk-version 24 --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --out out/signed.apk out/midad.apk
+            mv out/signed.apk out/midad.apk; rm -f out/midad.apk.idsig
+          fi
+          [ -n "$APKSIGNER" ] && "$APKSIGNER" verify --print-certs out/midad.apk | grep -E 'DN|SHA-256' || true
+          ls -lh out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: midad-apk
+          path: out/midad.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: مِداد — نسخة ${{ github.run_number }}
+          body: |
+            ملف APK لتطبيق مِداد (أندرويد). حمّل midad.apk وثبّته.
+            الفرع: ${{ github.ref_name }} — الكود: ${{ github.sha }}
+          prerelease: true
+          files: out/midad.apk
+
+      - name: Publish to public releases repo
+        if: env.HAS_RELEASES_TOKEN == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: ${{ env.RELEASES_REPO }}
+          token: ${{ secrets.RELEASES_TOKEN }}
+          tag_name: apk-${{ github.run_number }}
+          name: مِداد — نسخة ${{ github.run_number }}
+          body: ملف APK لتطبيق مِداد (أندرويد).
+          make_latest: true
+          files: out/midad.apk
+
+      - name: Point the site's download button at the new version
+        if: env.HAS_RELEASES_TOKEN == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          N: ${{ github.run_number }}
+        run: |
+          SIZE=$(( ($(stat -c %s out/midad.apk) + 524288) / 1048576 ))
+          URL="https://github.com/$RELEASES_REPO/releases/download/apk-$N/midad.apk"
+          git config user.name "midad-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for i in 1 2 3 4; do
+            git fetch origin "$GITHUB_REF_NAME" && git reset --hard "origin/$GITHUB_REF_NAME"
+            printf '{\n  "link": "%s",\n  "version": "%s",\n  "size_mb": "%s"\n}\n' "$URL" "$N" "$SIZE" > apps/site/download-config.json
+            git add apps/site/download-config.json
+            git diff --cached --quiet && break
+            git commit -m "نسخة التطبيق $N: رابط التنزيل"
+            git push origin "HEAD:$GITHUB_REF_NAME" && break
+            sleep $((i * 3))
+          done
+          gh workflow run deploy-site.yml --ref "$GITHUB_REF_NAME" || true

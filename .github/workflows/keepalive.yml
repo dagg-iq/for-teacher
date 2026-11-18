@@ -1,0 +1,16 @@
+# Supabase المجاني يتوقف بعد أسبوع بلا نشاط: زيارة كل ٣ أيام تبقيه يعمل
+name: Keepalive
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          [ -n "$URL" ] || { echo "لا مشروع Supabase بعد"; exit 0; }
+          curl -fsS -o /dev/null -w '%{http_code}\n' "$URL/rest/v1/announcements?select=id&limit=1" -H "apikey: $KEY" -H "Authorization: Bearer $KEY"
