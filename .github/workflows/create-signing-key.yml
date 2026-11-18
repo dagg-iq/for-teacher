@@ -1,4 +1,4 @@
-# ينشئ مفتاح توقيع رَصد الخاص مرة واحدة ويحفظه مشفّراً (signing/rasd-release.keystore.enc).
+# ينشئ مفتاح توقيع نَهج الخاص مرة واحدة ويحفظه مشفّراً (signing/nahj-release.keystore.enc).
 # الشرط: السر SIGNING_PASSPHRASE (جملة سرية طويلة). لا يعيد إنشاءه إن وُجد.
 # تحذير: ضياع الجملة السرية يعني أن التحديثات لن تُثبّت فوق النسخ القديمة.
 name: Create Signing Key
@@ -16,17 +16,17 @@ jobs:
       - name: Create and encrypt the keystore
         run: |
           if [ -z "$SIGNING_PASSPHRASE" ] || [ "${#SIGNING_PASSPHRASE}" -lt 12 ]; then echo "::error::أضف السر SIGNING_PASSPHRASE (١٢ حرفاً فأكثر)."; exit 1; fi
-          if [ -f signing/rasd-release.keystore.enc ]; then echo "::error::المفتاح موجود ولن يُستبدل."; exit 1; fi
+          if [ -f signing/nahj-release.keystore.enc ]; then echo "::error::المفتاح موجود ولن يُستبدل."; exit 1; fi
           mkdir -p signing
-          keytool -genkeypair -keystore "$RUNNER_TEMP/k.keystore" -alias rasd -keyalg RSA -keysize 4096 -validity 36500 \
-            -storepass "$SIGNING_PASSPHRASE" -keypass "$SIGNING_PASSPHRASE" -dname "CN=Rasd, OU=Rasd, O=Rasd, C=IQ"
-          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SIGNING_PASSPHRASE -in "$RUNNER_TEMP/k.keystore" -out signing/rasd-release.keystore.enc
-          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SIGNING_PASSPHRASE -in signing/rasd-release.keystore.enc -out "$RUNNER_TEMP/c.keystore"
-          keytool -list -keystore "$RUNNER_TEMP/c.keystore" -storepass "$SIGNING_PASSPHRASE" | grep -E "rasd|SHA"
-          echo "مفتاح توقيع رَصد مشفّر بالسر SIGNING_PASSPHRASE. لا تحذفه ولا تغيّر الجملة السرية." > signing/README.md
+          keytool -genkeypair -keystore "$RUNNER_TEMP/k.keystore" -alias nahj -keyalg RSA -keysize 4096 -validity 36500 \
+            -storepass "$SIGNING_PASSPHRASE" -keypass "$SIGNING_PASSPHRASE" -dname "CN=Nahj, OU=Nahj, O=Nahj, C=IQ"
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SIGNING_PASSPHRASE -in "$RUNNER_TEMP/k.keystore" -out signing/nahj-release.keystore.enc
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SIGNING_PASSPHRASE -in signing/nahj-release.keystore.enc -out "$RUNNER_TEMP/c.keystore"
+          keytool -list -keystore "$RUNNER_TEMP/c.keystore" -storepass "$SIGNING_PASSPHRASE" | grep -E "nahj|SHA"
+          echo "مفتاح توقيع نَهج مشفّر بالسر SIGNING_PASSPHRASE. لا تحذفه ولا تغيّر الجملة السرية." > signing/README.md
       - name: Commit
         run: |
-          git config user.name "rasd-bot"
+          git config user.name "nahj-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add signing && git commit -m "مفتاح توقيع رَصد (مشفّر)"
+          git add signing && git commit -m "مفتاح توقيع نَهج (مشفّر)"
           for i in 1 2 3; do git fetch origin "$GITHUB_REF_NAME" && git rebase "origin/$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && break; sleep 5; done

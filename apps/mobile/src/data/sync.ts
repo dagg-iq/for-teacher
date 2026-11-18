@@ -4,7 +4,7 @@
  * يعمل عند فتح التطبيق، وعند العودة إليه، وبعد كل تعديل بثوانٍ، ويدوياً من «الحساب».
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { chunk, fromServerRow, SYNC_TABLES, toServerRow, type Base, type TableName, type TableRow } from '@rasd/shared';
+import { chunk, fromServerRow, SYNC_TABLES, toServerRow, type Base, type TableName, type TableRow } from '@nahj/shared';
 import { useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import { isConfigured, supabase } from '@/lib/supabase';
@@ -20,8 +20,8 @@ export function useSyncStatus(): SyncStatus {
   return useSyncExternalStore((cb) => { listeners.add(cb); return () => { listeners.delete(cb); }; }, () => status, () => status);
 }
 
-const CURSOR = 'rasd.sync.cursor';
-const LAST = 'rasd.sync.last';
+const CURSOR = 'nahj.sync.cursor';
+const LAST = 'nahj.sync.last';
 
 
 let running: Promise<void> | null = null;

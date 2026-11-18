@@ -2,7 +2,7 @@
  * الإشعارات المحلية: تذكير قبل كل حصة (أسبوعي)، وتذكير المهام والامتحانات.
  * تُعاد جدولتها كلما تغيّر الجدول أو المهام (بعد ثانيتين من آخر تعديل).
  */
-import { formatClock, fromMinutes, minutesLabel, toMinutes, type Task } from '@rasd/shared';
+import { formatClock, fromMinutes, minutesLabel, toMinutes, type Task } from '@nahj/shared';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
@@ -87,7 +87,7 @@ export async function rescheduleAll(force = false) {
 async function scheduleTask(t: Task) {
   const date = new Date(Date.parse(t.due!) - (t.remind ?? 0) * 60000);
   await Notifications.scheduleNotificationAsync({
-    content: { title: t.title, body: t.note || 'تذكير من رَصد', data: { route: '/tasks' } },
+    content: { title: t.title, body: t.note || 'تذكير من نَهج', data: { route: '/tasks' } },
     trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date, channelId: TASKS_CHANNEL },
   }).catch(() => {});
 }

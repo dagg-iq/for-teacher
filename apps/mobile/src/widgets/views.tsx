@@ -1,22 +1,20 @@
 'use no memo'; // الويدجتات دوال خام: مترجم React يكسرها
-import { arDigits, DAY_NAMES, dayPlan, formatClock, periodName } from '@rasd/shared';
+import { arDigits, DAY_NAMES, dayPlan, formatClock, markSvg, periodName } from '@nahj/shared';
 import { FlexWidget, SvgWidget, TextWidget, type ColorProp } from 'react-native-android-widget';
-import { FATHA_PATH, RA_PATH } from '@/components/icon';
 import type { WidgetSnapshot } from './snapshot';
 
 const F = { regular: 'thmanyahsans-Regular', bold: 'thmanyahsans-Bold', display: 'thmanyahserifdisplay-Black' };
 const col = (s: string) => s as ColorProp;
 // مساحة سفلية لذيل الحروف (خط ثمانية)
 const tx = (font: string, size: number, color: ColorProp, extra?: object) => ({ fontFamily: font, fontSize: size, color, paddingBottom: Math.ceil(size * 0.32), ...extra });
-const OPEN = (path: string) => ({ clickAction: 'OPEN_URI', clickActionData: { uri: `rasd://${path}` } });
+const OPEN = (path: string) => ({ clickAction: 'OPEN_URI', clickActionData: { uri: `nahj://${path}` } });
 
 const PAL = {
-  light: { bg: '#173A33', ink: '#FFFFFF', ink2: '#B9D2CB', line: '#2A5149', gold: '#F2B544', goldInk: '#2B1E00', row: '#1F4A42' },
+  light: { bg: '#0E3B33', ink: '#FFFFFF', ink2: '#AFC8C1', line: '#245A50', gold: '#E3A535', goldInk: '#2B1E00', row: '#164A41' },
   dark: { bg: '#13211E', ink: '#ECF2EF', ink2: '#9AAAA5', line: '#22342F', gold: '#F5BE55', goldInk: '#2B1E00', row: '#183630' },
 };
 
-const mark = (ink: string, dot: string) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><path d="${RA_PATH}" fill="${ink}"/><path d="${FATHA_PATH}" stroke="${dot}" stroke-width="8" stroke-linecap="round" fill="none"/></svg>`;
+const mark = (ink: string, dot: string) => markSvg({ ink, dot });
 
 /** حصص اليوم، مع تمييز الحالية أو القادمة */
 export function TodayWidget({ s, mode, height }: { s: WidgetSnapshot; mode: 'light' | 'dark'; height: number }) {
@@ -37,7 +35,7 @@ export function TodayWidget({ s, mode, height }: { s: WidgetSnapshot; mode: 'lig
         <SvgWidget svg={mark(c.ink, c.gold)} style={{ width: 24, height: 24 }} />
       </FlexWidget>
       {!s.configured ? (
-        <TextWidget text="افتح رَصد وأعدّ جدول حصصك" style={tx(F.regular, 13, col(c.ink2))} />
+        <TextWidget text="افتح نَهج وأعدّ جدول حصصك" style={tx(F.regular, 13, col(c.ink2))} />
       ) : plan.state === 'off' ? (
         <TextWidget text="عطلة — لا دوام اليوم" style={tx(F.regular, 13, col(c.ink2))} />
       ) : plan.state !== 'active' ? (

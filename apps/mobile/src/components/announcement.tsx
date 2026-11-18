@@ -7,9 +7,9 @@ import { useTheme } from '@/lib/theme';
 import { Icon } from './icon';
 import { Card, T } from './ui';
 
-const SEEN = 'rasd.announce.seen';
+const SEEN = 'nahj.announce.seen';
 
-/** آخر إعلان من فريق رَصد (جدول announcements) — يختفي بعد إغلاقه */
+/** آخر إعلان من فريق نَهج (جدول announcements) — يختفي بعد إغلاقه */
 export function AnnouncementCard() {
   const { c } = useTheme();
   const [a, setA] = useState<{ id: string; title: string; body: string; url: string | null } | null>(null);

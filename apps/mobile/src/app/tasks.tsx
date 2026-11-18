@@ -1,4 +1,4 @@
-import { formatDayDate, formatTime, relativeDays, TASK_KIND_LABEL, type Task, type TaskKind } from '@rasd/shared';
+import { formatDayDate, formatTime, relativeDays, TASK_KIND_LABEL, type Task, type TaskKind } from '@nahj/shared';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Icon, type IconName } from '@/components/icon';
@@ -49,7 +49,7 @@ export default function Tasks() {
         <Header title="المهام والتقويم" />
         <Segmented options={[{ key: 'open', label: 'القادم' }, { key: 'done', label: 'المنجز' }]} value={view} onChange={setView} />
         {view === 'open' ? (
-          open.length === 0 ? <Card><Empty icon="flag" title="لا مهام" body="أضف موعد امتحان أو تسليم درجات أو اجتماعاً، وسيذكّرك رَصد قبله." action="مهمة جديدة" onAction={() => setEdit('new')} /></Card> : (
+          open.length === 0 ? <Card><Empty icon="flag" title="لا مهام" body="أضف موعد امتحان أو تسليم درجات أو اجتماعاً، وسيذكّرك نَهج قبله." action="مهمة جديدة" onAction={() => setEdit('new')} /></Card> : (
             <>
               {overdue.length ? (<><SectionTitle title="فات موعدها" /><Card style={{ paddingVertical: 4 }}>{overdue.map(row)}</Card></>) : null}
               {upcoming.length ? (<><SectionTitle title="القادم" /><Card style={{ paddingVertical: 4 }}>{upcoming.map(row)}</Card></>) : null}

@@ -34,7 +34,7 @@ function ToastView({ t }: { t: ToastState }) {
   }, [t]);
   return (
     <Portal>
-      <View pointerEvents="box-none" style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: Math.max(insets.bottom, 12) + 150, paddingHorizontal: 16 }}>
+      <View pointerEvents="box-none" style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: insets.bottom + 88, paddingHorizontal: 16 }}>
         <Animated.View entering={FadeInDown.duration(180)} exiting={FadeOutDown.duration(140)}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.ink, borderRadius: 20, paddingVertical: 12, paddingHorizontal: 16, maxWidth: 520, width: '100%' }}>
           {t.icon ? <Icon name={t.icon} size={20} color={t.tone === 'bad' ? '#F59A93' : c.bg} /> : null}

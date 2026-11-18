@@ -1,4 +1,4 @@
-import { arDigits, detectLayout, formatScore, matchSheet, type Cell, type ImportRow, type SheetLayout } from '@rasd/shared';
+import { arDigits, detectLayout, formatScore, matchSheet, type Cell, type ImportRow, type SheetLayout } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -77,7 +77,7 @@ export default function ImportGrades() {
       <Header title="استيراد درجات" subtitle={book.title} />
       {!rows ? (
         <Card style={{ gap: 12 }}>
-          <T size={14} dim>اختر ملف Excel فيه عمود أسماء الطلاب وعمود درجات أو أكثر. يطابق رَصد الأسماء تلقائياً حتى لو اختلفت الكتابة قليلاً.</T>
+          <T size={14} dim>اختر ملف Excel فيه عمود أسماء الطلاب وعمود درجات أو أكثر. يطابق نَهج الأسماء تلقائياً حتى لو اختلفت الكتابة قليلاً.</T>
           <Button title="اختيار ملف Excel" icon="excel" loading={busy} onPress={pick} />
         </Card>
       ) : layout ? (

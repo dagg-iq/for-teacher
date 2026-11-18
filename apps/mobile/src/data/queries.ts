@@ -2,7 +2,7 @@
 import {
   buildSheet, columnStats, gradeId, isoDay,
   type Attendance, type Gradebook, type GradeColumn, type SchoolClass, type Section, type Student,
-} from '@rasd/shared';
+} from '@nahj/shared';
 import { all, get, getSettings, where } from './db';
 
 export function classesSorted(): SchoolClass[] {

@@ -1,4 +1,4 @@
-import { timeAgo } from '@rasd/shared';
+import { timeAgo } from '@nahj/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';

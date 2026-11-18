@@ -1,4 +1,4 @@
-import { arDigits, initials, radius } from '@rasd/shared';
+import { arDigits, initials, radius } from '@nahj/shared';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, type ReactNode } from 'react';
@@ -147,13 +147,14 @@ export function Header({ title, subtitle, right, back = true, big }: {
     return (
       <View style={{ gap: 2 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 48, gap: 12 }}>
-          <View style={{ flexShrink: 1 }}>
-            <T display size={big ? 42 : 30} lines={1}>{title}</T>
-            <View style={{ width: 26, height: 4, borderRadius: 2, backgroundColor: c.gold, marginTop: -2 }} />
+          <View style={{ flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            {/* معيّن الهوية قبل عناوين الصفحات الرئيسية */}
+            <View style={{ width: 9, height: 9, backgroundColor: c.gold, transform: [{ rotate: '45deg' }], marginTop: 4 }} />
+            <T display size={big ? 42 : 30} lines={1} style={{ flexShrink: 1 }}>{title}</T>
           </View>
           {right ? <View style={{ flexDirection: 'row', gap: 8 }}>{right}</View> : null}
         </View>
-        {subtitle ? <T dim size={14} style={{ marginTop: 4 }}>{subtitle}</T> : null}
+        {subtitle ? <T dim size={14} style={{ marginTop: 2, marginRight: 19 }}>{subtitle}</T> : null}
       </View>
     );
   }
@@ -254,7 +255,7 @@ export function Button({
 }
 
 // ---------------------------------------------------------------- البطاقات والقوائم
-/** ظل ناعم مائل للأخضر (بدل الحدود) — هوية رَصد */
+/** ظل ناعم مائل للأخضر (بدل الحدود) — هوية نَهج */
 export function elevation(color: string): ViewStyle {
   return { shadowColor: '#173A33', shadowOpacity: 1, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2, boxShadow: `0 4px 14px ${color}` } as ViewStyle;
 }
@@ -262,14 +263,13 @@ export function elevation(color: string): ViewStyle {
 export function Card({ children, style, onPress, tone = 'card' }: {
   children: ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void; tone?: 'card' | 'hero' | 'soft';
 }) {
-  const { c, dark } = useTheme();
+  const { c } = useTheme();
   const base: ViewStyle = {
     backgroundColor: tone === 'hero' ? c.heroBg : tone === 'soft' ? c.soft : c.card,
     borderRadius: tone === 'hero' ? radius.xl : radius.lg,
-    borderWidth: tone === 'card' && dark ? 1 : 0,
+    borderWidth: tone === 'card' ? 1 : 0,
     borderColor: c.line,
     padding: 16,
-    ...(tone === 'card' && !dark ? elevation(c.shadow) : null),
   };
   if (!onPress) return <View style={[base, style]}>{children}</View>;
   return (
@@ -510,7 +510,7 @@ export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () =
 export function Fab({ title, icon = 'plus', onPress, tabs }: { title: string; icon?: IconName; onPress: () => void; tabs?: boolean } & Partial<PressableProps>) {
   const insets = useSafeAreaInsets();
   // في التبويبات: بجانب زر الميكروفون فوق الشريط العائم
-  const bottom = tabs ? Math.max(insets.bottom, 12) + 60 + 13 : insets.bottom + 20;
+  const bottom = tabs ? 16 : insets.bottom + 20;
   return (
     <Animated.View entering={FadeIn.duration(160)} style={{ position: 'absolute', left: 20, bottom }}>
       <Button title={title} icon={icon} onPress={onPress} />

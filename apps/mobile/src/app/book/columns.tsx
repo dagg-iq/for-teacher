@@ -1,7 +1,7 @@
 import {
   arDigits, displayToFormula, evaluateRow, formatScore, formulaToDisplay, FUNCTION_HELP, IRAQI_BANDS, PASS_FAIL_BANDS,
   quickFormula, uuid, validateFormula, type Band, type GradeColumn, type Gradebook,
-} from '@rasd/shared';
+} from '@nahj/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';

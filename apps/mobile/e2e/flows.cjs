@@ -30,7 +30,7 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   const page = await (await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ar-IQ' })).newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  const db = (t) => page.evaluate((t) => JSON.parse(localStorage.getItem(`rasd.t.${t}`) || '[]').filter((r) => !r.deleted), t);
+  const db = (t) => page.evaluate((t) => JSON.parse(localStorage.getItem(`nahj.t.${t}`) || '[]').filter((r) => !r.deleted), t);
   const wait = (ms = 400) => page.waitForTimeout(ms);
   const click = async (text, exact = true) => { await page.getByText(text, { exact }).first().click(); await wait(); };
 
@@ -44,7 +44,7 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   await click('ابدأ');
   await wait(800);
   ok(page.url().endsWith('/'), 'الملف حُفظ والانتقال للرئيسية');
-  const settings = await page.evaluate(() => JSON.parse(localStorage.getItem('rasd.settings') || '{}'));
+  const settings = await page.evaluate(() => JSON.parse(localStorage.getItem('nahj.settings') || '{}'));
   ok(settings.profile?.name === 'زينب كاظم' && settings.profile?.gender === 'f', 'الاسم واللقب محفوظان');
 
   // صف جديد
@@ -213,7 +213,7 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   await wait(800);
   await click('حفظ');
   await wait(800);
-  const s2 = await page.evaluate(() => JSON.parse(localStorage.getItem('rasd.settings') || '{}'));
+  const s2 = await page.evaluate(() => JSON.parse(localStorage.getItem('nahj.settings') || '{}'));
   ok(s2.timetable?.periods?.length === 6, 'أُعدّ الجدول بستة حصص');
 
   ok(errors.length === 0, `بلا أخطاء JavaScript ${errors.length ? errors.join(' | ') : ''}`);

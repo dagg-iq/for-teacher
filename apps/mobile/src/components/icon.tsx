@@ -1,10 +1,11 @@
+import { BRAND, MARK_BOWL, MARK_DOT, MARK_OFFSET_Y, MARK_STROKE, WORDMARK_AR } from '@nahj/shared';
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 
 /** أيقونات خطية بسماكة ١٫٨ — مرسومة لواجهة من اليمين لليسار (الرجوع ← يشير لليمين) */
 const PATHS: Record<string, string[]> = {
-  home: ['M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z'],
+  home: ['M4 10.6 12 4.2l8 6.4V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z'],
   book: ['M5 4h9a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z', 'M5 17a3 3 0 0 1 3-3h9'],
-  chart: ['M6 20v-7', 'M12 20V9', 'M18 20V5'],
+  chart: ['M5 20.2h14', 'M7.5 17v-4.2', 'M12 17v-7', 'M16.5 17v-5.6'],
   chat: ['M4 5h16v11H9l-5 4z'],
   bell: ['M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z', 'M10 20a2 2 0 0 0 4 0'],
   'bell-off': ['M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z', 'M10 20a2 2 0 0 0 4 0', 'M4 4l16 16'],
@@ -32,12 +33,12 @@ const PATHS: Record<string, string[]> = {
   paperclip: ['M17 11l-6 6a4 4 0 0 1-6-6l7-7a3 3 0 0 1 4 4l-7 7a1.5 1.5 0 0 1-2-2l6-6'],
   sparkle: ['M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z'],
   timer: ['M12 8v5l3 2', 'M9 2h6'],
-  calendar: ['M4 6h16v14H4z', 'M4 10h16', 'M8 3v4', 'M16 3v4'],
-  table: ['M3 5h18v14H3z', 'M3 10h18', 'M3 14.5h18', 'M9 5v14', 'M15 5v14'],
+  calendar: ['M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z', 'M4 10h16', 'M8.5 3v4', 'M15.5 3v4'],
+  table: ['M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z', 'M4 9.5h16', 'M4 14.5h16', 'M9.5 9.5V20'],
   news: ['M4 5h13v14H6a2 2 0 0 1-2-2z', 'M17 9h3v8a2 2 0 0 1-2 2', 'M8 9h5', 'M8 13h5'],
   settings: ['M4 7h10', 'M18 7h2', 'M4 17h4', 'M12 17h8'],
   user: ['M5 20a7 7 0 0 1 14 0'],
-  users: ['M3 19a6 6 0 0 1 12 0', 'M16 13a5 5 0 0 1 5 5'],
+  users: ['M3 19.5a6 6 0 0 1 12 0', 'M16 13.2a5 5 0 0 1 5 5.3'],
   logout: ['M10 5H5v14h5', 'M14 8l-4 4 4 4', 'M10 12h10'],
   edit: ['M5 19h4L19 9l-4-4L5 15z'],
   trash: ['M5 7h14', 'M10 7V4h4v3', 'M7 7l1 13h8l1-13'],
@@ -60,12 +61,12 @@ const PATHS: Record<string, string[]> = {
   whatsapp: ['M4 20l1.3-4A8 8 0 1 1 8 18.7z', 'M9 9.5c.5 2 2.5 4 4.5 4.5l1.2-1.2 2 1-.5 1.7c-3.5.3-7.7-3.9-7.4-7.4l1.7-.5 1 2z'],
   facebook: ['M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v7h4v-7h3l1-4h-4V8z'],
   link: ['M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1', 'M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1'],
-  mic: ['M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z', 'M5 11a7 7 0 0 0 14 0', 'M12 18v3'],
+  mic: ['M12 3.5a3 3 0 0 1 3 3V12a3 3 0 0 1-6 0V6.5a3 3 0 0 1 3-3z', 'M5.5 11.5a6.5 6.5 0 0 0 13 0', 'M12 18v2.5'],
   'mic-off': ['M15 9.5V6a3 3 0 0 0-5.7-1.3', 'M9 9v3a3 3 0 0 0 4.6 2.5', 'M5 11a7 7 0 0 0 11.5 5.4', 'M19 11a7 7 0 0 1-.6 2.8', 'M12 18v3', 'M4 4l16 16'],
-  school: ['M3 9l9-5 9 5-9 5z', 'M7 11.5V16c0 1.5 2.2 3 5 3s5-1.5 5-3v-4.5', 'M21 9v6'],
+  school: ['M3.5 5.5a1 1 0 0 1 1-1h15a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z', 'M8.5 15.5 7 20', 'M15.5 15.5 17 20'],
   grid: ['M4 4h7v7H4z', 'M13 4h7v7h-7z', 'M4 13h7v7H4z', 'M13 13h7v7h-7z'],
-  clipboard: ['M9 4h6v3H9z', 'M9 5.5H6v15h12v-15h-3', 'M9 12h6', 'M9 16h4'],
-  'check-square': ['M4 4h16v16H4z', 'M8 12l3 3 5-6'],
+  clipboard: ['M8.5 4.5H6a1 1 0 0 0-1 1V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5.5a1 1 0 0 0-1-1h-2.5', 'M9 3.5h6v3H9z', 'M8.5 11h7', 'M8.5 15h4.5'],
+  'check-square': ['M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z', 'M8 12.2l2.8 2.8L16 9.6'],
   print: ['M7 9V4h10v5', 'M6 18H4v-8h16v8h-2', 'M7 14h10v6H7z'],
   excel: ['M5 3h10l4 4v14H5z', 'M15 3v4h4', 'M9 11l5 6', 'M14 11l-5 6'],
   star: ['M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z'],
@@ -97,17 +98,35 @@ const CIRCLES: Record<string, [number, number, number][]> = {
   quiz: [[12, 12, 9.5]],
   sun: [[12, 12, 4]],
   at: [[12, 12, 4]],
-  more: [[6, 12, 1.5], [12, 12, 1.5], [18, 12, 1.5]],
   target: [[12, 12, 9], [12, 12, 5], [12, 12, 1.2]],
   info: [[12, 12, 9.5]],
   list: [[4.5, 6, 1], [4.5, 12, 1], [4.5, 18, 1]],
   instagram: [[12, 12, 4], [17.5, 6.5, 0.6]],
 };
 
+/** معيّن (نقطة الخط العربي) — توقيع أيقونات «نَهج» */
+const rh = (x: number, y: number, r: number) => `M${x} ${y - r}L${x + r} ${y}L${x} ${y + r}L${x - r} ${y}Z`;
+
+/** أجزاء مملوءة بلون التمييز (الذهبي) — تربط الأيقونات بنقطة الشعار */
+const ACCENTS: Record<string, string[]> = {
+  home: [rh(12, 15.2, 2.5)],
+  chart: [rh(12, 6.3, 2.3)],
+  calendar: [rh(15.5, 15.5, 2.3)],
+  school: [rh(12, 10, 2.4)],
+  more: [rh(5.5, 12, 2.1), rh(12, 12, 2.1), rh(18.5, 12, 2.1)],
+  table: [rh(15, 17.2, 1.7)],
+  'check-square': [],
+  clipboard: [rh(12, 5, 1.4)],
+  sparkle: [],
+  star: [],
+};
+
 export type IconName = keyof typeof PATHS;
 
-export function Icon({ name, size = 24, color, strokeWidth = 1.8, fill }: {
+export function Icon({ name, size = 24, color, strokeWidth = 1.8, fill, accent }: {
   name: IconName; size?: number; color: string; strokeWidth?: number; fill?: string;
+  /** لون المعيّن (الذهبي في التبويب النشط مثلاً)؛ بدونه يأخذ لون الأيقونة */
+  accent?: string;
 }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -117,33 +136,44 @@ export function Icon({ name, size = 24, color, strokeWidth = 1.8, fill }: {
       ))}
       {(CIRCLES[name] ?? []).map(([cx, cy, r], i) => (
         <Circle key={`c${i}`} cx={cx} cy={cy} r={r} stroke={color} strokeWidth={strokeWidth}
-          fill={name === 'more' || r < 1 ? color : 'none'} />
+          fill={r < 1 ? color : 'none'} />
       ))}
+      {(ACCENTS[name] ?? []).map((d, i) => <Path key={`a${i}`} d={d} fill={accent ?? color} />)}
     </Svg>
   );
 }
 
-/** رمز «رَصد»: حرف الراء بخط ثمانية العريض وفتحته طبشورة — المصدر scripts/ra-path.txt */
-export const RA_PATH = 'M73.47 24H70.78L61.66 45.73C68.5 52.57 77.49 60.75 83.12 69.87C78.83 84.62 59.12 94.27 34.31 98.7V101.38L63.14 116C76.42 100.58 85.94 80.33 85.94 60.48C85.94 58.33 85.8 56.05 85.4 53.77L89.69 43.98Z';
-export const FATHA_PATH = 'M54 14 L76 5';
-export function LogoMark({ size = 40, ink, dot }: { size?: number; ink: string; dot: string; check?: string }) {
+/** رمز «نَهج»: حرف «ن» هندسي ونقطته معيّن (المصدر: packages/shared/src/brand.ts) */
+export function LogoMark({ size = 40, ink, dot }: { size?: number; ink: string; dot: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 120 120">
-      <Path d={RA_PATH} fill={ink} />
-      <Path d={FATHA_PATH} stroke={dot} strokeWidth={8} strokeLinecap="round" fill="none" />
+      <G transform={`translate(0 ${MARK_OFFSET_Y})`}>
+        <Path d={MARK_BOWL} stroke={ink} strokeWidth={MARK_STROKE} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <Path d={MARK_DOT} fill={dot} />
+      </G>
     </Svg>
   );
 }
 
-/** أيقونة التطبيق: مربع ذهبي والحرف بأخضر السبورة (نفس أيقونة الهاتف) */
+/** أيقونة التطبيق: مربع أخضر عميق، «ن» بلون الورق، ونقطة ذهبية */
 export function AppIcon({ size = 64 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 120 120">
-      <Rect width={120} height={120} rx={30} fill="#F2B544" />
-      <G transform="translate(60 60) scale(0.74) translate(-60 -60)">
-        <Path d={RA_PATH} fill="#123A33" />
-        <Path d={FATHA_PATH} stroke="#123A33" strokeWidth={8} strokeLinecap="round" fill="none" />
+      <Rect width={120} height={120} rx={27} fill={BRAND.green} />
+      <G transform="translate(6 6) scale(0.9) translate(0 6)">
+        <Path d={MARK_BOWL} stroke={BRAND.paper} strokeWidth={MARK_STROKE} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <Path d={MARK_DOT} fill={BRAND.gold} />
       </G>
+    </Svg>
+  );
+}
+
+/** كلمة «نَهج» بخط ثمانية (نقاطها معيّنات مثل نقطة الشعار) */
+export function Wordmark({ height = 40, color }: { height?: number; color: string }) {
+  const w = (WORDMARK_AR.w / WORDMARK_AR.h) * height;
+  return (
+    <Svg width={w} height={height} viewBox={`0 0 ${WORDMARK_AR.w} ${WORDMARK_AR.h}`}>
+      <Path d={WORDMARK_AR.d} fill={color} />
     </Svg>
   );
 }

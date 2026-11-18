@@ -1,4 +1,4 @@
-import { arDigits, columnStats, formatScore } from '@rasd/shared';
+import { arDigits, columnStats, formatScore } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';

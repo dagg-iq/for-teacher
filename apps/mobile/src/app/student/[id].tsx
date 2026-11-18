@@ -1,6 +1,6 @@
 import {
   arDigits, ATTENDANCE_LABEL, formatDate, formatScore, iraqiPhone, isoDay, NOTE_KIND_LABEL, parseIsoDay, whatsappLink, type NoteKind,
-} from '@rasd/shared';
+} from '@nahj/shared';
 import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';

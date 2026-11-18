@@ -1,10 +1,9 @@
 import {
   arDigits, countStudents, formatClock, formatDayDate, formatScore, greeting, inMinutes, nextClass, nowState, periodName,
   relativeDays, teacherTitle, TASK_KIND_LABEL, type Slot,
-} from '@rasd/shared';
+} from '@nahj/shared';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
 import { View } from 'react-native';
 import { AnnouncementCard } from '@/components/announcement';
 import { Icon, type IconName } from '@/components/icon';
@@ -31,7 +30,6 @@ export default function Home() {
     <Screen>
       {/* السبورة: التحية والحصة الحالية مكتوبة بالطباشير */}
       <View style={{ marginHorizontal: -20, marginTop: -(insets.top + 8), paddingTop: insets.top + 14, paddingHorizontal: 20, paddingBottom: 46, backgroundColor: c.heroBg, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, gap: 14, overflow: 'hidden' }}>
-        <ChalkTexture />
         <Row style={{ justifyContent: 'space-between' }}>
           <View style={{ flexShrink: 1 }}>
             <T size={13} color={c.gold} weight="bold">{formatDayDate(now)}</T>
@@ -107,7 +105,6 @@ export default function Home() {
           </Card>
         </>
       ) : null}
-      <View style={{ height: 150 }} />
     </Screen>
   );
 }
@@ -125,7 +122,7 @@ function NowCard({ now }: { now: Date }) {
           <Icon name="calendar" size={22} color={c.gold} />
           <T weight="bold" size={17} color={c.heroInk}>أضف جدول حصصك</T>
         </Row>
-        <T size={14} color={c.heroInk2}>تعرف حصتك القادمة دائماً، ويذكّرك رَصد قبلها بدقائق.</T>
+        <T size={14} color={c.heroInk2}>تعرف حصتك القادمة دائماً، ويذكّرك نَهج قبلها بدقائق.</T>
         <Button title="إعداد الجدول" small variant="secondary" onPress={() => router.push('/schedule/setup')} style={{ alignSelf: 'flex-start' }} />
       </View>
     );
@@ -183,34 +180,22 @@ function BandButton({ icon, label, onPress }: { icon: IconName; label: string; o
   );
 }
 
-/** خطوط طباشير خفيفة على السبورة (زخرفة هادئة) */
-function ChalkTexture() {
-  return (
-    <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-      <Svg width="100%" height="100%" viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice">
-        <Path d="M-20 210 C 80 180, 160 240, 260 200 S 420 170, 440 190" stroke="rgba(255,255,255,0.05)" strokeWidth={18} fill="none" strokeLinecap="round" />
-        <Path d="M30 40 l14 14 l28 -30" stroke="rgba(242,181,68,0.10)" strokeWidth={10} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        <Circle cx={360} cy={46} r={70} fill="rgba(255,255,255,0.035)" />
-      </Svg>
-    </View>
-  );
-}
 
 function HeroBtn({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
   const { c } = useTheme();
   return (
     <PressScale onPress={onPress} scaleTo={0.95} accessibilityRole="button" accessibilityLabel={label}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: c.gold }}>
-      <Icon name={icon} size={16} color={c.goldInk} />
-      <T size={13} weight="bold" color={c.goldInk}>{label}</T>
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' }}>
+      <Icon name={icon} size={16} color={c.heroInk} />
+      <T size={13} weight="bold" color={c.heroInk}>{label}</T>
     </PressScale>
   );
 }
 
 const ACTIONS: { icon: IconName; label: string; href: string }[] = [
-  { icon: 'mic', label: 'إدخال صوتي', href: '/voice' },
-  { icon: 'plus', label: 'سجل جديد', href: '/book/new' },
   { icon: 'check-square', label: 'الحضور', href: '/attendance' },
+  { icon: 'plus', label: 'سجل جديد', href: '/book/new' },
+  { icon: 'mic', label: 'إدخال صوتي', href: '/voice' },
   { icon: 'clipboard', label: 'التحضير', href: '/plans' },
   { icon: 'shuffle', label: 'القرعة', href: '/picker' },
   { icon: 'timer', label: 'مؤقت الحصة', href: '/timer' },
@@ -223,8 +208,8 @@ function QuickActions() {
       {ACTIONS.map((a) => (
         <PressScale key={a.href} onPress={() => router.push(a.href as never)} scaleTo={0.95} accessibilityRole="button" accessibilityLabel={a.label}
           style={{ width: '31%', flexGrow: 1, minWidth: 96, backgroundColor: c.card, borderRadius: 20, ...surface, paddingVertical: 14, alignItems: 'center', gap: 8 }}>
-          <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: a.icon === 'mic' ? c.gold : c.soft, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name={a.icon} size={21} color={a.icon === 'mic' ? c.goldInk : c.accent} />
+          <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: c.soft, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={a.icon} size={21} color={c.accent} accent={c.gold} />
           </View>
           <T size={13} weight="bold">{a.label}</T>
         </PressScale>

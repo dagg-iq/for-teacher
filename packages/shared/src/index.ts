@@ -1,3 +1,4 @@
+export * from './brand';
 export * from './format';
 export * from './formula';
 export * from './grading';

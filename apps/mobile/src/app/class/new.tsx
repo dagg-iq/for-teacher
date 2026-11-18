@@ -1,4 +1,4 @@
-import { classHues, COMMON_CLASSES, COMMON_SUBJECTS, SECTION_LETTERS, STAGE_LABEL, type Stage } from '@rasd/shared';
+import { classHues, COMMON_CLASSES, COMMON_SUBJECTS, SECTION_LETTERS, STAGE_LABEL, type Stage } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';

@@ -1,4 +1,4 @@
-import { DAY_NAMES, formatClock, fromMinutes, generatePeriods, periodName, toMinutes, WEEK_ORDER, type PeriodTime } from '@rasd/shared';
+import { DAY_NAMES, formatClock, fromMinutes, generatePeriods, periodName, toMinutes, WEEK_ORDER, type PeriodTime } from '@nahj/shared';
 import { router } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import { View } from 'react-native';

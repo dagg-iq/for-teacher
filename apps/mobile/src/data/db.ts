@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   DEFAULT_TIMETABLE, SYNC_TABLES, uuid,
   type Base, type TableName, type TableRow, type TeacherProfile, type TimetableConfig,
-} from '@rasd/shared';
+} from '@nahj/shared';
 import { useMemo, useSyncExternalStore } from 'react';
 
 export interface Settings {
@@ -56,9 +56,9 @@ const state = {
   version: 0,
 };
 
-const KEY = (t: string) => `rasd.t.${t}`;
-const DIRTY_KEY = 'rasd.dirty';
-const SETTINGS_KEY = 'rasd.settings';
+const KEY = (t: string) => `nahj.t.${t}`;
+const DIRTY_KEY = 'nahj.dirty';
+const SETTINGS_KEY = 'nahj.settings';
 
 // ------------------------------------------------------------------ الاشتراك
 const listeners = new Set<() => void>();
@@ -409,14 +409,14 @@ export async function wipeLocal() {
   state.settingsDirty = false;
   // لقطة الويدجت ومؤشرات المزامنة أيضاً: بعد المسح يُسحب كل شيء من الخادم من جديد عند الدخول
   const keys = await AsyncStorage.getAllKeys().catch(() => [] as readonly string[]);
-  const syncKeys = keys.filter((k) => k.startsWith('rasd.sync.'));
-  await AsyncStorage.multiRemove([...SYNC_TABLES.map(KEY), DIRTY_KEY, SETTINGS_KEY, 'rasd.widget.snapshot', ...syncKeys]);
+  const syncKeys = keys.filter((k) => k.startsWith('nahj.sync.'));
+  await AsyncStorage.multiRemove([...SYNC_TABLES.map(KEY), DIRTY_KEY, SETTINGS_KEY, 'nahj.widget.snapshot', ...syncKeys]);
   emit();
 }
 
 // ------------------------------------------------------------------ النسخ الاحتياطي
 export interface Backup {
-  app: 'rasd';
+  app: 'nahj';
   version: 1;
   exported_at: string;
   settings: Settings;
@@ -425,7 +425,7 @@ export interface Backup {
 
 export function exportBackup(): Backup {
   return {
-    app: 'rasd',
+    app: 'nahj',
     version: 1,
     exported_at: nowIso(),
     settings: state.settings,
@@ -435,7 +435,7 @@ export function exportBackup(): Backup {
 
 /** يستورد نسخة احتياطية (يدمجها مع الموجود: الأحدث يفوز) */
 export function importBackup(b: Backup): number {
-  if (!b || b.app !== 'rasd' || !b.tables) throw new Error('هذا الملف ليس نسخة احتياطية من رَصد');
+  if (!b || b.app !== 'nahj' || !b.tables) throw new Error('هذا الملف ليس نسخة احتياطية من نَهج');
   let n = 0;
   for (const t of SYNC_TABLES) {
     const rows = (b.tables[t] ?? []) as Base[];

@@ -25,7 +25,7 @@ interface AuthValue {
 }
 
 const Ctx = createContext<AuthValue | null>(null);
-const OWNER = 'rasd.owner';
+const OWNER = 'nahj.owner';
 
 export const authRedirectUrl = () => Linking.createURL('auth-callback');
 
@@ -51,7 +51,7 @@ export function exchangeCode(code: string): Promise<void> {
  *  - دخول بحساب مختلف عن صاحب البيانات: تُمسح بيانات الحساب السابق من الهاتف، لكن ما لم يُرفع منها بعد
  *    يُحفظ نسخةً جانبية باسم ذلك الحساب، ويُستعاد ويُرفع تلقائياً حين يدخل صاحبه مرة أخرى.
  */
-const PARKED = (uid: string) => `rasd.parked.${uid}`;
+const PARKED = (uid: string) => `nahj.parked.${uid}`;
 async function claimLocalData(userId: string) {
   const owner = await AsyncStorage.getItem(OWNER).catch(() => null);
   if (owner === userId) return;

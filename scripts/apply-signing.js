@@ -1,22 +1,22 @@
-// يضبط توقيع نسخة الإصدار على مفتاح رَصد الخاص بدل مفتاح Expo العام (debug).
+// يضبط توقيع نسخة الإصدار على مفتاح نَهج الخاص بدل مفتاح Expo العام (debug).
 // يُشغَّل بعد expo prebuild، ويقرأ المفتاح من متغيرات البيئة التي يجهزها build-apk.yml:
-//   RASD_KEYSTORE (مسار الملف)، RASD_STORE_PASSWORD، RASD_KEY_ALIAS، RASD_KEY_PASSWORD
+//   NAHJ_KEYSTORE (مسار الملف)، NAHJ_STORE_PASSWORD، NAHJ_KEY_ALIAS، NAHJ_KEY_PASSWORD
 const fs = require('fs');
 const path = require('path');
 
 const file = path.join(__dirname, '..', 'apps', 'mobile', 'android', 'app', 'build.gradle');
 let g = fs.readFileSync(file, 'utf8');
-for (const v of ['RASD_KEYSTORE', 'RASD_STORE_PASSWORD', 'RASD_KEY_ALIAS', 'RASD_KEY_PASSWORD']) {
+for (const v of ['NAHJ_KEYSTORE', 'NAHJ_STORE_PASSWORD', 'NAHJ_KEY_ALIAS', 'NAHJ_KEY_PASSWORD']) {
   if (!process.env[v]) throw new Error(`المتغير ${v} غير موجود`);
 }
-if (!fs.existsSync(process.env.RASD_KEYSTORE)) throw new Error('ملف المفتاح غير موجود');
+if (!fs.existsSync(process.env.NAHJ_KEYSTORE)) throw new Error('ملف المفتاح غير موجود');
 
 const releaseCfg = `    signingConfigs {
         release {
-            storeFile file(System.getenv('RASD_KEYSTORE'))
-            storePassword System.getenv('RASD_STORE_PASSWORD')
-            keyAlias System.getenv('RASD_KEY_ALIAS')
-            keyPassword System.getenv('RASD_KEY_PASSWORD')
+            storeFile file(System.getenv('NAHJ_KEYSTORE'))
+            storePassword System.getenv('NAHJ_STORE_PASSWORD')
+            keyAlias System.getenv('NAHJ_KEY_ALIAS')
+            keyPassword System.getenv('NAHJ_KEY_PASSWORD')
             // التوقيع القديم (v1) مع الحديث: بعض الهواتف القديمة (ريلمي/أوبو) ترفض الملف بـ«الحزمة غير صالحة» بدونه.
             // Gradle قد يتجاهل v1 عند minSdk ≥ 24، لذلك يعيد build-apk.yml التوقيع بـ apksigner ويتحقق منه
             enableV1Signing true
@@ -35,4 +35,4 @@ if (j < 0 || j - i > 600) throw new Error('لم أجد signingConfig داخل re
 g = g.slice(0, j) + 'signingConfig signingConfigs.release' + g.slice(j + 'signingConfig signingConfigs.debug'.length);
 
 fs.writeFileSync(file, g);
-console.log('✓ نسخة الإصدار ستُوقَّع بمفتاح رَصد الخاص');
+console.log('✓ نسخة الإصدار ستُوقَّع بمفتاح نَهج الخاص');

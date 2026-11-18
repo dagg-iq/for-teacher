@@ -1,4 +1,4 @@
-import { formatDayDate, isoDay, parseIsoDay } from '@rasd/shared';
+import { formatDayDate, isoDay, parseIsoDay } from '@nahj/shared';
 import { router } from 'expo-router';
 import { View } from 'react-native';
 import { Icon } from '@/components/icon';

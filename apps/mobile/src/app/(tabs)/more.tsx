@@ -1,4 +1,4 @@
-import { teacherTitle } from '@rasd/shared';
+import { teacherTitle } from '@nahj/shared';
 import { router } from 'expo-router';
 import { Share, View } from 'react-native';
 import { LogoMark, type IconName } from '@/components/icon';
@@ -49,16 +49,15 @@ export default function More() {
         <Divider />
         <ListItem icon="settings" title="الإعدادات" subtitle="الملف، المظهر، الإدخال الصوتي، النسخ الاحتياطي" onPress={() => router.push('/settings')} />
       </Group>
-      <Group title="رَصد">
-        <ListItem icon="share" title="شارك التطبيق مع زملائك" onPress={() => Share.share({ message: `رَصد — تطبيق المدرّس العراقي: سجل الدرجات، الإدخال الصوتي، الحضور، والجدول.\n${SITE_URL}` }).catch(() => {})} />
+      <Group title="نَهج">
+        <ListItem icon="share" title="شارك التطبيق مع زملائك" onPress={() => Share.share({ message: `نَهج — تطبيق المدرّس العراقي: سجل الدرجات، الإدخال الصوتي، الحضور، والجدول.\n${SITE_URL}` }).catch(() => {})} />
         <Divider />
-        <ListItem icon="info" title="عن رَصد" onPress={() => router.push('/about')} />
+        <ListItem icon="info" title="عن نَهج" onPress={() => router.push('/about')} />
       </Group>
       <Row style={{ justifyContent: 'center', gap: 8, marginTop: 8, opacity: 0.6 }}>
         <LogoMark size={20} ink={c.ink} dot={c.gold} />
-        <T dim size={12}>رَصد — ارصد بصوتك.</T>
+        <T dim size={12}>نَهج — التدريس بنهجٍ أذكى.</T>
       </Row>
-      <View style={{ height: 150 }} />
     </Screen>
   );
 }

@@ -1,4 +1,4 @@
-import { isoDay, type LessonPlan } from '@rasd/shared';
+import { isoDay, type LessonPlan } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';

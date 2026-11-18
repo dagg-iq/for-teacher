@@ -1,10 +1,10 @@
-import { COMMON_SUBJECTS, GOVERNORATES, schoolYear, type TeacherProfile } from '@rasd/shared';
+import { COMMON_SUBJECTS, GOVERNORATES, schoolYear, type TeacherProfile } from '@nahj/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppIcon, Icon, type IconName } from '@/components/icon';
+import { AppIcon, Icon, Wordmark, type IconName } from '@/components/icon';
 import { enter, PressScale } from '@/components/motion';
 import { Button, Chip, Field, Row, Segmented, T } from '@/components/ui';
 import { setSettings, useSettings } from '@/data/db';
@@ -14,10 +14,10 @@ import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
 
 const FEATURES: { icon: IconName; title: string; body: string }[] = [
-  { icon: 'mic', title: 'الدرجات بصوتك', body: 'قل اسم الطالب ودرجته، ورَصد يكتبها في مكانها.' },
-  { icon: 'formula', title: 'سجل يحسب وحده', body: 'السعي السنوي والمعدلات والتقديرات بمعادلات جاهزة أو من تصميمك.' },
-  { icon: 'calendar', title: 'جدولك وحضورك', body: 'حصتك القادمة، الغيابات، التحضير اليومي، وتذكير قبل كل حصة.' },
-  { icon: 'excel', title: 'Excel وطباعة', body: 'صدّر السجل أو اطبعه بترويسة رسمية بضغطة واحدة.' },
+  { icon: 'school', title: 'صفوفك وطلابك', body: 'الصفوف والشعب والطلاب في مكان واحد، مع ملف لكل طالب.' },
+  { icon: 'chart', title: 'سجل درجات يحسب وحده', body: 'السعي السنوي والمعدلات والتقديرات بقوالب عراقية أو بمعادلاتك، مع الإحصاء.' },
+  { icon: 'calendar', title: 'جدولك وحضورك وتحضيرك', body: 'حصتك القادمة، الغياب بضغطة، دفتر التحضير، وتذكير قبل كل حصة.' },
+  { icon: 'excel', title: 'طباعة رسمية وExcel', body: 'صدّر السجلات أو اطبعها بترويسة رسمية، وأدخل الدرجات بالصوت إن شئت.' },
 ];
 
 export default function Welcome() {
@@ -29,33 +29,33 @@ function Intro({ onNext }: { onNext: () => void }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#173A33' }} contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 36, paddingBottom: insets.bottom + 24, gap: 26, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
+    <ScrollView style={{ flex: 1, backgroundColor: '#0E3B33' }} contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 36, paddingBottom: insets.bottom + 24, gap: 26, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
       <Animated.View entering={enter(0)} style={{ gap: 10 }}>
-        <AppIcon size={84} />
-        <T display size={56} color="#FFFFFF">رَصد</T>
+        <AppIcon size={76} />
+        <Wordmark height={64} color="#FFFFFF" />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: -6 }}>
-          <View style={{ width: 26, height: 4, borderRadius: 2, backgroundColor: c.gold }} />
-          <T size={18} color="#B9D2CB">ارصد بصوتك.</T>
+          <View style={{ width: 9, height: 9, backgroundColor: c.gold, transform: [{ rotate: '45deg' }] }} />
+          <T size={18} color="#AFC8C1">التدريس بنهجٍ أذكى.</T>
         </View>
       </Animated.View>
-      <View style={{ gap: 16, flex: 1 }}>
+      <View style={{ gap: 0, flex: 1 }}>
         {FEATURES.map((f, i) => (
-          <Animated.View key={f.title} entering={enter(i + 1)} style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 20, padding: 14 }}>
-            <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: i === 0 ? c.gold : 'rgba(255,255,255,0.10)', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={f.icon} size={21} color={i === 0 ? c.goldInk : '#FFFFFF'} />
+          <Animated.View key={f.title} entering={enter(i + 1)} style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderTopColor: 'rgba(255,255,255,0.10)' }}>
+            <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={f.icon} size={21} color="#FFFFFF" accent={c.gold} />
             </View>
             <View style={{ flex: 1 }}>
               <T weight="bold" size={16} color="#FFFFFF">{f.title}</T>
-              <T size={14} color="#B9D2CB">{f.body}</T>
+              <T size={14} color="#AFC8C1">{f.body}</T>
             </View>
           </Animated.View>
         ))}
       </View>
       <View style={{ gap: 10 }}>
         <PressScale onPress={onNext} haptic scaleTo={0.97} accessibilityRole="button" accessibilityLabel="لنبدأ"
-          style={{ height: 56, borderRadius: 28, backgroundColor: c.gold, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <T weight="bold" size={17} color={c.goldInk}>لنبدأ</T>
-          <Icon name="forward" size={20} color={c.goldInk} strokeWidth={2.2} />
+          style={{ height: 56, borderRadius: 28, backgroundColor: '#F7F5F0', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <T weight="bold" size={17} color="#0E3B33">لنبدأ</T>
+          <Icon name="forward" size={20} color="#0E3B33" strokeWidth={2.2} />
         </PressScale>
         {isConfigured ? <Button title="لدي حساب — تسجيل الدخول" variant="secondary" onPress={() => router.push("/account")} /> : null}
       </View>

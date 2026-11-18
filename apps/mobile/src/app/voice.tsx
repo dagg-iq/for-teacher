@@ -1,7 +1,7 @@
 import {
   arDigits, formatScore, isAmbiguous, isConfident, MARK_LABEL, numberToArabicWords, parseCommand,
   type GradeColumn, type GradeMark, type NameCandidate, type Student,
-} from '@rasd/shared';
+} from '@nahj/shared';
 import { useKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';

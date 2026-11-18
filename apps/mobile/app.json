@@ -1,25 +1,25 @@
 {
   "expo": {
-    "name": "رَصد",
-    "slug": "rasd",
+    "name": "نَهج",
+    "slug": "nahj",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "rasd",
+    "scheme": "nahj",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#F5F2EA",
+    "backgroundColor": "#F7F5F0",
     "ios": {
-      "bundleIdentifier": "app.rasd.teacher",
+      "bundleIdentifier": "app.nahj.teacher",
       "supportsTablet": true,
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "يحتاج رَصد الميكروفون لإدخال الدرجات بالصوت.",
-        "NSSpeechRecognitionUsageDescription": "يحتاج رَصد التعرّف على الكلام لفهم أسماء الطلاب والدرجات."
+        "NSMicrophoneUsageDescription": "يحتاج نَهج الميكروفون لإدخال الدرجات بالصوت.",
+        "NSSpeechRecognitionUsageDescription": "يحتاج نَهج التعرّف على الكلام لفهم أسماء الطلاب والدرجات."
       }
     },
     "android": {
-      "package": "app.rasd.teacher",
+      "package": "app.nahj.teacher",
       "adaptiveIcon": {
-        "backgroundColor": "#F2B544",
+        "backgroundColor": "#0E3B33",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -42,11 +42,11 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F5F2EA",
+          "backgroundColor": "#F7F5F0",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 110,
           "dark": {
-            "backgroundColor": "#0B1513",
+            "backgroundColor": "#0B1412",
             "image": "./assets/images/splash-icon-dark.png"
           }
         }
@@ -62,14 +62,14 @@
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon.png",
-          "color": "#0F6E66"
+          "color": "#0B6E5E"
         }
       ],
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "يحتاج رَصد الميكروفون لإدخال الدرجات بالصوت.",
-          "speechRecognitionPermission": "يحتاج رَصد التعرّف على الكلام لفهم أسماء الطلاب والدرجات.",
+          "microphonePermission": "يحتاج نَهج الميكروفون لإدخال الدرجات بالصوت.",
+          "speechRecognitionPermission": "يحتاج نَهج التعرّف على الكلام لفهم أسماء الطلاب والدرجات.",
           "androidSpeechServicePackages": [
             "com.google.android.googlequicksearchbox",
             "com.google.android.tts"

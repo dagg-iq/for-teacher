@@ -1,6 +1,6 @@
 import {
   arDigits, countPeriods, DAY_NAMES, DAY_SHORT, formatClock, nowState, periodName, toMinutes, WEEK_ORDER, weeklyLoad, type Slot,
-} from '@rasd/shared';
+} from '@nahj/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -34,7 +34,7 @@ export default function Schedule() {
       <Screen>
         <Header back={false} title="الجدول" />
         <Card>
-          <Empty icon="calendar" title="جدول حصصك" body="حدد أيام الدوام وأوقات الحصص مرة واحدة، ثم ضع شعبك في الجدول. سيذكّرك رَصد قبل كل حصة." action="إعداد الجدول" onAction={() => router.push('/schedule/setup')} />
+          <Empty icon="calendar" title="جدول حصصك" body="حدد أيام الدوام وأوقات الحصص مرة واحدة، ثم ضع شعبك في الجدول. سيذكّرك نَهج قبل كل حصة." action="إعداد الجدول" onAction={() => router.push('/schedule/setup')} />
         </Card>
       </Screen>
     );
@@ -107,7 +107,6 @@ export default function Schedule() {
           </View>
         </Card>
       ) : null}
-      <View style={{ height: 150 }} />
       {edit ? <SlotEditor day={edit.day} period={edit.period} slot={slotAt(edit.day, edit.period)} onClose={() => setEdit(null)} /> : null}
     </Screen>
   );

@@ -1,4 +1,4 @@
-import { arDigits, formatScore } from '@rasd/shared';
+import { arDigits, formatScore } from '@nahj/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -29,16 +29,16 @@ export default function Grades() {
         <Header back={false} title="الدرجات" subtitle="سجلات الدرجات، المعادلات، والإدخال الصوتي"
           right={<IconButton name="formula" label="القوالب والمعادلات" onPress={() => router.push('/book/new')} />} />
 
-        <PressScale onPress={() => router.push('/voice')} scaleTo={0.98} accessibilityRole="button" accessibilityLabel="الإدخال الصوتي"
-          style={{ backgroundColor: c.heroBg, borderRadius: 28, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-          <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: c.gold, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="mic" size={28} color={c.goldInk} />
+        <Card onPress={() => router.push('/voice')} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: c.soft, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="mic" size={22} color={c.accent} />
           </View>
           <View style={{ flex: 1 }}>
-            <T weight="bold" size={18} color={c.heroInk}>الإدخال الصوتي</T>
-            <T size={13} color={c.heroInk2}>قل «أحمد علي خمسة وثمانين» وتُكتب الدرجة في مكانها.</T>
+            <T weight="bold" size={16}>الإدخال الصوتي</T>
+            <T dim size={13}>أدخل درجات الشعبة بقول الاسم والدرجة</T>
           </View>
-        </PressScale>
+          <Icon name="forward" size={18} color={c.ink3} />
+        </Card>
 
         {classes.length > 1 || archived ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
@@ -79,7 +79,7 @@ export default function Grades() {
         <Row style={{ justifyContent: 'center' }}>
           <Chip label={archived ? 'السجلات الحالية' : 'السجلات المؤرشفة'} small onPress={() => setArchived(!archived)} />
         </Row>
-        <View style={{ height: 150 }} />
+        <View style={{ height: 70 }} />
       </Screen>
       <Fab tabs title="سجل جديد" onPress={() => router.push('/book/new')} />
     </View>

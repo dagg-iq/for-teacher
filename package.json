@@ -1,14 +1,14 @@
 {
-  "name": "rasd",
+  "name": "nahj",
   "private": true,
   "workspaces": [
     "apps/mobile",
     "packages/*"
   ],
   "scripts": {
-    "test": "npm run test -w @rasd/shared",
+    "test": "npm run test -w @nahj/shared",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "mobile:start": "npm run start -w @rasd/mobile",
-    "mobile:web": "npm run web -w @rasd/mobile"
+    "mobile:start": "npm run start -w @nahj/mobile",
+    "mobile:web": "npm run web -w @nahj/mobile"
   }
 }

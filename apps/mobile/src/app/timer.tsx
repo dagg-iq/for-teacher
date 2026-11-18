@@ -1,4 +1,4 @@
-import { arDigits } from '@rasd/shared';
+import { arDigits } from '@nahj/shared';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';

@@ -1,4 +1,4 @@
-import { arDigits, formatDayDate, parseIsoDay } from '@rasd/shared';
+import { arDigits, formatDayDate, parseIsoDay } from '@nahj/shared';
 import { get, getSettings } from '@/data/db';
 import { sectionLabel } from '@/data/queries';
 import { outputHtml, renderPage } from './export';

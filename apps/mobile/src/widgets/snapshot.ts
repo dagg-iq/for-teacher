@@ -15,7 +15,7 @@ export interface WidgetSnapshot {
 }
 
 export const EMPTY_SNAPSHOT: WidgetSnapshot = { days: [], periods: [], slots: [], theme: 'system', configured: false, updatedAt: new Date(0).toISOString() };
-const KEY = 'rasd.widget.snapshot';
+const KEY = 'nahj.widget.snapshot';
 
 export async function readSnapshot(): Promise<WidgetSnapshot> {
   try {

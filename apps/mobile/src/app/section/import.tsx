@@ -1,4 +1,4 @@
-import { arDigits, countStudents, normalizeArabic, parseNameList, sortArabic } from '@rasd/shared';
+import { arDigits, countStudents, normalizeArabic, parseNameList, sortArabic } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';

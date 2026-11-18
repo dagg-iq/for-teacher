@@ -13,7 +13,7 @@
         document.querySelectorAll('[data-download-meta]').forEach(function (m) { m.textContent = 'النسخة الأولى قريباً جداً'; });
         return;
       }
-      links.forEach(function (a) { a.href = d.url; a.removeAttribute('aria-disabled'); a.setAttribute('download', 'rasd.apk'); });
+      links.forEach(function (a) { a.href = d.url; a.removeAttribute('aria-disabled'); a.setAttribute('download', 'nahj.apk'); });
       var meta = 'ملف APK · أندرويد ٧ فما فوق';
       if (d.version) meta += ' · النسخة ' + ar(d.version);
       if (d.size_mb) meta += ' · ' + ar(d.size_mb) + ' ميغابايت';

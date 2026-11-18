@@ -1,4 +1,4 @@
-import { arDigits, countSections, countStudents, STAGE_LABEL } from '@rasd/shared';
+import { arDigits, countSections, countStudents, STAGE_LABEL } from '@nahj/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -9,7 +9,7 @@ import { Card, Empty, Fab, Header, IconButton, Row, Screen, T } from '@/componen
 import { all, count, useQuery } from '@/data/db';
 import { classesSorted, sectionLabel, sectionsOf } from '@/data/queries';
 import { useTheme } from '@/lib/theme';
-import { normalizeArabic } from '@rasd/shared';
+import { normalizeArabic } from '@nahj/shared';
 
 export default function Classes() {
   const { c, hue } = useTheme();
@@ -72,7 +72,7 @@ export default function Classes() {
             )}
           </Card>
         ))}
-        <View style={{ height: 150 }} />
+        <View style={{ height: 70 }} />
       </Screen>
       <Fab tabs title="صف جديد" onPress={() => router.push('/class/new')} />
     </View>
