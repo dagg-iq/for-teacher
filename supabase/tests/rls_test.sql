@@ -73,3 +73,22 @@ do $$ begin
   end;
 end $$;
 reset role;
+
+-- آخر تعديل يفوز: رفع نسخة أقدم لا يستبدل الأحدث، لكنه يحدّث synced_at ليسحبها الجهاز القديم
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+insert into public.classes (id, name, updated_at) values ('aaaaaaaa-0000-0000-0000-0000000000b1', 'الأحدث', '2026-11-18T12:00:00Z');
+do $$
+declare s1 timestamptz; s2 timestamptz;
+begin
+  select synced_at into s1 from public.classes where id = 'aaaaaaaa-0000-0000-0000-0000000000b1';
+  perform pg_sleep(0.01);
+  insert into public.classes (id, name, updated_at) values ('aaaaaaaa-0000-0000-0000-0000000000b1', 'الأقدم', '2026-11-18T10:00:00Z')
+    on conflict (id) do update set name = excluded.name, updated_at = excluded.updated_at;
+  select synced_at into s2 from public.classes where id = 'aaaaaaaa-0000-0000-0000-0000000000b1';
+  if (select name from public.classes where id = 'aaaaaaaa-0000-0000-0000-0000000000b1') <> 'الأحدث' then raise exception 'older write replaced newer'; end if;
+  if s2 <= s1 then raise exception 'synced_at not bumped'; end if;
+  update public.classes set name = 'أحدث وأحدث', updated_at = '2026-11-18T13:00:00Z' where id = 'aaaaaaaa-0000-0000-0000-0000000000b1';
+  if (select name from public.classes where id = 'aaaaaaaa-0000-0000-0000-0000000000b1') <> 'أحدث وأحدث' then raise exception 'newer write rejected'; end if;
+end $$;
+reset role;

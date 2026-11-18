@@ -126,6 +126,13 @@ describe('commands', () => {
     const c = parseCommand('علي حسن', CLASS);
     expect(c.type === 'select' && c.candidates[0].student.id === '2').toBe(true);
   });
+  it('a student named like a command word (عدي) is a name, not «skip»', () => {
+    const withUday = [...CLASS, st('9', 'عدي فاضل كريم')];
+    expect(parseCommand('عدي', withUday).type).toBe('select');
+    const c = parseCommand('عدي غايب', withUday);
+    expect(c.type === 'mark' && c.candidates[0].student.id === '9').toBe(true);
+    expect(parseCommand('عدي', CLASS).type).toBe('skip');
+  });
   it('unknown', () => {
     expect(parseCommand('شنو الوكت', CLASS).type).toBe('unknown');
   });

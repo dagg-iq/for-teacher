@@ -121,6 +121,9 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   await sayIt('نعم');
   await sayIt('احمد علي تسعين');
   await sayIt('نعم');
+  await sayIt('خمسين'); // رقم بلا اسم بعد التثبيت: لا يستبدل درجة أحمد علي
+  await wait(3500);
+  ok((await page.getByText(/لمن؟/).count()) > 0, 'صوتياً: رقم بلا اسم يُسأل «لمن؟» ولا يُكتب للطالب السابق');
   await sayIt('علي حسن مية وعشرين'); // أكبر من العظمى
   await sayIt('زيد غايب');
   await sayIt('نعم');

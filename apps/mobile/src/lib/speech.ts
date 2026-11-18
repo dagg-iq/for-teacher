@@ -59,6 +59,7 @@ export function useRecognizer(opts: { onFinal: (text: string) => void; contextua
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState(0);
   const wanted = useRef(false);
+  const failed = useRef(false);
   const onFinal = useRef(opts.onFinal);
   onFinal.current = opts.onFinal;
   const ctx = useRef(opts.contextual ?? []);
@@ -89,7 +90,7 @@ export function useRecognizer(opts: { onFinal: (text: string) => void; contextua
     if (!mod) return;
     const M = mod.ExpoSpeechRecognitionModule;
     const subs = [
-      M.addListener('start', () => { setState('listening'); setError(null); }),
+      M.addListener('start', () => { failed.current = false; setState('listening'); setError(null); }),
       M.addListener('result', (e) => {
         const text = e.results?.[0]?.transcript ?? '';
         if (Date.now() < speakingUntil) { setPartial(''); return; }
@@ -104,13 +105,15 @@ export function useRecognizer(opts: { onFinal: (text: string) => void; contextua
         if (e.error === 'no-speech' || e.error === 'speech-timeout' || e.error === 'aborted') return;
         if (e.error === 'language-not-supported' && lang.current === 'ar-IQ') { lang.current = 'ar-SA'; return; }
         wanted.current = false;
+        failed.current = true;
         setError(ERRORS[e.error] ?? e.message ?? 'خطأ في التعرّف على الكلام');
         setState('error');
       }),
       M.addListener('end', () => {
         setVolume(0);
         if (wanted.current) setTimeout(() => { if (wanted.current) begin(); }, 250);
-        else setState('idle');
+        // بعد خطأ: تبقى الحالة «خطأ» (فتظهر خانة الكتابة ورسالة السبب) ولا تعود «جاهز»
+        else if (!failed.current) setState('idle');
       }),
     ];
     return () => {

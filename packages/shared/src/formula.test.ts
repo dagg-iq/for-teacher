@@ -42,6 +42,19 @@ describe('formula engine', () => {
     expect(roundHalfUp(2.5)).toBe(3);
     expect(roundHalfUp(66.665, 2)).toBe(66.67);
     expect(roundHalfUp(1.005, 2)).toBe(1.01);
+    expect(roundHalfUp(2.135, 2)).toBe(2.14);
+    expect(roundHalfUp(4.145, 2)).toBe(4.15);
+    expect(roundHalfUp(73.665, 2)).toBe(73.67);
+    expect(roundHalfUp(-2.5)).toBe(-3);
+    expect(roundHalfUp(85.45, 1)).toBe(85.5);
+    // كل القيم بمنزلتين ونصف: لا خطأ واحد في ٢٠٠٠٠ قيمة
+    let bad = 0;
+    for (let i = 0; i < 20000; i++) {
+      const cents = i; // i/100 + 0.005
+      const v = Number(((cents + 0.5) / 100).toFixed(3));
+      if (roundHalfUp(v, 2) !== Number(((cents + 1) / 100).toFixed(2))) bad++;
+    }
+    expect(bad).toBe(0);
   });
   it('refs, order, cycles', () => {
     expect(refsOf('معدل({x}، {y}) + {x}').sort()).toEqual(['x', 'y']);

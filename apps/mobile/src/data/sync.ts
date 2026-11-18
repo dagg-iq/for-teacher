@@ -26,6 +26,9 @@ const LAST = 'rasd.sync.last';
 
 let running: Promise<void> | null = null;
 let userId: string | null = null;
+/** يتغير عند الخروج أو تبديل الحساب: أي مزامنة قديمة جارية تتوقف قبل أن تكتب شيئاً */
+let generation = 0;
+class Stale extends Error {}
 
 export function syncNow(): Promise<void> {
   if (!isConfigured || !userId) return Promise.resolve();
@@ -37,6 +40,8 @@ export function syncNow(): Promise<void> {
 async function run() {
   const uid = userId;
   if (!uid) return;
+  const gen = generation;
+  const alive = () => { if (gen !== generation || userId !== uid) throw new Stale(); };
   set({ state: 'syncing', error: undefined });
   try {
     const cursor: Record<string, string> = JSON.parse((await AsyncStorage.getItem(`${CURSOR}.${uid}`)) || '{}');
@@ -48,6 +53,7 @@ async function run() {
         owner_id: uid, profile: s.profile, timetable: s.timetable, prefs: s.prefs, updated_at: s.updated_at,
       });
       if (error) throw error;
+      alive();
       syncState.markSettingsClean(s.updated_at);
     }
 
@@ -62,6 +68,7 @@ async function run() {
         const payload = rows.map((r) => toServerRow(r, uid));
         const { error } = await supabase.from(t).upsert(payload, { onConflict: 'id', defaultToNull: false });
         if (error) throw error;
+        alive();
         syncState.markClean(t, rows);
       }
     }
@@ -69,6 +76,7 @@ async function run() {
     // ٣) السحب
     const { data: sRow, error: sErr } = await supabase.from('teacher_settings').select('*').eq('owner_id', uid).maybeSingle();
     if (sErr) throw sErr;
+    alive();
     if (sRow) syncState.applyRemoteSettings(sRow as never);
 
     for (const t of SYNC_TABLES) {
@@ -78,6 +86,7 @@ async function run() {
         const from = page === 0 && cursor[t] ? new Date(Date.parse(since) - 10000).toISOString() : since;
         const { data, error } = await supabase.from(t).select('*').gt('synced_at', from).order('synced_at', { ascending: true }).limit(1000);
         if (error) throw error;
+        alive();
         if (!data?.length) break;
         syncState.applyRemote(t as TableName, data.map((r) => fromServerRow<Base>(r as Record<string, unknown>)) as TableRow[TableName][]);
         since = String((data[data.length - 1] as { synced_at: string }).synced_at);
@@ -85,11 +94,13 @@ async function run() {
         if (data.length < 1000) break;
       }
     }
+    alive();
     await AsyncStorage.setItem(`${CURSOR}.${uid}`, JSON.stringify(cursor));
     const at = new Date().toISOString();
     await AsyncStorage.setItem(LAST, at);
     set({ state: 'idle', lastSync: at });
   } catch (e) {
+    if (e instanceof Stale) return;
     const msg = e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e);
     set({ state: 'error', error: /fetch|network/i.test(msg) ? 'لا يوجد اتصال بالإنترنت' : msg });
   }
@@ -99,6 +110,7 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 
 /** يبدأ المزامنة التلقائية لمستخدم (ويوقفها عند الخروج) */
 export function startSync(uid: string | null): () => void {
+  generation++;
   userId = uid;
   if (!isConfigured) return () => {};
   if (!uid) { set({ state: 'idle' }); return () => {}; }
@@ -117,5 +129,7 @@ export function startSync(uid: string | null): () => void {
     clearInterval(interval);
     if (timer) clearTimeout(timer);
     userId = null;
+    generation++;
+    running = null;
   };
 }

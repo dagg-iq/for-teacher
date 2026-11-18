@@ -222,10 +222,18 @@ export function refsOf(expr: string): string[] {
   return [...out];
 }
 
-/** تقريب نصف للأعلى (٤٩٫٥ → ٥٠) بدقة عشرية آمنة */
+/**
+ * تقريب «نصف للأعلى» بدقة عشرية (٤٩٫٥ → ٥٠، ٢٫١٣٥ → ٢٫١٤): يُحسب بالأس العشري لا بالضرب،
+ * لأن ٢٫١٣٥ × ١٠٠ = ٢١٣٫٤٩٩٩… في الأعداد العائمة. السالب يُقرَّب بعيداً عن الصفر (−٢٫٥ → −٣).
+ */
 export function roundHalfUp(n: number, digits = 0): number {
-  const f = 10 ** digits;
-  return Math.round((n + Math.sign(n) * Number.EPSILON) * f) / f;
+  if (!Number.isFinite(n)) return n;
+  const sign = n < 0 ? -1 : 1;
+  const abs = Math.abs(n);
+  // toPrecision(15) يزيل أخطاء التمثيل الثنائي (٢٫١٣٤٩٩٩… → ٢٫١٣٥) قبل التقريب
+  const clean = Number(abs.toPrecision(15));
+  const r = Number(`${Math.round(Number(`${clean}e${digits}`))}e-${digits}`);
+  return sign * r;
 }
 
 type Val = number | null;

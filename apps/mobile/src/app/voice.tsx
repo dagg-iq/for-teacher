@@ -159,6 +159,9 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
     return i < 0 ? 0 : i;
   });
   const [pending, setPending] = useState<Pending | null>(null);
+  // في وضع «الاسم + الدرجة»: الرقم وحده يُكتب فقط لطالب اختاره المدرس صراحة (بالضغط أو بقول اسمه)،
+  // لا لآخر طالب كُتبت درجته — حتى لا يستبدل رقمٌ سُمع بلا اسم درجةَ الطالب السابق
+  const chosen = useRef<string | null>(null);
   const [choices, setChoices] = useState<{ list: NameCandidate[]; value: number | null; mark: GradeMark | null } | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const [history, setHistory] = useState<Done[]>([]);
@@ -197,6 +200,18 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
       setCurrent(nextEmpty(idx));
     } else {
       setCurrent(students.findIndex((s) => s.id === p.student.id));
+      chosen.current = null;
+    }
+  };
+
+  /** درجة معلّقة وجاء أمر جديد: تُثبَّت إن كان المؤقت مفعّلاً، وتُلغى في الوضع اليدوي (لا تُكتب بلا «نعم») */
+  const settle = () => {
+    if (!pending) return;
+    if (prefs.voiceConfirm > 0) commit(pending);
+    else {
+      if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+      setPending(null);
+      setNotice({ tone: 'warn', text: `لم تُكتب درجة ${pending.student.name.split(' ')[0]} (لم تقل «نعم»).` });
     }
   };
 
@@ -209,7 +224,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
   };
 
   const propose = (student: Student, value: number | null, mark: GradeMark | null) => {
-    if (pending) commit(pending);
+    settle();
     setChoices(null);
     if (value != null && value > column.max) {
       warn({ tone: 'bad', text: `${arDigits(value)} أكبر من الدرجة العظمى (${arDigits(column.max)}) — لم تُكتب.` }, 'الدرجة أكبر من العظمى');
@@ -258,16 +273,16 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
         return;
       case 'cancel': if (pending) cancelPending(); else setChoices(null); return;
       case 'undo': undo(); return;
-      case 'stop': if (pending) commit(pending); rec.stop(); return;
-      case 'next': if (pending) commit(pending); setCurrent((i) => Math.min(students.length - 1, i + 1)); return;
-      case 'skip': if (pending) commit(pending); setCurrent((i) => nextEmpty(i)); return;
-      case 'previous': if (pending) commit(pending); setCurrent((i) => Math.max(0, i - 1)); return;
+      case 'stop': settle(); chosen.current = null; rec.stop(); return;
+      case 'next': settle(); chosen.current = null; setCurrent((i) => Math.min(students.length - 1, i + 1)); return;
+      case 'skip': settle(); chosen.current = null; setCurrent((i) => nextEmpty(i)); return;
+      case 'previous': settle(); chosen.current = null; setCurrent((i) => Math.max(0, i - 1)); return;
       case 'absent':
-        if (cur) propose(cur, null, 'absent');
+        if (cur && (mode === 'ordered' || chosen.current === cur.id)) propose(cur, null, 'absent');
         else warn({ tone: 'warn', text: 'قل اسم الطالب الغائب.' });
         return;
       case 'value':
-        if (cur) propose(cur, cmd.value, null);
+        if (cur && (mode === 'ordered' || chosen.current === cur.id)) propose(cur, cmd.value, null);
         else warn({ tone: 'warn', text: `سمعت ${arDigits(cmd.value)} — لمن؟ قل الاسم مع الدرجة.` }, 'لمن الدرجة؟');
         return;
       case 'grade':
@@ -286,6 +301,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
       }
       case 'select':
         if (isConfident(cmd.candidates)) {
+          chosen.current = cmd.candidates[0].student.id;
           setCurrent(students.findIndex((s) => s.id === cmd.candidates[0].student.id));
           setNotice({ tone: 'info', text: `${cmd.candidates[0].student.name} — قل الدرجة.` });
         } else {
@@ -301,7 +317,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
     const ch = choices;
     setChoices(null);
     if (ch && (ch.value != null || ch.mark)) propose(s, ch.value, ch.mark);
-    else { setCurrent(students.findIndex((x) => x.id === s.id)); setNotice({ tone: 'info', text: `${s.name} — قل الدرجة.` }); }
+    else { chosen.current = s.id; setCurrent(students.findIndex((x) => x.id === s.id)); setNotice({ tone: 'info', text: `${s.name} — قل الدرجة.` }); }
   }
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
@@ -342,7 +358,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
           const active = i === current;
           const isPending = pending?.student.id === s.id;
           return (
-            <PressScale key={s.id} onPress={() => { setCurrent(i); setNotice({ tone: 'info', text: `${s.name} — قل الدرجة.` }); }} scaleTo={0.98}
+            <PressScale key={s.id} onPress={() => { chosen.current = s.id; setCurrent(i); setNotice({ tone: 'info', text: `${s.name} — قل الدرجة.` }); }} scaleTo={0.98}
               style={{ height: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, borderRadius: 16, backgroundColor: isPending ? c.soft : active ? c.card : 'transparent', borderWidth: active || isPending ? 1.5 : 0, borderColor: isPending ? c.accent : c.line }}>
               <T dim size={12} weight="bold" style={{ width: 22, textAlign: 'center' }}>{arDigits(i + 1)}</T>
               <T size={15} weight={active ? 'bold' : 'medium'} style={{ flex: 1 }} lines={1}>{s.name}</T>

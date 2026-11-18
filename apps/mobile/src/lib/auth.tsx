@@ -3,7 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { syncState, wipeLocal } from '@/data/db';
+import { exportBackup, importBackup, syncState, wipeLocal, type Backup } from '@/data/db';
+import { syncNow } from '@/data/sync';
 import { unregisterDevice } from './push';
 import { isConfigured, supabase } from './supabase';
 
@@ -47,14 +48,28 @@ export function exchangeCode(code: string): Promise<void> {
 /**
  * ربط بيانات الهاتف بالحساب:
  *  - أول دخول على هذا الهاتف: كل ما أُدخل بلا حساب يُرفع إلى الحساب.
- *  - دخول بحساب مختلف عن صاحب البيانات: تُمسح بيانات الحساب السابق (مرفوعة أصلاً) ثم تُسحب بيانات الحساب الجديد.
+ *  - دخول بحساب مختلف عن صاحب البيانات: تُمسح بيانات الحساب السابق من الهاتف، لكن ما لم يُرفع منها بعد
+ *    يُحفظ نسخةً جانبية باسم ذلك الحساب، ويُستعاد ويُرفع تلقائياً حين يدخل صاحبه مرة أخرى.
  */
+const PARKED = (uid: string) => `rasd.parked.${uid}`;
 async function claimLocalData(userId: string) {
   const owner = await AsyncStorage.getItem(OWNER).catch(() => null);
   if (owner === userId) return;
-  if (owner && owner !== userId) await wipeLocal();
-  else syncState.markAllDirty();
+  if (owner && owner !== userId) {
+    if (syncState.pendingCount() > 0) {
+      await AsyncStorage.setItem(PARKED(owner), JSON.stringify(exportBackup())).catch(() => {});
+    }
+    await wipeLocal();
+  } else {
+    syncState.markAllDirty();
+  }
   await AsyncStorage.setItem(OWNER, userId).catch(() => {});
+  // تغييرات هذا الحساب التي لم تُرفع قبل أن يدخل غيره على الهاتف
+  const parked = await AsyncStorage.getItem(PARKED(userId)).catch(() => null);
+  if (parked) {
+    try { importBackup(JSON.parse(parked) as Backup); } catch { /* نسخة تالفة */ }
+    await AsyncStorage.removeItem(PARKED(userId)).catch(() => {});
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -110,6 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
     },
     signOut: async (wipe) => {
+      // محاولة أخيرة لرفع ما لم يُرفع قبل الخروج
+      await Promise.race([syncNow(), new Promise((r) => setTimeout(r, 8000))]).catch(() => {});
       await unregisterDevice();
       await supabase.auth.signOut().catch(() => {});
       if (wipe) {

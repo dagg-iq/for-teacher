@@ -335,8 +335,13 @@ export function parseCommand(text: string, students: Student[], opts: { ordered?
   if (!norm) return { type: 'unknown', text };
   const ws = tokens(norm);
 
+  // كلمة أمر هي أيضاً اسم طالب في الشعبة (مثل «عدي»): الاسم أولى
+  const nameOnly = ws.filter((w) => !FILLER.has(w) && !ABSENT_WORDS.includes(w) && !EXEMPT_WORDS.includes(w) && !wordValue(w) && w !== 'و');
+  const asName = ws.length <= 3 && nameOnly.length ? matchStudents(nameOnly.join(' '), students) : [];
+  const nameWins = asName.length > 0 && asName[0].score >= 0.9;
+
   // أوامر قصيرة (الجملة كلها أمر)
-  for (const [type, phrases] of CMD) {
+  for (const [type, phrases] of nameWins ? [] : CMD) {
     for (const p of phrases) {
       if (norm === p || (ws.length <= 3 && (` ${norm} `).includes(` ${p} `) && !findNumber(ws))) {
         return { type } as VoiceCommand;

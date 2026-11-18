@@ -41,7 +41,9 @@ function Signed({ email }: { email: string | null }) {
   const { signOut, deleteAccount } = useAuth();
   const sync = useSyncStatus();
   const [busy, setBusy] = useState(false);
-  const out = () => Alert.alert('تسجيل الخروج', 'هل تبقى بياناتك على هذا الهاتف؟', [
+  const out = () => Alert.alert('تسجيل الخروج', sync.pending
+    ? `لديك ${sync.pending} تغيير لم يُرفع بعد. سنحاول رفعه الآن؛ وإن لم يُرفع يبقى محفوظاً ويُرفع حين تدخل بهذا الحساب مرة أخرى. هل تبقى بياناتك على هذا الهاتف؟`
+    : 'هل تبقى بياناتك على هذا الهاتف؟', [
     { text: 'إلغاء', style: 'cancel' },
     { text: 'خروج ومسح الهاتف', style: 'destructive', onPress: async () => { await signOut(true); toast('سُجّل الخروج'); router.replace('/welcome'); } },
     { text: 'خروج مع إبقائها', onPress: async () => { await signOut(false); toast('سُجّل الخروج'); } },

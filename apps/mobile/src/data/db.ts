@@ -113,6 +113,18 @@ function schedulePersist(t?: TableName) {
 export async function flush() {
   const tables = [...pendingWrites];
   pendingWrites.clear();
+  try {
+    await writeTables(tables);
+  } catch (e) {
+    // فشل الحفظ (مساحة ممتلئة…): نعيد الجداول للطابور ونحاول لاحقاً بدل أن تضيع التعديلات
+    for (const t of tables) pendingWrites.add(t);
+    settingsWrite = true;
+    setTimeout(() => schedulePersist(), 3000);
+    throw e;
+  }
+}
+
+async function writeTables(tables: TableName[]) {
   const pairs: [string, string][] = tables.map((t) => [KEY(t), JSON.stringify([...state.tables[t].values()])]);
   pairs.push([DIRTY_KEY, JSON.stringify(Object.fromEntries(SYNC_TABLES.map((t) => [t, [...state.dirty[t]]])) )]);
   if (settingsWrite || state.settingsDirty) {
@@ -395,8 +407,10 @@ export async function wipeLocal() {
   for (const t of SYNC_TABLES) state.dirty[t] = new Set();
   state.settings = { profile: null, timetable: null, prefs: DEFAULT_PREFS, updated_at: new Date(0).toISOString() };
   state.settingsDirty = false;
-  // لقطة الويدجت أيضاً: لا تبقى أسماء الشعب على شاشة الهاتف بعد المسح
-  await AsyncStorage.multiRemove([...SYNC_TABLES.map(KEY), DIRTY_KEY, SETTINGS_KEY, 'rasd.widget.snapshot']);
+  // لقطة الويدجت ومؤشرات المزامنة أيضاً: بعد المسح يُسحب كل شيء من الخادم من جديد عند الدخول
+  const keys = await AsyncStorage.getAllKeys().catch(() => [] as readonly string[]);
+  const syncKeys = keys.filter((k) => k.startsWith('rasd.sync.'));
+  await AsyncStorage.multiRemove([...SYNC_TABLES.map(KEY), DIRTY_KEY, SETTINGS_KEY, 'rasd.widget.snapshot', ...syncKeys]);
   emit();
 }
 
