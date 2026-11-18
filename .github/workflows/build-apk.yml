@@ -102,12 +102,17 @@ jobs:
           mkdir -p out
           cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk out/nahj.apk
           APKSIGNER=$(ls -d "${ANDROID_HOME:-/usr/local/lib/android/sdk}"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
-          if [ -n "$APKSIGNER" ] && [ -n "${NAHJ_KEYSTORE:-}" ]; then
-            "$APKSIGNER" sign --ks "$NAHJ_KEYSTORE" --ks-key-alias "$NAHJ_KEY_ALIAS" --ks-pass env:NAHJ_STORE_PASSWORD --key-pass env:NAHJ_STORE_PASSWORD \
-              --min-sdk-version 24 --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --out out/signed.apk out/nahj.apk
-            mv out/signed.apk out/nahj.apk; rm -f out/nahj.apk.idsig
+          # إعادة التوقيع دائماً بـ v1+v2+v3: هواتف ريلمي/أوبو (ColorOS) ترفض الملف بـ«الحزمة غير صالحة» إن غاب توقيع v1،
+          # وGradle يتركه عند minSdk ≥ 24. بلا مفتاح خاص نستعمل مفتاح debug الذي وقّع به Gradle نفسه.
+          if [ -z "${NAHJ_KEYSTORE:-}" ]; then
+            NAHJ_KEYSTORE=apps/mobile/android/app/debug.keystore; NAHJ_KEY_ALIAS=androiddebugkey; NAHJ_STORE_PASSWORD=android
           fi
-          [ -n "$APKSIGNER" ] && "$APKSIGNER" verify --print-certs out/nahj.apk | grep -E 'DN|SHA-256' || true
+          [ -n "$APKSIGNER" ] || { echo "::error::apksigner غير موجود"; exit 1; }
+          "$APKSIGNER" sign --ks "$NAHJ_KEYSTORE" --ks-key-alias "$NAHJ_KEY_ALIAS" --ks-pass env:NAHJ_STORE_PASSWORD --key-pass env:NAHJ_STORE_PASSWORD \
+            --min-sdk-version 24 --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --out out/signed.apk out/nahj.apk
+          mv out/signed.apk out/nahj.apk; rm -f out/nahj.apk.idsig
+          "$APKSIGNER" verify -v --print-certs out/nahj.apk | grep -E 'Verified using|DN|SHA-256'
+          "$APKSIGNER" verify -v out/nahj.apk | grep -q 'v1 scheme (JAR signing): true' || { echo "::error::توقيع v1 مفقود"; exit 1; }
           ls -lh out
 
       - uses: actions/upload-artifact@v4
