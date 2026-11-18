@@ -4,6 +4,7 @@ import {
 } from '@midad/shared';
 import { router } from 'expo-router';
 import { View } from 'react-native';
+import { AnnouncementCard } from '@/components/announcement';
 import { Icon, type IconName } from '@/components/icon';
 import { Pill, Ring, Stat } from '@/components/kit';
 import { PressScale } from '@/components/motion';
@@ -38,6 +39,7 @@ export default function Home() {
         )}
       />
 
+      <AnnouncementCard />
       <NowCard now={now} />
 
       {d.classes === 0 ? (

@@ -144,6 +144,27 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   const tableText = await page.evaluate(() => document.body.innerText);
   ok(/جيد جداً|امتياز|جيد|متوسط|مقبول|ضعيف/.test(tableText), 'الجدول يعرض التقديرات المحسوبة');
 
+  // ٥ب) استيراد درجات من Excel إلى الشهر الأول (تُستبدل درجة أحمد علي بـ ٦٦)
+  {
+    const XLSX = require('xlsx');
+    const ws = XLSX.utils.aoa_to_sheet([['ت', 'الاسم', 'الشهر الأول'], [1, 'احمد علي حسين', 66], [2, 'زيد خالد', 70], [3, 'شخص غريب تماما', 99]]);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'S');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    await page.goto(base + `/book/import?id=${book.id}`, { waitUntil: 'networkidle' });
+    await wait(800);
+    const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByText('اختيار ملف Excel').click()]);
+    await chooser.setFiles({ name: 'g.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: buf });
+    await wait(1200);
+    await page.screenshot({ path: `${shots}/flow-import.png` });
+    ok((await page.getByText('غير موجود', { exact: true }).count()) > 0, 'الاستيراد: الاسم الغريب «غير موجود»');
+    ok((await page.getByText(/«ت» في الملف/).count()) === 0, 'الاستيراد: عمود التسلسل لا يُعامل كدرجات');
+    await page.getByText('استيراد', { exact: true }).last().click();
+    await wait(800);
+    grades = await db('grades');
+    const gi = (n) => grades.find((g) => g.student_id === byName[n] && g.column_id === m1.id);
+    ok(gi('أحمد علي حسين')?.value === 66 && gi('زيد خالد')?.value === 70, 'الاستيراد: كُتبت درجات Excel في الشهر الأول');
+  }
+
   // ٦) الحضور
   await page.goto(base + `/attendance?section=${sec.id}`, { waitUntil: 'networkidle' });
   await wait(800);

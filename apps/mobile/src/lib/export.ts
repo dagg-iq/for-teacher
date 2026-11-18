@@ -323,6 +323,19 @@ export async function printTimetable(mode: 'print' | 'pdf' = 'print') {
 }
 
 // ------------------------------------------------------------------ الاستيراد
+/** يختار ملف Excel/CSV ويُرجع صفوف أول ورقة */
+export async function pickSheetRows(): Promise<(string | number | null)[][] | null> {
+  const res = await DocumentPicker.getDocumentAsync({
+    type: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv', 'text/comma-separated-values', '*/*'],
+    copyToCacheDirectory: true,
+  });
+  if (res.canceled || !res.assets?.length) return null;
+  const a = res.assets[0];
+  const bytes = Platform.OS === 'web' && a.file ? new Uint8Array(await a.file.arrayBuffer()) : await new File(a.uri).bytes();
+  const wb = XLSX.read(bytes, { type: 'array' });
+  return XLSX.utils.sheet_to_json<(string | number | null)[]>(wb.Sheets[wb.SheetNames[0]], { header: 1, blankrows: false, defval: null });
+}
+
 /** يختار ملف Excel/CSV/نص ويستخرج منه أسماء الطلاب */
 export async function pickNamesFromFile(): Promise<string[] | null> {
   const res = await DocumentPicker.getDocumentAsync({

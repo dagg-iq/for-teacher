@@ -70,6 +70,7 @@ export default function BookScreen() {
 
       <Sheet visible={menu} onClose={() => setMenu(false)}>
         <SheetItem icon="excel" label="تصدير Excel" onPress={() => { setMenu(false); run(() => exportBookXlsx(book.id)); }} />
+        <SheetItem icon="upload" label="استيراد درجات من Excel" onPress={() => { setMenu(false); router.push(`/book/import?id=${book.id}`); }} />
         <SheetItem icon="print" label="طباعة" onPress={() => { setMenu(false); run(() => printBook(book.id, 'print')); }} />
         <SheetItem icon="share" label="مشاركة PDF" onPress={() => { setMenu(false); run(() => printBook(book.id, 'pdf')); }} />
         <SheetItem icon="copy" label="نسخ السجل لشعبة أخرى" onPress={() => { setMenu(false); setCopy(true); }} />

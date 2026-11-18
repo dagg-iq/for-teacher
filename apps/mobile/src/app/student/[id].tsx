@@ -10,7 +10,7 @@ import { Pill } from '@/components/kit';
 import { Sheet, SheetItem } from '@/components/sheet';
 import { Button, Card, Chip, Empty, Field, Header, IconButton, Row, Screen, SectionTitle, T } from '@/components/ui';
 import { all, get, insert, remove, update, useQuery, useSettings } from '@/data/db';
-import { absencesOf, gradebooksOf, sectionLabel, sheetOf } from '@/data/queries';
+import { absencesOf, allSections, gradebooksOf, sectionLabel, sheetOf } from '@/data/queries';
 import { Alert } from '@/lib/dialog';
 import { printStudentReport } from '@/lib/export';
 import { useTheme } from '@/lib/theme';
@@ -22,6 +22,7 @@ export default function StudentScreen() {
   const profile = useSettings().profile;
   const [menu, setMenu] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [moving, setMoving] = useState(false);
   const [noteKind, setNoteKind] = useState<NoteKind>('positive');
   const [note, setNote] = useState('');
   const s = useQuery(() => get('students', id), [id]);
@@ -129,10 +130,20 @@ export default function StudentScreen() {
 
       <Sheet visible={menu} onClose={() => setMenu(false)}>
         <SheetItem icon="edit" label="تعديل البيانات" onPress={() => { setMenu(false); setEditing(true); }} />
+        <SheetItem icon="forward" label="نقل إلى شعبة أخرى" onPress={() => { setMenu(false); setMoving(true); }} />
         <SheetItem icon="print" label="تقرير الطالب PDF" onPress={() => { setMenu(false); printStudentReport(id).catch((e) => toast(String(e.message ?? e), { tone: 'bad' })); }} />
         <SheetItem icon="trash" label="حذف الطالب" danger onPress={() => { setMenu(false); del(); }} />
       </Sheet>
       <EditStudent visible={editing} onClose={() => setEditing(false)} id={id} />
+      <Sheet visible={moving} onClose={() => setMoving(false)}>
+        <T display size={22}>نقل {s.name.split(' ')[0]}</T>
+        <T dim size={13}>تبقى درجاته في سجلات شعبته الحالية، وتبدأ سجلاته في الشعبة الجديدة فارغة.</T>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+          {allSections().filter((x) => x.id !== s.section_id).map((x) => (
+            <Chip key={x.id} label={sectionLabel(x.id, true)} onPress={() => { update('students', s.id, { section_id: x.id }); setMoving(false); toast(`نُقل إلى ${sectionLabel(x.id)}`, { icon: 'check' }); }} />
+          ))}
+        </View>
+      </Sheet>
     </Screen>
   );
 }
