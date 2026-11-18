@@ -95,7 +95,13 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   await wait(500);
   let grades = await db('grades');
   ok(grades.filter((g) => g.column_id === m1.id && g.value != null).length === 2, 'الإدخال السريع كتب درجتين');
+  ok(!grades.some((g) => g.value === 150), 'رُفضت درجة أكبر من العظمى (قبل الإكمال)');
   ok(!grades.some((g) => g.value === 150), 'رُفضت درجة أكبر من العظمى');
+  // ملء العمود كاملاً: يجب ألا تقفز الشاشة لعمود آخر
+  for (const i of [2, 3, 4]) { await inputs.nth(i).fill('60'); await inputs.nth(i).press('Enter'); await wait(250); }
+  await wait(400);
+  const colText = await page.evaluate(() => document.body.innerText);
+  ok(/الشهر الأول\s*·\s*من ١٠٠\s*·\s*أُدخل ٥ من ٥/.test(colText), 'الإدخال السريع: إكمال العمود لا يقفز لعمود آخر');
   await page.screenshot({ path: `${shots}/flow-entry.png` });
 
   // ٤) الإدخال الصوتي بالكتابة على العمود الثاني

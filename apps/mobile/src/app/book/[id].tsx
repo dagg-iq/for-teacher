@@ -25,12 +25,18 @@ export default function BookScreen() {
   const rows = useQuery(() => (book ? sheetOf(book) : []), [book]);
   const inputs = book?.columns.filter((c) => c.kind === 'input') ?? [];
   const [mode, setMode] = useState<Mode>(focus ? 'table' : 'entry');
-  const [col, setCol] = useState<string | null>(null);
+  // العمود يُختار مرة واحدة عند الفتح (أول عمود ناقص)، ولا يقفز أثناء الكتابة
+  const [col, setCol] = useState<string | null>(() => {
+    const b = get('gradebooks', id);
+    if (!b) return null;
+    const ins = b.columns.filter((c) => c.kind === 'input');
+    return (firstIncomplete(ins, sheetOf(b)) ?? ins[0])?.id ?? null;
+  });
   const [focusStudent, setFocusStudent] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
   const [rename, setRename] = useState(false);
   const [copy, setCopy] = useState(false);
-  const activeCol = inputs.find((c) => c.id === col) ?? firstIncomplete(inputs, rows) ?? inputs[0];
+  const activeCol = inputs.find((c) => c.id === col) ?? inputs[0];
 
   if (!book) return <Screen><Header /><Empty title="السجل غير موجود" /></Screen>;
 
