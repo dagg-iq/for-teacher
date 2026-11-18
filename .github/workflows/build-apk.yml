@@ -4,6 +4,7 @@
 #   GOOGLE_SERVICES_JSON              ← الإشعارات البعيدة (Firebase)
 #   SIGNING_PASSPHRASE                ← مفتاح التوقيع الخاص (بعد تشغيل Create Signing Key)
 #   RELEASES_TOKEN                    ← نشر النسخة في مستودع عام + تحديث زر التنزيل في الموقع
+# المتغير EAS_PROJECT_ID (اختياري)    ← تفعيل التحديث الفوري بلا تنزيل (OTA)
 name: Build APK
 on:
   workflow_dispatch:
@@ -33,6 +34,8 @@ jobs:
       EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       EXPO_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://nahj-iq.web.app' }}
+      # يفعّل التحديث الفوري (OTA) داخل النسخة إن رُبط المشروع بـ EAS
+      EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -9,7 +9,9 @@ import type { ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PortalProvider } from '@/components/portal';
+import { Intro } from '@/components/intro';
 import { UpdateSheet } from '@/components/update-sheet';
+import { cleanOldApks } from '@/lib/updater';
 import { loadDB, useSettings } from '@/data/db';
 import { startSync } from '@/data/sync';
 import { AuthProvider, useAuth } from '@/lib/auth';
@@ -75,15 +77,17 @@ function Navigator() {
   const digits = settings.prefs.digits ?? 'latn';
   setDigitStyle(digits);
   const hasProfile = !!settings.profile?.name;
+  // حركة الشعار عند الفتح (على الهاتف). على الويب نخفي شاشة البداية مباشرة
+  const [introDone, setIntroDone] = useState(Platform.OS === 'web');
 
   // أول فتح: شاشة الترحيب وإعداد الملف
   useEffect(() => {
     if (!ready) return;
-    const hide = setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 120);
+    const hide = introDone ? setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 120) : undefined;
     const first = (segments as string[])[0];
     if (!hasProfile && first !== 'welcome' && first !== 'account' && first !== 'auth-callback') router.replace('/welcome');
-    return () => clearTimeout(hide);
-  }, [ready, hasProfile, segments]);
+    return () => { if (hide) clearTimeout(hide); };
+  }, [ready, hasProfile, segments, introDone]);
 
   // المزامنة عند وجود حساب
   const uid = session?.user.id ?? null;
@@ -113,7 +117,8 @@ function Navigator() {
             <Stack.Screen name="book/new" options={{ animation: 'fade_from_bottom' }} />
           </Stack>
         )}
-        {ready ? <UpdateSheet /> : null}
+        {ready && introDone ? <UpdateSheet /> : null}
+        {!introDone ? <Intro ready={ready} onDone={() => { setIntroDone(true); cleanOldApks(); }} /> : null}
         <ToastHost />
         <DialogHost />
       </PortalProvider>

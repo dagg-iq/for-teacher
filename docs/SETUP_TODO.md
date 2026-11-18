@@ -39,7 +39,18 @@
 ## ٤) التنزيل والتحديث التلقائي
 1. أنشئ مستودعاً **عاماً** فارغاً `dagg-iq/nahj-releases` (أو غيّر المتغير `RELEASES_REPO`).
 2. أنشئ Personal Access Token (Fine-grained، صلاحية Contents: Read & Write على ذلك المستودع) وضعه في السر `RELEASES_TOKEN`.
-3. من الآن كل بناء APK ناجح: يُنشر في المستودع العام ← يُحدَّث زر التنزيل في الموقع تلقائياً.
+3. من الآن كل بناء APK ناجح: يُنشر في المستودع العام ← يُحدَّث زر التنزيل في الموقع تلقائياً،
+   والتطبيق نفسه يرى النسخة الجديدة ويحمّلها من داخله (شريط تقدّم ثم «تثبيت الآن»).
+
+### ٤-ب) التحديث الفوري بلا تنزيل (OTA) — ٥ دقائق
+تعديلات الواجهة والمنطق تصل للمدرّسين وحدها عند فتح التطبيق، بلا APK جديد.
+1. أنشئ حساباً مجانياً على expo.dev ← Projects ← Create project باسم `nahj` ← انسخ **Project ID**.
+2. GitHub ← Settings ← Variables ← أضف `EAS_PROJECT_ID` = ذلك المعرّف.
+3. expo.dev ← Account settings ← Access tokens ← أنشئ رمزاً وضعه في السر `EXPO_TOKEN`.
+4. ابنِ APK جديداً مرة واحدة (Actions ← Build APK) — النسخ القديمة لا تعرف خادم التحديث.
+5. بعدها كل دفع لتعديلات `apps/mobile/src` أو `packages/shared` يشغّل **OTA Update** تلقائياً.
+> عند إضافة مكتبة أصلية (native) ارفع `RUNTIME_VERSION` في `apps/mobile/app.config.js` وابنِ APK جديداً؛
+> سير العمل يتخطى OTA تلقائياً إن تغيّر `package.json` أو إعدادات التطبيق.
 
 ## ٥) تجربة على الهاتف (أشياء لا تُختبر إلا على جهاز حقيقي)
 - [ ] تثبيت apk-16 (أو أحدث) على هاتفك — الأيقونة الكوفية الجديدة، الأيقونة المتكيفة، وشاشة البداية.
@@ -65,6 +76,7 @@
 | PUSH_SECRET | أنت تختاره | للإعلانات |
 | GOOGLE_SERVICES_JSON | Firebase ← تطبيق Android | للإشعارات البعيدة |
 | FIREBASE_SERVICE_ACCOUNT / FCM_SERVICE_ACCOUNT | Firebase ← Service accounts | للموقع والإشعارات |
-| RELEASES_TOKEN | GitHub ← Developer settings | للتحديث التلقائي |
+| RELEASES_TOKEN | GitHub ← Developer settings | لتحديث APK من داخل التطبيق |
+| EXPO_TOKEN + متغير EAS_PROJECT_ID | expo.dev | للتحديث الفوري بلا تنزيل (OTA) |
 
 </div>

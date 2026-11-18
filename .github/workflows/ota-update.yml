@@ -1,0 +1,67 @@
+# تحديث فوري بلا تنزيل (OTA): ينشر واجهة التطبيق ومنطقه الجديدين عبر EAS Update،
+# فيصلان للمدرسين عند فتح التطبيق دون تنزيل APK جديد.
+# يحتاج (مرة واحدة، انظر docs/SETUP_TODO.md):
+#   السر EXPO_TOKEN          ← من expo.dev ← Access tokens
+#   المتغير EAS_PROJECT_ID   ← معرّف مشروع nahj في expo.dev
+# لا يُنشر تحديث إذا تغيّرت الطبقة الأصلية (مكتبات أو إعدادات التطبيق): تلك تحتاج APK جديداً
+# ويجب رفع RUNTIME_VERSION في apps/mobile/app.config.js.
+name: OTA Update
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, claude/fervent-faraday-pi2wwb]
+    paths:
+      - 'apps/mobile/src/**'
+      - 'apps/mobile/assets/**'
+      - 'packages/shared/src/**'
+
+concurrency:
+  group: ota-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HAS_EXPO: ${{ secrets.EXPO_TOKEN != '' && vars.EAS_PROJECT_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Skip until EAS is configured
+        if: env.HAS_EXPO != 'true'
+        run: echo "::notice::التحديث الفوري غير مفعّل بعد — أضف EXPO_TOKEN و EAS_PROJECT_ID (docs/SETUP_TODO.md)."
+      - name: Native changes need a new APK
+        if: env.HAS_EXPO == 'true'
+        id: native
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE" 2>/dev/null; then
+            CHANGED=$(git diff --name-only "$BEFORE" HEAD)
+            if echo "$CHANGED" | grep -qE '^apps/mobile/(package\.json|app\.json|app\.config\.js|index\.js)$|^package-lock\.json$'; then
+              echo "::warning::تغيّرت الطبقة الأصلية — لا تحديث فوري؛ النسخة الجديدة تصل عبر APK."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+      - uses: actions/setup-node@v4
+        if: env.HAS_EXPO == 'true' && steps.native.outputs.skip != 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - name: Publish update
+        if: env.HAS_EXPO == 'true' && steps.native.outputs.skip != 'true'
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://nahj-iq.web.app' }}
+          MSG: ${{ github.event.head_commit.message }}
+        run: |
+          npm ci --prefix ../..
+          npm test --prefix ../..
+          npx --yes eas-cli@latest update --channel production --platform android --non-interactive \
+            --message "$(printf '%s' "$MSG" | head -1 | cut -c1-120)"
