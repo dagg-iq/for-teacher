@@ -94,7 +94,7 @@ function SignIn() {
     <Screen edges={['top', 'bottom']}>
       <Header title="الحساب" subtitle="احفظ بياناتك في السحابة" />
       <Card tone="hero" style={{ gap: 12 }}>
-        <LogoMark size={36} ink="#FFFFFF" dot="#8F89FF" />
+        <LogoMark size={36} ink="#F5F2EA" dot="#F2B544" check="#173A33" />
         {PERKS.map((p) => (
           <Row key={p.text} gap={10}>
             <Icon name={p.icon} size={18} color={c.heroInk2} />

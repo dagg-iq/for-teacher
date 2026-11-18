@@ -37,11 +37,11 @@ setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 8000);
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   useEffect(() => { SplashScreen.hideAsync().catch(() => {}); }, []);
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 28, gap: 14, backgroundColor: '#F5F5F2' }}>
+    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 28, gap: 14, backgroundColor: '#F5F2EA' }}>
       <Text style={{ fontSize: 24, fontWeight: '700', color: '#111111', textAlign: 'center' }}>حدث خطأ غير متوقع</Text>
       <Text style={{ fontSize: 14, color: '#5C5C5C', textAlign: 'center' }}>بياناتك محفوظة على الهاتف ولن تضيع.</Text>
       <Text selectable style={{ fontSize: 12, color: '#8A8A85', textAlign: 'left', writingDirection: 'ltr' }}>{error.message}</Text>
-      <Text onPress={retry} style={{ fontSize: 17, fontWeight: '700', color: '#4338F0', textAlign: 'center', padding: 12 }}>إعادة المحاولة</Text>
+      <Text onPress={retry} style={{ fontSize: 17, fontWeight: '700', color: '#0F6E66', textAlign: 'center', padding: 12 }}>إعادة المحاولة</Text>
     </ScrollView>
   );
 }

@@ -173,7 +173,7 @@ body { font-family: Midad, 'Noto Naskh Arabic', 'Noto Sans Arabic', Tahoma, sans
 table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
 tr { page-break-inside: avoid; }
 th, td { border: 1px solid #555; padding: 4px 5px; text-align: center; font-size: 10pt; }
-th { background: #EEEDFF; font-weight: 700; }
+th { background: #E3F0EC; font-weight: 700; }
 td.name { text-align: right; white-space: nowrap; }
 td.fail { color: #A82620; font-weight: 700; }
 td.mark { color: #8A4700; }

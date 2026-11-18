@@ -5,7 +5,7 @@ import { ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, LogoMark, type IconName } from '@/components/icon';
-import { enter } from '@/components/motion';
+import { enter, PressScale } from '@/components/motion';
 import { Button, Chip, Field, Row, Segmented, T } from '@/components/ui';
 import { setSettings, useSettings } from '@/data/db';
 import { seedDemo } from '@/data/demo';
@@ -29,30 +29,35 @@ function Intro({ onNext }: { onNext: () => void }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24, gap: 28, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
-      <Animated.View entering={enter(0)} style={{ gap: 14 }}>
-        <View style={{ width: 84, height: 84, borderRadius: 26, backgroundColor: c.heroBg, alignItems: 'center', justifyContent: 'center' }}>
-          <LogoMark size={56} ink="#FFFFFF" dot="#8F89FF" />
+    <ScrollView style={{ flex: 1, backgroundColor: '#173A33' }} contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 36, paddingBottom: insets.bottom + 24, gap: 26, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
+      <Animated.View entering={enter(0)} style={{ gap: 10 }}>
+        <LogoMark size={76} ink="#F5F2EA" dot={c.gold} check="#173A33" />
+        <T display size={56} color="#FFFFFF">مِداد</T>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: -6 }}>
+          <View style={{ width: 26, height: 4, borderRadius: 2, backgroundColor: c.gold }} />
+          <T size={18} color="#B9D2CB">دفترك كلّه، بصوتك.</T>
         </View>
-        <T display size={52}>مِداد</T>
-        <T size={18} dim style={{ marginTop: -8 }}>دفترك كلّه، بصوتك.</T>
       </Animated.View>
-      <View style={{ gap: 18, flex: 1 }}>
+      <View style={{ gap: 16, flex: 1 }}>
         {FEATURES.map((f, i) => (
-          <Animated.View key={f.title} entering={enter(i + 1)} style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start' }}>
-            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: c.soft, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={f.icon} size={22} color={c.accent} />
+          <Animated.View key={f.title} entering={enter(i + 1)} style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 20, padding: 14 }}>
+            <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: i === 0 ? c.gold : 'rgba(255,255,255,0.10)', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={f.icon} size={21} color={i === 0 ? c.goldInk : '#FFFFFF'} />
             </View>
             <View style={{ flex: 1 }}>
-              <T weight="bold" size={16}>{f.title}</T>
-              <T dim size={14}>{f.body}</T>
+              <T weight="bold" size={16} color="#FFFFFF">{f.title}</T>
+              <T size={14} color="#B9D2CB">{f.body}</T>
             </View>
           </Animated.View>
         ))}
       </View>
       <View style={{ gap: 10 }}>
-        <Button title="لنبدأ" icon="forward" onPress={onNext} />
-        {isConfigured ? <Button title="لدي حساب — تسجيل الدخول" variant="ghost" onPress={() => router.push('/account')} /> : null}
+        <PressScale onPress={onNext} haptic scaleTo={0.97} accessibilityRole="button" accessibilityLabel="لنبدأ"
+          style={{ height: 56, borderRadius: 28, backgroundColor: c.gold, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <T weight="bold" size={17} color={c.goldInk}>لنبدأ</T>
+          <Icon name="forward" size={20} color={c.goldInk} strokeWidth={2.2} />
+        </PressScale>
+        {isConfigured ? <Button title="لدي حساب — تسجيل الدخول" variant="secondary" onPress={() => router.push("/account")} /> : null}
       </View>
     </ScrollView>
   );

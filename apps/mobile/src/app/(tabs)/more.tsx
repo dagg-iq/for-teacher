@@ -58,6 +58,7 @@ export default function More() {
         <LogoMark size={18} ink={c.ink} dot={c.accent} />
         <T dim size={12}>مِداد — دفترك كلّه، بصوتك.</T>
       </Row>
+      <View style={{ height: 150 }} />
     </Screen>
   );
 }

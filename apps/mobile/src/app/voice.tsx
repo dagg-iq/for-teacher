@@ -446,9 +446,9 @@ function MicButton({ active, volume, onPress }: { active: boolean; volume: numbe
   return (
     <PressScale onPress={() => { tap('medium'); onPress(); }} scaleTo={0.92} accessibilityRole="button" accessibilityLabel={active ? 'إيقاف الاستماع' : 'ابدأ الاستماع'}
       style={{ width: 72, height: 72, alignItems: 'center', justifyContent: 'center' }}>
-      <Animated.View style={[{ position: 'absolute', width: 72, height: 72, borderRadius: 36, backgroundColor: c.accent }, halo]} />
-      <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: active ? c.accent : c.ink, alignItems: 'center', justifyContent: 'center' }}>
-        <Icon name={active ? 'mic' : 'mic'} size={28} color={active ? c.accentInk : c.bg} />
+      <Animated.View style={[{ position: 'absolute', width: 72, height: 72, borderRadius: 36, backgroundColor: c.gold }, halo]} />
+      <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: active ? c.gold : c.heroBg, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name="mic" size={28} color={active ? c.goldInk : '#FFFFFF'} />
       </View>
     </PressScale>
   );

@@ -141,15 +141,19 @@ export function Header({ title, subtitle, right, back = true, big }: {
   back?: boolean;
   big?: boolean;
 }) {
+  const { c } = useTheme();
   // الصفحات الرئيسية (بلا رجوع): العنوان والأزرار في سطر واحد بدل زر وحيد فوق العنوان
   if (!back && title) {
     return (
       <View style={{ gap: 2 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 48, gap: 12 }}>
-          <T display size={big ? 42 : 30} style={{ flexShrink: 1 }} lines={1}>{title}</T>
+          <View style={{ flexShrink: 1 }}>
+            <T display size={big ? 42 : 30} lines={1}>{title}</T>
+            <View style={{ width: 26, height: 4, borderRadius: 2, backgroundColor: c.gold, marginTop: -2 }} />
+          </View>
           {right ? <View style={{ flexDirection: 'row', gap: 8 }}>{right}</View> : null}
         </View>
-        {subtitle ? <T dim size={14}>{subtitle}</T> : null}
+        {subtitle ? <T dim size={14} style={{ marginTop: 4 }}>{subtitle}</T> : null}
       </View>
     );
   }
@@ -250,16 +254,22 @@ export function Button({
 }
 
 // ---------------------------------------------------------------- البطاقات والقوائم
+/** ظل ناعم مائل للأخضر (بدل الحدود) — هوية مِداد */
+export function elevation(color: string): ViewStyle {
+  return { shadowColor: '#173A33', shadowOpacity: 1, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2, boxShadow: `0 4px 14px ${color}` } as ViewStyle;
+}
+
 export function Card({ children, style, onPress, tone = 'card' }: {
   children: ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void; tone?: 'card' | 'hero' | 'soft';
 }) {
-  const { c } = useTheme();
+  const { c, dark } = useTheme();
   const base: ViewStyle = {
     backgroundColor: tone === 'hero' ? c.heroBg : tone === 'soft' ? c.soft : c.card,
     borderRadius: tone === 'hero' ? radius.xl : radius.lg,
-    borderWidth: tone === 'card' ? 1 : 0,
+    borderWidth: tone === 'card' && dark ? 1 : 0,
     borderColor: c.line,
     padding: 16,
+    ...(tone === 'card' && !dark ? elevation(c.shadow) : null),
   };
   if (!onPress) return <View style={[base, style]}>{children}</View>;
   return (
@@ -331,12 +341,12 @@ export function Chip({ label, active, onPress, color, bg, small }: {
         height: small ? 28 : 38,
         paddingHorizontal: small ? 10 : 14,
         borderRadius: radius.pill,
-        backgroundColor: bg ?? (active ? c.ink : c.card),
+        backgroundColor: bg ?? (active ? c.accent : c.card),
         borderWidth: bg || active ? 0 : 1,
         borderColor: c.line,
         alignItems: 'center', justifyContent: 'center',
       }}>
-      <T size={small ? 12 : 14} weight={active || small ? 'bold' : 'medium'} color={color ?? (active ? c.bg : c.ink)}>{label}</T>
+      <T size={small ? 12 : 14} weight={active || small ? 'bold' : 'medium'} color={color ?? (active ? c.accentInk : c.ink)}>{label}</T>
     </PressScale>
   );
 }
@@ -358,7 +368,7 @@ export function Segmented<K extends string>({ options, value, onChange }: {
 }) {
   const { c } = useTheme();
   return (
-    <View style={{ flexDirection: 'row', backgroundColor: c.card, borderRadius: radius.pill, padding: 4, borderWidth: 1, borderColor: c.line }}>
+    <View style={{ flexDirection: 'row', backgroundColor: c.soft, borderRadius: radius.pill, padding: 4 }}>
       {options.map((o) => (
         <SegmentItem key={o.key} label={o.label} on={o.key === value} onPress={() => { tap('select'); onChange(o.key); }} />
       ))}
@@ -377,8 +387,8 @@ function SegmentItem({ label, on, onPress }: { label: string; on: boolean; onPre
   return (
     <PressScale onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: on }} scaleTo={0.95}
       style={{ flex: 1, height: 36, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' }}>
-      <Animated.View style={[{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: radius.pill, backgroundColor: c.ink }, pill]} />
-      <T size={14} weight={on ? 'bold' : 'medium'} color={on ? c.bg : c.ink2}>{label}</T>
+      <Animated.View style={[{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: radius.pill, backgroundColor: c.card }, pill]} />
+      <T size={14} weight={on ? 'bold' : 'medium'} color={on ? c.accent : c.softInk}>{label}</T>
     </PressScale>
   );
 }
@@ -497,10 +507,12 @@ export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () =
 }
 
 /** زر عائم أسفل الشاشة */
-export function Fab({ title, icon = 'plus', onPress }: { title: string; icon?: IconName; onPress: () => void } & Partial<PressableProps>) {
+export function Fab({ title, icon = 'plus', onPress, tabs }: { title: string; icon?: IconName; onPress: () => void; tabs?: boolean } & Partial<PressableProps>) {
   const insets = useSafeAreaInsets();
+  // في التبويبات: بجانب زر الميكروفون فوق الشريط العائم
+  const bottom = tabs ? Math.max(insets.bottom, 12) + 60 + 13 : insets.bottom + 20;
   return (
-    <Animated.View entering={FadeIn.duration(160)} style={{ position: 'absolute', left: 20, bottom: insets.bottom + 20 }}>
+    <Animated.View entering={FadeIn.duration(160)} style={{ position: 'absolute', left: 20, bottom }}>
       <Button title={title} icon={icon} onPress={onPress} />
     </Animated.View>
   );

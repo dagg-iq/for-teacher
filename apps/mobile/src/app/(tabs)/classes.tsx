@@ -72,9 +72,9 @@ export default function Classes() {
             )}
           </Card>
         ))}
-        <View style={{ height: 70 }} />
+        <View style={{ height: 150 }} />
       </Screen>
-      <Fab title="صف جديد" onPress={() => router.push('/class/new')} />
+      <Fab tabs title="صف جديد" onPress={() => router.push('/class/new')} />
     </View>
   );
 }

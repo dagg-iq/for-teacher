@@ -14,7 +14,7 @@ export default function About() {
       <Header />
       <View style={{ alignItems: 'center', gap: 10, paddingVertical: 12 }}>
         <View style={{ width: 96, height: 96, borderRadius: 30, backgroundColor: c.heroBg, alignItems: 'center', justifyContent: 'center' }}>
-          <LogoMark size={64} ink="#FFFFFF" dot="#8F89FF" />
+          <LogoMark size={64} ink="#F5F2EA" dot="#F2B544" check="#173A33" />
         </View>
         <T display size={44}>مِداد</T>
         <T dim size={15}>دفترك كلّه، بصوتك.</T>

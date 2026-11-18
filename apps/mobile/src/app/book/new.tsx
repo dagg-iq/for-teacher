@@ -13,7 +13,7 @@ import { toast } from '@/lib/toast';
 /** سجل جديد: اختيار القالب ثم العنوان والشعب */
 export default function NewBook() {
   const { section } = useLocalSearchParams<{ section?: string }>();
-  const { c } = useTheme();
+  const { c, surface } = useTheme();
   const [tpl, setTpl] = useState<TemplateDef | null>(null);
   const [title, setTitle] = useState('');
   const [picked, setPicked] = useState<string[]>(section ? [section] : []);
@@ -34,7 +34,7 @@ export default function NewBook() {
         <Header title="سجل جديد" subtitle="اختر قالباً — يمكنك تعديل الأعمدة والمعادلات بعدها" />
         {TEMPLATES.map((t) => (
           <PressScale key={t.key} onPress={() => { setTpl(t); setTitle(t.key === 'blank' ? '' : t.key === 'monthly' ? 'امتحان شهري' : `سجل ${t.title}`); }} scaleTo={0.98}
-            style={{ backgroundColor: c.card, borderRadius: 22, borderWidth: 1, borderColor: c.line, padding: 16, flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+            style={{ backgroundColor: c.card, borderRadius: 22, ...surface, padding: 16, flexDirection: 'row', gap: 14, alignItems: 'center' }}>
             <View style={{ width: 46, height: 46, borderRadius: 15, backgroundColor: t.key === 'saey' ? c.accent : c.soft, alignItems: 'center', justifyContent: 'center' }}>
               <Icon name={t.key === 'blank' ? 'plus' : t.key === 'monthly' ? 'quiz' : t.key === 'quizzes' ? 'list' : 'table'} size={22} color={t.key === 'saey' ? c.accentInk : c.accent} />
             </View>

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { classHues, palette, toneColors, type ThemeColors, type TonePalette } from '@midad/shared';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, type ViewStyle } from 'react-native';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
@@ -35,6 +35,8 @@ interface ThemeValue {
   tone: TonePalette;
   /** لون تمييز الصف */
   hue: (i: number | null | undefined) => string;
+  /** سطح البطاقة: ظل ناعم في الفاتح، وحد رفيع في الداكن */
+  surface: ViewStyle;
 }
 
 const Ctx = createContext<ThemeValue | null>(null);
@@ -61,6 +63,9 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
       dark,
       c: dark ? palette.dark : palette.light,
       tone: dark ? toneColors.dark : toneColors.light,
+      surface: dark
+        ? { borderWidth: 1, borderColor: palette.dark.line }
+        : ({ shadowColor: '#173A33', shadowOpacity: 1, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2, boxShadow: `0 4px 14px ${palette.light.shadow}` } as ViewStyle),
       hue: (i) => {
         const h = classHues[Math.abs(i ?? 0) % classHues.length];
         return dark ? h.dark : h.light;

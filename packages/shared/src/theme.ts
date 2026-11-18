@@ -1,38 +1,44 @@
-/** ألوان هوية «مِداد» — المصدر: docs/BRAND.md (نفس نظام «سعي» بلون الحبر النيلي) */
+/** ألوان هوية «مِداد» — السبورة والطباشير: أخضر السبورة، ذهبي الطباشير، وورق دافئ. المصدر: docs/BRAND.md */
 export const palette = {
   light: {
-    bg: '#F5F5F2',
+    bg: '#F5F2EA',
     card: '#FFFFFF',
-    ink: '#111111',
-    ink2: '#5C5C5C',
-    ink3: '#8A8A85',
-    line: '#E2E2DC',
-    accent: '#4338F0',
+    ink: '#14201D',
+    ink2: '#56615D',
+    ink3: '#8B948F',
+    line: '#E4DFD2',
+    accent: '#0F6E66',
     accentInk: '#FFFFFF',
-    soft: '#EEEDFF',
-    softInk: '#1E1A4D',
-    heroBg: '#111111',
+    soft: '#E3F0EC',
+    softInk: '#0B3B35',
+    heroBg: '#173A33',
     heroInk: '#FFFFFF',
-    heroInk2: '#B4B4B4',
-    track: '#333333',
-    field: '#FAFAF8',
+    heroInk2: '#B9D2CB',
+    track: '#2A5149',
+    field: '#FBF9F4',
+    gold: '#F2B544',
+    goldInk: '#2B1E00',
+    shadow: 'rgba(23,58,51,0.08)',
   },
   dark: {
-    bg: '#0E0E0F',
-    card: '#18181A',
-    ink: '#F2F2F0',
-    ink2: '#9E9E9E',
-    ink3: '#6E6E6E',
-    line: '#2A2A2D',
-    accent: '#8F89FF',
-    accentInk: '#0E0E0F',
-    soft: '#24224A',
-    softInk: '#DAD8FF',
-    heroBg: '#4338F0',
+    bg: '#0B1513',
+    card: '#13211E',
+    ink: '#ECF2EF',
+    ink2: '#9AAAA5',
+    ink3: '#6A7A75',
+    line: '#22342F',
+    accent: '#4FC7B5',
+    accentInk: '#06201C',
+    soft: '#183630',
+    softInk: '#CBEDE6',
+    heroBg: '#1C4A41',
     heroInk: '#FFFFFF',
-    heroInk2: '#DAD8FF',
-    track: '#6A60FF',
-    field: '#141416',
+    heroInk2: '#B9D2CB',
+    track: '#2F6B5F',
+    field: '#0F1B18',
+    gold: '#F5BE55',
+    goldInk: '#2B1E00',
+    shadow: 'rgba(0,0,0,0.35)',
   },
 } as const;
 
@@ -45,7 +51,7 @@ export const toneColors = {
     warn: { bg: '#FBEFDF', ink: '#8A4700' },
     neutral: { bg: '#EFEFEA', ink: '#3A3A3A' },
     bad: { bg: '#FBE6E4', ink: '#A82620' },
-    info: { bg: '#EEEDFF', ink: '#2E25B8' },
+    info: { bg: '#E6EEFA', ink: '#1F4C8F' },
     empty: { bg: '#EFEFEA', ink: '#8A8A85' },
   },
   dark: {
@@ -53,7 +59,7 @@ export const toneColors = {
     warn: { bg: '#3A2A12', ink: '#F2B66B' },
     neutral: { bg: '#232326', ink: '#C8C8C8' },
     bad: { bg: '#3A1715', ink: '#F59A93' },
-    info: { bg: '#24224A', ink: '#B9B5FF' },
+    info: { bg: '#1B2B45', ink: '#9EC2F5' },
     empty: { bg: '#232326', ink: '#8A8A8A' },
   },
 } as const;
@@ -63,8 +69,8 @@ export type TonePalette = Record<Tone, { bg: string; ink: string }>;
 
 /** ألوان تمييز الصفوف (بطاقات الصفوف وخلايا الجدول) — هادئة وتعمل في الوضعين */
 export const classHues = [
-  { light: '#4338F0', dark: '#8F89FF' },
-  { light: '#0B7A5B', dark: '#5FD0A5' },
+  { light: '#0F6E66', dark: '#4FC7B5' },
+  { light: '#2F5DA8', dark: '#86AEF0' },
   { light: '#B4540A', dark: '#F2A55B' },
   { light: '#B0245E', dark: '#F28AB5' },
   { light: '#126A9C', dark: '#6CC0F0' },
@@ -73,5 +79,5 @@ export const classHues = [
   { light: '#8A3A2A', dark: '#E8998A' },
 ] as const;
 
-export const radius = { sm: 12, md: 16, lg: 22, xl: 28, pill: 999 } as const;
+export const radius = { sm: 10, md: 14, lg: 20, xl: 26, pill: 999 } as const;
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28 } as const;

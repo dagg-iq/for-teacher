@@ -3,6 +3,8 @@ import {
   relativeDays, teacherTitle, TASK_KIND_LABEL, type Slot,
 } from '@midad/shared';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { View } from 'react-native';
 import { AnnouncementCard } from '@/components/announcement';
 import { Icon, type IconName } from '@/components/icon';
@@ -23,24 +25,27 @@ export default function Home() {
   const sync = useSyncStatus();
   const p = settings.profile;
   const title = p ? teacherTitle(p.name, p.gender) : '';
+  const insets = useSafeAreaInsets();
 
   return (
     <Screen>
-      <Header
-        back={false}
-        title={`${greeting(now)}`}
-        subtitle={`${title ? `${title} · ` : ''}${formatDayDate(now)}`}
-        right={(
-          <>
-            <IconButton name={sync.state === 'error' ? 'cloud-off' : 'cloud'} label="الحساب والمزامنة" onPress={() => router.push('/account')}
-              badge={sync.state !== 'off' && sync.pending > 0 && sync.state === 'error' ? sync.pending : undefined} />
-            <IconButton name="settings" label="الإعدادات" onPress={() => router.push('/settings')} />
-          </>
-        )}
-      />
-
+      {/* السبورة: التحية والحصة الحالية مكتوبة بالطباشير */}
+      <View style={{ marginHorizontal: -20, marginTop: -(insets.top + 8), paddingTop: insets.top + 14, paddingHorizontal: 20, paddingBottom: 46, backgroundColor: c.heroBg, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, gap: 14, overflow: 'hidden' }}>
+        <ChalkTexture />
+        <Row style={{ justifyContent: 'space-between' }}>
+          <View style={{ flexShrink: 1 }}>
+            <T size={13} color={c.gold} weight="bold">{formatDayDate(now)}</T>
+            <T display size={28} color={c.heroInk} lines={1}>{greeting(now)}</T>
+            {title ? <T size={15} color={c.heroInk2} weight="medium" lines={1} style={{ marginTop: -4 }}>{title}{p?.school ? ` · ${p.school}` : ''}</T> : null}
+          </View>
+          <Row gap={8}>
+            <BandButton icon={sync.state === 'error' ? 'cloud-off' : 'cloud'} label="الحساب والمزامنة" onPress={() => router.push('/account')} />
+            <BandButton icon="settings" label="الإعدادات" onPress={() => router.push('/settings')} />
+          </Row>
+        </Row>
+        <NowCard now={now} />
+      </View>
       <AnnouncementCard />
-      <NowCard now={now} />
 
       {d.classes === 0 ? (
         <Card>
@@ -49,7 +54,7 @@ export default function Home() {
         </Card>
       ) : (
         <>
-          <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+          <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: -48 }}>
             <Stat label="الطلاب" value={d.students} icon="users" onPress={() => router.push('/classes')} />
             <Stat label="الشعب" value={d.sections} icon="grid" onPress={() => router.push('/classes')} />
           </View>
@@ -102,6 +107,7 @@ export default function Home() {
           </Card>
         </>
       ) : null}
+      <View style={{ height: 150 }} />
     </Screen>
   );
 }
@@ -114,14 +120,14 @@ function NowCard({ now }: { now: Date }) {
   const cfg = getTimetable();
   if (!settings.timetable) {
     return (
-      <Card tone="hero" style={{ gap: 12 }}>
+      <View style={{ gap: 12 }}>
         <Row>
-          <Icon name="calendar" size={22} color={c.heroInk} />
+          <Icon name="calendar" size={22} color={c.gold} />
           <T weight="bold" size={17} color={c.heroInk}>أضف جدول حصصك</T>
         </Row>
         <T size={14} color={c.heroInk2}>تعرف حصتك القادمة دائماً، ويذكّرك مِداد قبلها بدقائق.</T>
         <Button title="إعداد الجدول" small variant="secondary" onPress={() => router.push('/schedule/setup')} style={{ alignSelf: 'flex-start' }} />
-      </Card>
+      </View>
     );
   }
   const st = nowState(cfg, slots, now);
@@ -150,8 +156,11 @@ function NowCard({ now }: { now: Date }) {
     sub = 'أضف حصصك في تبويب الجدول';
   }
   return (
-    <Card tone="hero" style={{ gap: 6 }} onPress={() => router.push('/schedule')}>
-      <T size={13} weight="bold" color={c.heroInk2}>{kicker}</T>
+    <PressScale onPress={() => router.push('/schedule')} scaleTo={0.98} style={{ gap: 4, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 22, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' }}>
+      <Row gap={6}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.gold }} />
+        <T size={13} weight="bold" color={c.gold}>{kicker}</T>
+      </Row>
       <T display size={28} color={c.heroInk} lines={1}>{main}</T>
       <T size={14} color={c.heroInk2}>{sub}</T>
       {sectionId ? (
@@ -161,7 +170,29 @@ function NowCard({ now }: { now: Date }) {
           <HeroBtn icon="users" label="الطلاب" onPress={() => router.push(`/section/${sectionId}`)} />
         </Row>
       ) : null}
-    </Card>
+    </PressScale>
+  );
+}
+
+function BandButton({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+  return (
+    <PressScale onPress={onPress} scaleTo={0.9} accessibilityRole="button" accessibilityLabel={label}
+      style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.10)', alignItems: 'center', justifyContent: 'center' }}>
+      <Icon name={icon} size={20} color="#FFFFFF" />
+    </PressScale>
+  );
+}
+
+/** خطوط طباشير خفيفة على السبورة (زخرفة هادئة) */
+function ChalkTexture() {
+  return (
+    <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <Svg width="100%" height="100%" viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice">
+        <Path d="M-20 210 C 80 180, 160 240, 260 200 S 420 170, 440 190" stroke="rgba(255,255,255,0.05)" strokeWidth={18} fill="none" strokeLinecap="round" />
+        <Path d="M30 40 l14 14 l28 -30" stroke="rgba(242,181,68,0.10)" strokeWidth={10} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <Circle cx={360} cy={46} r={70} fill="rgba(255,255,255,0.035)" />
+      </Svg>
+    </View>
   );
 }
 
@@ -169,9 +200,9 @@ function HeroBtn({ icon, label, onPress }: { icon: IconName; label: string; onPr
   const { c } = useTheme();
   return (
     <PressScale onPress={onPress} scaleTo={0.95} accessibilityRole="button" accessibilityLabel={label}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)' }}>
-      <Icon name={icon} size={16} color={c.heroInk} />
-      <T size={13} weight="bold" color={c.heroInk}>{label}</T>
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: c.gold }}>
+      <Icon name={icon} size={16} color={c.goldInk} />
+      <T size={13} weight="bold" color={c.goldInk}>{label}</T>
     </PressScale>
   );
 }
@@ -186,14 +217,14 @@ const ACTIONS: { icon: IconName; label: string; href: string }[] = [
 ];
 
 function QuickActions() {
-  const { c } = useTheme();
+  const { c, surface } = useTheme();
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
       {ACTIONS.map((a) => (
         <PressScale key={a.href} onPress={() => router.push(a.href as never)} scaleTo={0.95} accessibilityRole="button" accessibilityLabel={a.label}
-          style={{ width: '31%', flexGrow: 1, minWidth: 96, backgroundColor: c.card, borderRadius: 20, borderWidth: 1, borderColor: c.line, paddingVertical: 14, alignItems: 'center', gap: 8 }}>
-          <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: a.icon === 'mic' ? c.accent : c.soft, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name={a.icon} size={21} color={a.icon === 'mic' ? c.accentInk : c.accent} />
+          style={{ width: '31%', flexGrow: 1, minWidth: 96, backgroundColor: c.card, borderRadius: 20, ...surface, paddingVertical: 14, alignItems: 'center', gap: 8 }}>
+          <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: a.icon === 'mic' ? c.gold : c.soft, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={a.icon} size={21} color={a.icon === 'mic' ? c.goldInk : c.accent} />
           </View>
           <T size={13} weight="bold">{a.label}</T>
         </PressScale>

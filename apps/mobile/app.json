@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "midad",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#F5F5F2",
+    "backgroundColor": "#F5F2EA",
     "ios": {
       "bundleIdentifier": "app.midad.teacher",
       "supportsTablet": true,
@@ -19,7 +19,7 @@
     "android": {
       "package": "app.midad.teacher",
       "adaptiveIcon": {
-        "backgroundColor": "#111111",
+        "backgroundColor": "#173A33",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -42,11 +42,11 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F5F5F2",
+          "backgroundColor": "#F5F2EA",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 110,
           "dark": {
-            "backgroundColor": "#0E0E0F",
+            "backgroundColor": "#0B1513",
             "image": "./assets/images/splash-icon-dark.png"
           }
         }
@@ -62,7 +62,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon.png",
-          "color": "#4338F0"
+          "color": "#0F6E66"
         }
       ],
       [

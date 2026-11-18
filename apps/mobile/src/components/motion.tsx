@@ -77,7 +77,7 @@ export function useCountUp(target: number | null | undefined, duration = 450) {
 
 /** هيكل تحميل نابض بدل الدائرة الدوّارة */
 export function Skeleton({ rows = 3 }: { rows?: number }) {
-  const { c } = useTheme();
+  const { c, surface } = useTheme();
   const o = useSharedValue(0.45);
   useEffect(() => {
     o.value = withRepeat(withSequence(withTiming(1, { duration: 700 }), withTiming(0.45, { duration: 700 })), -1);
@@ -87,7 +87,7 @@ export function Skeleton({ rows = 3 }: { rows?: number }) {
   return (
     <Animated.View style={[{ gap: 12, paddingVertical: 8 }, pulse]} accessibilityLabel="جارٍ التحميل">
       {Array.from({ length: rows }, (_, i) => (
-        <View key={i} style={{ backgroundColor: c.card, borderRadius: 20, borderWidth: 1, borderColor: c.line, padding: 16, gap: 10 }}>
+        <View key={i} style={{ backgroundColor: c.card, borderRadius: 20, ...surface, padding: 16, gap: 10 }}>
           <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
             <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: c.soft }} />
             <View style={{ flex: 1, gap: 8 }}>

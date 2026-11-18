@@ -123,14 +123,14 @@ export function Icon({ name, size = 24, color, strokeWidth = 1.8, fill }: {
   );
 }
 
-/** رمز «مِداد»: ثلاثة أسطر من السجل تُكتب من اليمين، ونقطة الحبر عند نهاية السطر الأخير */
-export function LogoMark({ size = 40, ink, dot }: { size?: number; ink: string; dot: string }) {
+/** رمز «مِداد»: قطرة حبر فيها علامة صح (التصحيح)، ونقطة طباشير ذهبية */
+export const DROP_PATH = 'M60 8C60 8 22 50 22 77A38 38 0 0 0 98 77C98 50 60 8 60 8Z';
+export function LogoMark({ size = 40, ink, dot, check = '#FFFFFF' }: { size?: number; ink: string; dot: string; check?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 120 120">
-      <Rect x={16} y={22} width={88} height={20} rx={10} fill={ink} />
-      <Rect x={36} y={50} width={68} height={20} rx={10} fill={ink} />
-      <Rect x={56} y={78} width={48} height={20} rx={10} fill={ink} />
-      <Circle cx={34} cy={88} r={10} fill={dot} />
+      <Path d={DROP_PATH} fill={ink} />
+      <Path d="M43 77l12 12 23-25" stroke={check} strokeWidth={10} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Circle cx={96} cy={22} r={9} fill={dot} />
     </Svg>
   );
 }

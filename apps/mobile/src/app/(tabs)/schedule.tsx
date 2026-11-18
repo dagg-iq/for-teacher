@@ -107,6 +107,7 @@ export default function Schedule() {
           </View>
         </Card>
       ) : null}
+      <View style={{ height: 150 }} />
       {edit ? <SlotEditor day={edit.day} period={edit.period} slot={slotAt(edit.day, edit.period)} onClose={() => setEdit(null)} /> : null}
     </Screen>
   );

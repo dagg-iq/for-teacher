@@ -41,7 +41,7 @@ function ToastView({ t }: { t: ToastState }) {
           <T size={14} weight="medium" color={c.bg} style={{ flex: 1 }}>{t.text}</T>
           {t.action ? (
             <PressScale onPress={() => { current = null; emit(); t.action!.onPress(); }} hitSlop={10}>
-              <T size={14} weight="bold" color={c.accent === '#4338F0' ? '#A9A4FF' : '#4338F0'}>{t.action.label}</T>
+              <T size={14} weight="bold" color={c.gold}>{t.action.label}</T>
             </PressScale>
           ) : null}
         </Animated.View>

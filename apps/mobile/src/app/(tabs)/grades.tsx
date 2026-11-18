@@ -31,8 +31,8 @@ export default function Grades() {
 
         <PressScale onPress={() => router.push('/voice')} scaleTo={0.98} accessibilityRole="button" accessibilityLabel="الإدخال الصوتي"
           style={{ backgroundColor: c.heroBg, borderRadius: 28, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-          <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="mic" size={28} color={c.accentInk} />
+          <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: c.gold, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="mic" size={28} color={c.goldInk} />
           </View>
           <View style={{ flex: 1 }}>
             <T weight="bold" size={18} color={c.heroInk}>الإدخال الصوتي</T>
@@ -79,9 +79,9 @@ export default function Grades() {
         <Row style={{ justifyContent: 'center' }}>
           <Chip label={archived ? 'السجلات الحالية' : 'السجلات المؤرشفة'} small onPress={() => setArchived(!archived)} />
         </Row>
-        <View style={{ height: 70 }} />
+        <View style={{ height: 150 }} />
       </Screen>
-      <Fab title="سجل جديد" onPress={() => router.push('/book/new')} />
+      <Fab tabs title="سجل جديد" onPress={() => router.push('/book/new')} />
     </View>
   );
 }

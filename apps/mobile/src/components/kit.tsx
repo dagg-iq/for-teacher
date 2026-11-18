@@ -40,7 +40,7 @@ export function Ring({ value, size = 92, stroke = 10, color, track, children }: 
 export function Stat({ label, value, icon, onPress, tone, style }: {
   label: string; value: string | number; icon?: IconName; onPress?: () => void; tone?: Tone; style?: StyleProp<ViewStyle>;
 }) {
-  const { c, tone: tones } = useTheme();
+  const { c, tone: tones, surface } = useTheme();
   const t = tone ? tones[tone] : null;
   const body = (
     <>
@@ -55,7 +55,7 @@ export function Stat({ label, value, icon, onPress, tone, style }: {
       </View>
     </>
   );
-  const s: StyleProp<ViewStyle> = [{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.card, borderRadius: radius.lg, borderWidth: 1, borderColor: c.line, paddingHorizontal: 14, paddingVertical: 10, minWidth: 100 }, style];
+  const s: StyleProp<ViewStyle> = [{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.card, borderRadius: radius.lg, ...surface, paddingHorizontal: 14, paddingVertical: 10, minWidth: 100 }, style];
   return onPress ? <PressScale onPress={onPress} scaleTo={0.97} style={s}>{body}</PressScale> : <View style={s}>{body}</View>;
 }
 
@@ -147,11 +147,11 @@ export function SearchBar({ value, onChange, placeholder = 'بحث…' }: { valu
 
 /** مجموعة بطاقات بعنوان صغير (مثل إعدادات) */
 export function Group({ title, children, style }: { title?: string; children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  const { c } = useTheme();
+  const { c, surface } = useTheme();
   return (
     <View style={{ gap: 8 }}>
       {title ? <T size={13} weight="bold" dim style={{ paddingHorizontal: 4 }}>{title}</T> : null}
-      <View style={[{ backgroundColor: c.card, borderRadius: radius.lg, borderWidth: 1, borderColor: c.line, paddingHorizontal: 16, paddingVertical: 4 }, style]}>
+      <View style={[{ backgroundColor: c.card, borderRadius: radius.lg, ...surface, paddingHorizontal: 16, paddingVertical: 4 }, style]}>
         {children}
       </View>
     </View>

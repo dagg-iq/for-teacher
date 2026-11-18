@@ -24,7 +24,7 @@ async function setup() {
       name: 'تذكير الحصص',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 200, 120, 200],
-      lightColor: '#4338F0',
+      lightColor: '#0F6E66',
     }).catch(() => {});
     await Notifications.setNotificationChannelAsync(TASKS_CHANNEL, {
       name: 'المهام والامتحانات',
