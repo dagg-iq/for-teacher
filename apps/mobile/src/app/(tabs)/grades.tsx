@@ -1,4 +1,4 @@
-import { arDigits, formatScore } from '@nahj/shared';
+import { arDigits, formatScore , formatPercent } from '@nahj/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -66,7 +66,7 @@ export default function Grades() {
                 </Row>
                 <T dim size={13}>{sectionLabel(b.section_id)}</T>
               </View>
-              {rate != null ? <Pill label={`نجاح ${formatScore(rate, 0)}٪`} tone={rate >= 50 ? 'good' : 'bad'} small /> : null}
+              {rate != null ? <Pill label={`نجاح ${formatPercent(rate)}`} tone={rate >= 50 ? 'good' : 'bad'} small /> : null}
             </Row>
             <View style={{ gap: 4 }}>
               <View style={{ height: 6, borderRadius: 3, backgroundColor: c.line, overflow: 'hidden' }}>

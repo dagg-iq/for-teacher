@@ -3,6 +3,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import { setDigitStyle } from '@nahj/shared';
 import { I18nManager, LogBox, Platform, ScrollView, Text, View } from 'react-native';
 import type { ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -70,6 +71,9 @@ function Navigator() {
   const { ready, session } = useAuth();
   const settings = useSettings();
   const segments = useSegments();
+  // شكل الأرقام يُضبط قبل رسم أي شاشة؛ تغييره يعيد بناء الشاشات (key) لتظهر الأرقام الجديدة في كل مكان
+  const digits = settings.prefs.digits ?? 'latn';
+  setDigitStyle(digits);
   const hasProfile = !!settings.profile?.name;
 
   // أول فتح: شاشة الترحيب وإعداد الملف
@@ -102,7 +106,7 @@ function Navigator() {
       <PortalProvider>
         <StatusBar style={dark ? 'light' : 'dark'} />
         {!ready ? <View style={{ flex: 1, backgroundColor: c.bg }} /> : (
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg }, animation: 'ios_from_left' }}>
+          <Stack key={digits} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg }, animation: 'ios_from_left' }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
             <Stack.Screen name="voice" options={{ animation: 'fade_from_bottom' }} />

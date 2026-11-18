@@ -2,7 +2,7 @@
  * الإشعارات المحلية: تذكير قبل كل حصة (أسبوعي)، وتذكير المهام والامتحانات.
  * تُعاد جدولتها كلما تغيّر الجدول أو المهام (بعد ثانيتين من آخر تعديل).
  */
-import { formatClock, fromMinutes, minutesLabel, toMinutes, type Task } from '@nahj/shared';
+import { arDigits, formatClock, fromMinutes, minutesLabel, toMinutes, type Task } from '@nahj/shared';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
@@ -73,7 +73,7 @@ export async function rescheduleAll(force = false) {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: `حصتك بعد ${minutesLabel(cfg.remind)}`,
-          body: `${title}${slot.room ? ` — ${slot.room}` : ''} · ${formatClock(p.start)}`,
+          body: `${title}${slot.room ? ` — ${arDigits(slot.room)}` : ''} · ${formatClock(p.start)}`,
           data: { route: '/schedule' },
         },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday: slot.day + 1, hour, minute, channelId: CHANNEL },

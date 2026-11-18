@@ -1,4 +1,4 @@
-import { COMMON_SUBJECTS, GOVERNORATES, isoDay, type TeacherProfile } from '@nahj/shared';
+import { arDigits, COMMON_SUBJECTS, GOVERNORATES, isoDay, type TeacherProfile } from '@nahj/shared';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { router } from 'expo-router';
@@ -74,6 +74,13 @@ export default function Settings() {
 
       <Group title="القوائم والدرجات">
         <View style={{ paddingVertical: 12, gap: 8 }}>
+          <T weight="bold" size={14}>شكل الأرقام</T>
+          <Segmented options={[{ key: 'latn', label: 'إنكليزية 123' }, { key: 'arab', label: 'عربية ١٢٣' }]} value={prefs.digits ?? 'latn'}
+            onChange={(v) => { if (v === prefs.digits) return; setSettings({ prefs: { ...prefs, digits: v } }); setTimeout(() => router.push('/settings'), 60); }} />
+          <T dim size={12}>تُطبَّق على كل التطبيق والطباعة وملفات Excel.</T>
+        </View>
+        <Divider />
+        <View style={{ paddingVertical: 12, gap: 8 }}>
           <T weight="bold" size={14}>ترتيب الطلاب</T>
           <Segmented options={[{ key: 'alpha', label: 'أبجدي' }, { key: 'number', label: 'حسب التسلسل' }]} value={prefs.studentOrder} onChange={(v) => setSettings({ prefs: { ...prefs, studentOrder: v } })} />
         </View>
@@ -83,7 +90,7 @@ export default function Settings() {
         <View style={{ paddingVertical: 12, gap: 8 }}>
           <T weight="bold" size={14}>مؤقت التأكيد</T>
           <Row gap={8}>
-            {[0, 2, 3, 5].map((x) => <Chip key={x} label={x ? `${x} ث`.replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[Number(d)]) : 'يدوي'} active={prefs.voiceConfirm === x} onPress={() => setSettings({ prefs: { ...prefs, voiceConfirm: x } })} />)}
+            {[0, 2, 3, 5].map((x) => <Chip key={x} label={x ? `${arDigits(x)} ث` : 'يدوي'} active={prefs.voiceConfirm === x} onPress={() => setSettings({ prefs: { ...prefs, voiceConfirm: x } })} />)}
           </Row>
         </View>
         <Divider />

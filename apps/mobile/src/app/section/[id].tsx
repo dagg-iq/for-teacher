@@ -35,7 +35,7 @@ export default function SectionScreen() {
 
   return (
     <Screen>
-      <Header title={sectionLabel(id)} subtitle={`${countStudents(students.length)}${section.room ? ` · ${section.room}` : ''}${k.subject ? ` · ${k.subject}` : ''}`}
+      <Header title={sectionLabel(id)} subtitle={`${countStudents(students.length)}${section.room ? ` · ${arDigits(section.room)}` : ''}${k.subject ? ` · ${k.subject}` : ''}`}
         right={(
           <>
             <IconButton name="mic" label="إدخال صوتي" onPress={() => router.push(`/voice?section=${id}`)} />

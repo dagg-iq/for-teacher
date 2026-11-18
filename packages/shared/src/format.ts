@@ -1,10 +1,28 @@
 const AR_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 
-/** يحوّل الأرقام إلى أرقام عربية مشرقية، والفاصلة العشرية إلى «٫». */
+/**
+ * شكل الأرقام في الواجهة والطباعة: «latn» إنكليزية (0123، الافتراضي) أو «arab» عربية مشرقية (٠١٢٣).
+ * يُضبط مرة عند التشغيل ومن الإعدادات (setDigitStyle)، وكل دوال العرض هنا تتبعه.
+ */
+export type DigitStyle = 'latn' | 'arab';
+let digitStyle: DigitStyle = 'latn';
+export function setDigitStyle(s: DigitStyle) { digitStyle = s; }
+export function getDigitStyle(): DigitStyle { return digitStyle; }
+
+/** يكتب الأرقام بالشكل المختار في الإعدادات (إنكليزية افتراضياً، أو عربية مشرقية مع الفاصلة «٫»). */
 export function arDigits(input: string | number): string {
-  return String(input)
+  const s = String(input);
+  if (digitStyle === 'latn') return s.replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d))).replace(/٫/g, '.').replace(/٪/g, '%');
+  return s
     .replace(/[0-9]/g, (d) => AR_DIGITS[Number(d)])
-    .replace(/\./g, '٫');
+    .replace(/\./g, '٫')
+    .replace(/%/g, '٪');
+}
+
+/** نسبة مئوية للعرض: «78%» أو «٧٨٪» حسب شكل الأرقام */
+export function formatPercent(n: number | null | undefined, digits = 0): string {
+  if (n === null || n === undefined || !Number.isFinite(n)) return '—';
+  return `${formatScore(n, digits)}${digitStyle === 'latn' ? '%' : '٪'}`;
 }
 
 /** رقم درجة للعرض: بحد أقصى منزلة عشرية واحدة. */

@@ -1,4 +1,4 @@
-import { arDigits, columnStats, formatScore } from '@nahj/shared';
+import { arDigits, columnStats, formatScore , formatPercent } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -38,7 +38,7 @@ export default function Stats() {
       </ScrollView>
       <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
         <Ring value={st.passRate} size={112} stroke={12} color={st.passRate != null && st.passRate < 50 ? tone.bad.ink : c.accent}>
-          <T display size={26}>{st.passRate == null ? '—' : `${formatScore(st.passRate, 0)}٪`}</T>
+          <T display size={26}>{st.passRate == null ? '—' : formatPercent(st.passRate)}</T>
           <T dim size={12} style={{ marginTop: -6 }}>نسبة النجاح</T>
         </Ring>
         <View style={{ flex: 1, gap: 8 }}>
@@ -72,7 +72,7 @@ export default function Stats() {
           ))}
         </View>
         <Row style={{ justifyContent: 'space-between' }}>
-          <T size={10} dim>٠٪</T><T size={10} dim>٥٠٪</T><T size={10} dim>١٠٠٪</T>
+          <T size={10} dim>{formatPercent(0)}</T><T size={10} dim>{formatPercent(50)}</T><T size={10} dim>{formatPercent(100)}</T>
         </Row>
       </Card>
 

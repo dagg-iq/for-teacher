@@ -6,8 +6,7 @@
  */
 import {
   arDigits, ATTENDANCE_LABEL, buildSheet, columnStats, DAY_NAMES, formatClock, formatDate, formatScore, MARK_LABEL,
-  parseIsoDay, periodName, schoolYear, STAGE_LABEL, WEEK_ORDER, type Gradebook,
-} from '@nahj/shared';
+  parseIsoDay, periodName, schoolYear, STAGE_LABEL, WEEK_ORDER, type Gradebook, formatPercent } from '@nahj/shared';
 import { Asset } from 'expo-asset';
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
@@ -116,7 +115,7 @@ export async function exportBookXlsx(bookId: string) {
     const st = columnStats(rows.map((r) => r.values[decider.id]), decider.max, book.result);
     aoa.push([], ['الإحصاء', `${decider.name}`]);
     aoa.push(['عدد الطلاب', st.total], ['أُدخلت درجاتهم', st.count], ['الناجحون', st.passCount], ['الراسبون', st.failCount],
-      ['نسبة النجاح ٪', st.passRate ?? ''], ['المعدل', st.avg ?? ''], ['الأعلى', st.max ?? ''], ['الأدنى', st.min ?? '']);
+      ['نسبة النجاح %', st.passRate ?? ''], ['المعدل', st.avg ?? ''], ['الأعلى', st.max ?? ''], ['الأدنى', st.min ?? '']);
     for (const b of st.bands) aoa.push([b.label, b.count]);
   }
   const merges: XLSX.Range[] = [0, 1, 2].map((r) => ({ s: { r, c: 0 }, e: { r, c: width - 1 } }));
@@ -240,7 +239,7 @@ export async function printBook(bookId: string, mode: 'print' | 'pdf' = 'print')
   let stats = '';
   if (decider) {
     const st = columnStats(rows.map((r) => r.values[decider.id]), decider.max, book.result);
-    stats = `<div class="stats"><span>عدد الطلاب: <b>${arDigits(st.total)}</b></span><span>الناجحون: <b>${arDigits(st.passCount)}</b></span><span>الراسبون: <b>${arDigits(st.failCount)}</b></span><span>نسبة النجاح: <b>${st.passRate == null ? '—' : `${formatScore(st.passRate)}٪`}</b></span><span>المعدل: <b>${formatScore(st.avg)}</b></span>${st.bands.map((b) => `<span>${esc(b.label)}: <b>${arDigits(b.count)}</b></span>`).join('')}</div>`;
+    stats = `<div class="stats"><span>عدد الطلاب: <b>${arDigits(st.total)}</b></span><span>الناجحون: <b>${arDigits(st.passCount)}</b></span><span>الراسبون: <b>${arDigits(st.failCount)}</b></span><span>نسبة النجاح: <b>${st.passRate == null ? '—' : formatPercent(st.passRate, 1)}</b></span><span>المعدل: <b>${formatScore(st.avg)}</b></span>${st.bands.map((b) => `<span>${esc(b.label)}: <b>${arDigits(b.count)}</b></span>`).join('')}</div>`;
   }
   const html = await renderPage(book.title, `${headBlock(h, book.title, h.section)}<table><thead>${head}</thead><tbody>${body}</tbody></table>${stats}${signBlock(h)}`, landscape);
   await outputHtml(html, `${book.title} - ${h.section}`, mode, landscape);
@@ -316,7 +315,7 @@ export async function printTimetable(mode: 'print' | 'pdf' = 'print') {
     const sl = slots.find((x) => x.day === d && x.period === i);
     if (!sl) return '<td></td>';
     const label = sl.section_id ? sectionLabel(sl.section_id) : sl.label ?? '';
-    return `<td>${esc(label)}${sl.room ? `<small>${esc(sl.room)}</small>` : ''}</td>`;
+    return `<td>${esc(label)}${sl.room ? `<small>${esc(arDigits(sl.room))}</small>` : ''}</td>`;
   }).join('')}</tr>`).join('');
   const html = await renderPage('جدول الحصص', `<div class="head"><div class="r">${esc(p?.school ?? '')}</div><div class="c"><h1>جدول الحصص الأسبوعي</h1><h2>${esc(p ? `${p.gender === 'f' ? 'المدرّسة' : 'المدرّس'}: ${p.name}` : '')}</h2></div><div class="l">${esc(p?.subject ?? '')}<br>${esc(arDigits(p?.year ?? schoolYear()))}</div></div><table class="grid"><thead>${head}</thead><tbody>${body}</tbody></table>`, true);
   await outputHtml(html, 'جدول الحصص', mode, true);

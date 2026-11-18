@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { setDigitStyle } from './format';
+setDigitStyle('arab');
 import { countStudents, iraqiPhone, parseNameList, toCsv } from './text';
 import { chunk, mergeRemote, purgeable } from './sync';
 
@@ -55,5 +57,18 @@ describe('sync', () => {
     const fresh = { ...r('y', new Date().toISOString()), deleted: true };
     expect(purgeable([old, fresh], new Set(), 30)).toEqual(['x']);
     expect(purgeable([old], new Set(['x']), 30)).toEqual([]);
+  });
+});
+
+describe('digit style', () => {
+  it('switches between English and Arabic-Indic digits', async () => {
+    const { arDigits, formatPercent, formatScore } = await import('./format');
+    setDigitStyle('latn');
+    expect(arDigits('٧٨٫٥')).toBe('78.5');
+    expect(formatScore(85.25)).toBe('85.3');
+    expect(formatPercent(78)).toBe('78%');
+    setDigitStyle('arab');
+    expect(arDigits(78.5)).toBe('٧٨٫٥');
+    expect(formatPercent(78)).toBe('٧٨٪');
   });
 });

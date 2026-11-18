@@ -63,7 +63,7 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   await wait(800);
   await page.locator('textarea').first().fill('١- أحمد علي حسين\n٢- علي حسن كاظم\n٣- مصطفى كريم ناصر\n٤- أحمد عادل مهدي\n٥- زيد خالد\n٢- علي حسن كاظم');
   await wait(300);
-  await page.getByText(/إضافة ٥ طلاب/).first().click();
+  await page.getByText(/إضافة (٥|5) طلاب/).first().click();
   await wait(800);
   const students = await db('students');
   ok(students.length === 5, `أُضيف ٥ طلاب (بلا تكرار) — ${students.length}`);
@@ -101,7 +101,7 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   for (const i of [2, 3, 4]) { await inputs.nth(i).fill('60'); await inputs.nth(i).press('Enter'); await wait(250); }
   await wait(400);
   const colText = await page.evaluate(() => document.body.innerText);
-  ok(/الشهر الأول\s*·\s*من ١٠٠\s*·\s*أُدخل ٥ من ٥/.test(colText), 'الإدخال السريع: إكمال العمود لا يقفز لعمود آخر');
+  ok(/الشهر الأول\s*·\s*من (١٠٠|100)\s*·\s*أُدخل (٥|5) من (٥|5)/.test(colText), 'الإدخال السريع: إكمال العمود لا يقفز لعمود آخر');
   await page.screenshot({ path: `${shots}/flow-entry.png` });
 
   // ٤) الإدخال الصوتي بالكتابة على العمود الثاني

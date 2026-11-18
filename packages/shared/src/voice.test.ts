@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAmbiguous, isConfident, matchStudents, normalizeArabic, numberToArabicWords, parseCommand, parseSpokenNumber } from './voice';
+import { chooseHeard, isAmbiguous, isConfident, matchStudents, normalizeArabic, numberToArabicWords, parseCommand, parseSpokenNumber } from './voice';
 import type { Student } from './types';
 
 const now = new Date().toISOString();
@@ -144,5 +144,29 @@ describe('number words', () => {
     expect(numberToArabicWords(100)).toBe('مئة');
     expect(numberToArabicWords(90.5)).toBe('تسعون ونصف');
     expect(numberToArabicWords(13)).toBe('ثلاثة عشر');
+  });
+});
+
+describe('teens in Iraqi dialect', () => {
+  it('reads 16 and 18 in many spellings', () => {
+    for (const t of ['ثمنطعش', 'ثمنتعش', 'ثمن طعش', 'تمنطعش', 'ثمانية عشر', 'ثمانطعش', '18']) expect(parseSpokenNumber(t)).toBe(18);
+    for (const t of ['ستطعش', 'سطعش', 'ست طعش', 'ستة عشر', '16']) expect(parseSpokenNumber(t)).toBe(16);
+  });
+});
+
+describe('choosing among recognizer alternatives', () => {
+  it('prefers a known name with a valid grade and offers the other numbers', () => {
+    const h = chooseHeard(['مصطفى ستطعش', 'مصطفى ثمنطعش'], CLASS, { max: 20 });
+    expect(h?.cmd.type).toBe('grade');
+    expect(h && h.cmd.type === 'grade' ? h.cmd.value : null).toBe(16);
+    expect(h?.altValues).toEqual([18]);
+  });
+  it('skips an alternative whose grade exceeds the maximum', () => {
+    const h = chooseHeard(['مصطفى ثمانين', 'مصطفى ثمنطعش'], CLASS, { max: 20 });
+    expect(h && h.cmd.type === 'grade' ? h.cmd.value : null).toBe(18);
+  });
+  it('prefers an alternative that names a student', () => {
+    const h = chooseHeard(['كرار خمسين', 'زينب خمسين'], CLASS, { max: 100 });
+    expect(h?.text).toBe('زينب خمسين');
   });
 });

@@ -1,7 +1,6 @@
 import {
   arDigits, displayToFormula, evaluateRow, formatScore, formulaToDisplay, FUNCTION_HELP, IRAQI_BANDS, PASS_FAIL_BANDS,
-  quickFormula, uuid, validateFormula, type Band, type GradeColumn, type Gradebook,
-} from '@nahj/shared';
+  quickFormula, uuid, validateFormula, type Band, type GradeColumn, type Gradebook, formatPercent } from '@nahj/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -265,7 +264,7 @@ function ResultRuleEditor({ book, onChange }: { book: Gradebook; onChange: (r: G
             <T weight="bold" size={14}>درجة النجاح</T>
             <T dim size={12}>نسبة من الدرجة العظمى</T>
           </View>
-          <Stepper value={r.pass} onChange={(v) => onChange({ ...r, pass: v })} min={1} max={100} step={5} suffix="٪" />
+          <Stepper value={r.pass} onChange={(v) => onChange({ ...r, pass: v })} min={1} max={100} step={5} suffix={arDigits('%')} />
         </Row>
         <View style={{ paddingVertical: 12, gap: 8 }}>
           <T weight="bold" size={14}>التقديرات</T>
@@ -279,7 +278,7 @@ function ResultRuleEditor({ book, onChange }: { book: Gradebook; onChange: (r: G
               <PressScale key={`${b.label}-${i}`} onPress={() => setEditBand(i)} scaleTo={0.98}>
                 <Row style={{ justifyContent: 'space-between', paddingVertical: 4 }}>
                   <Pill label={b.label} tone={b.tone} />
-                  <T dim size={13}>من {arDigits(b.min)}٪ فأعلى</T>
+                  <T dim size={13}>من {formatPercent(b.min)} فأعلى</T>
                 </Row>
               </PressScale>
             );
@@ -311,7 +310,7 @@ function BandEditor({ band, onClose, onSave, onDelete }: { band: Band; onClose: 
         <Field label="الاسم" value={label} onChangeText={setLabel} />
         <Row style={{ justifyContent: 'space-between' }}>
           <T weight="bold" size={14}>يبدأ من</T>
-          <Stepper value={min} onChange={setMin} min={0} max={100} step={5} suffix="٪" />
+          <Stepper value={min} onChange={setMin} min={0} max={100} step={5} suffix={arDigits('%')} />
         </Row>
         <Row gap={8} style={{ flexWrap: 'wrap' }}>
           {(['good', 'info', 'neutral', 'warn', 'bad'] as const).map((t) => (

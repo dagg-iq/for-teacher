@@ -42,7 +42,7 @@ export default function ClassDetail() {
             <SectionMark letter={s.name} hue={hue(k.hue)} />
             <View style={{ flex: 1 }}>
               <T weight="bold" size={17}>شعبة {s.name}</T>
-              <T dim size={13}>{arDigits(students)} طالب · {arDigits(books)} سجل{s.room ? ` · ${s.room}` : ''}</T>
+              <T dim size={13}>{arDigits(students)} طالب · {arDigits(books)} سجل{s.room ? ` · ${arDigits(s.room)}` : ''}</T>
             </View>
             <Icon name="forward" size={18} color={c.ink3} />
           </Row>

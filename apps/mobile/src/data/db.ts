@@ -31,6 +31,8 @@ export interface Prefs {
   printHeader: boolean;
   /** ترتيب الطلاب: أبجدي أو حسب التسلسل */
   studentOrder: 'alpha' | 'number';
+  /** شكل الأرقام: إنكليزية (0123) أو عربية مشرقية (٠١٢٣) */
+  digits: 'latn' | 'arab';
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -40,6 +42,7 @@ export const DEFAULT_PREFS: Prefs = {
   classReminders: true,
   printHeader: true,
   studentOrder: 'alpha',
+  digits: 'latn',
 };
 
 type Tables = { [K in TableName]: Map<string, TableRow[K]> };

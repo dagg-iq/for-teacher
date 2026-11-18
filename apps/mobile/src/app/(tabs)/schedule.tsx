@@ -83,7 +83,7 @@ export default function Schedule() {
                     {s && (s.section_id || s.label) ? (
                       <>
                         <T weight="bold" size={16} color={live ? c.heroInk : c.ink} lines={1}>{s.section_id ? sectionLabel(s.section_id) : s.label}</T>
-                        <T size={12} color={live ? c.heroInk2 : c.ink2}>{[k?.subject, s.room].filter(Boolean).join(' · ') || ' '}</T>
+                        <T size={12} color={live ? c.heroInk2 : c.ink2}>{[k?.subject, s.room && arDigits(s.room)].filter(Boolean).join(' · ') || ' '}</T>
                       </>
                     ) : (
                       <T size={14} color={live ? c.heroInk2 : c.ink3}>فراغ — اضغط لإضافة حصة</T>

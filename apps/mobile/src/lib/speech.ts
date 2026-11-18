@@ -53,7 +53,8 @@ export function say(text: string) {
   });
 }
 
-export function useRecognizer(opts: { onFinal: (text: string) => void; contextual?: string[] }) {
+/** onFinal يستلم كل احتمالات المحرك لما قيل (الأرجح أولاً) — يختار منها الشاشة الأنسب للسياق */
+export function useRecognizer(opts: { onFinal: (texts: string[]) => void; contextual?: string[] }) {
   const [state, setState] = useState<ListenState>('idle');
   const [partial, setPartial] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +74,7 @@ export function useRecognizer(opts: { onFinal: (text: string) => void; contextua
         lang: lang.current,
         interimResults: true,
         continuous: true,
-        maxAlternatives: 1,
+        maxAlternatives: 5,
         contextualStrings: ctx.current.slice(0, 100),
         addsPunctuation: false,
         volumeChangeEventOptions: { enabled: true, intervalMillis: 120 },
@@ -92,12 +93,12 @@ export function useRecognizer(opts: { onFinal: (text: string) => void; contextua
     const subs = [
       M.addListener('start', () => { failed.current = false; setState('listening'); setError(null); }),
       M.addListener('result', (e) => {
-        const text = e.results?.[0]?.transcript ?? '';
+        const texts = (e.results ?? []).map((r) => (r?.transcript ?? '').trim()).filter(Boolean);
         if (Date.now() < speakingUntil) { setPartial(''); return; }
         if (e.isFinal) {
           setPartial('');
-          if (text.trim()) onFinal.current(text.trim());
-        } else setPartial(text);
+          if (texts.length) onFinal.current(texts);
+        } else setPartial(texts[0] ?? '');
       }),
       M.addListener('volumechange', (e) => setVolume(Math.max(0, Math.min(1, (e.value + 2) / 12)))),
       M.addListener('error', (e) => {

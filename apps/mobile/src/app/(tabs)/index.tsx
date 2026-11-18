@@ -1,7 +1,6 @@
 import {
   arDigits, countStudents, formatClock, formatDayDate, formatScore, greeting, inMinutes, nextClass, nowState, periodName,
-  relativeDays, teacherTitle, TASK_KIND_LABEL, type Slot,
-} from '@nahj/shared';
+  relativeDays, teacherTitle, TASK_KIND_LABEL, type Slot, formatPercent } from '@nahj/shared';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View } from 'react-native';
@@ -138,14 +137,14 @@ function NowCard({ now }: { now: Date }) {
   if (st.kind === 'in') {
     kicker = `الحصة ${periodName(st.period)} الآن`;
     main = label(st.slot);
-    sub = `تنتهي ${inMinutes(st.endsIn)}${st.slot?.room ? ` · ${st.slot.room}` : ''}`;
+    sub = `تنتهي ${inMinutes(st.endsIn)}${st.slot?.room ? ` · ${arDigits(st.slot.room)}` : ''}`;
     sectionId = st.slot?.section_id ?? null;
   } else if (next) {
     kicker = next.dayOffset === 0 ? `حصتك القادمة — ${periodName(next.slot.period)}` : next.dayOffset === 1 ? 'أول حصة غداً' : `حصتك القادمة — ${formatDayDate(new Date(now.getTime() + next.dayOffset * 86400000)).split('،')[0]}`;
     main = label(next.slot);
     const startsIn = next.dayOffset === 0 && (st.kind === 'before' || st.kind === 'between') && st.period === next.slot.period ? st.startsIn : null;
     sub = startsIn != null ? `تبدأ ${inMinutes(startsIn)}` : `الساعة ${formatClock(next.start)}`;
-    if (next.slot.room) sub += ` · ${next.slot.room}`;
+    if (next.slot.room) sub += ` · ${arDigits(next.slot.room)}`;
     sectionId = next.slot.section_id ?? null;
   } else {
     kicker = 'الجدول';
@@ -232,7 +231,7 @@ function LastExam({ d }: { d: ReturnType<typeof dashboard> }) {
         </View>
         <Row gap={18}>
           <Ring value={s.passRate} size={96} color={s.passRate != null && s.passRate < 50 ? tone.bad.ink : c.accent}>
-            <T display size={22}>{s.passRate == null ? '—' : `${formatScore(s.passRate, 0)}٪`}</T>
+            <T display size={22}>{s.passRate == null ? '—' : formatPercent(s.passRate)}</T>
             <T dim size={11} style={{ marginTop: -6 }}>نجاح</T>
           </Ring>
           <View style={{ flex: 1, gap: 8 }}>

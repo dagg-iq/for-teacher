@@ -49,16 +49,20 @@ const UNITS: Record<string, number> = {
 };
 
 const TEENS: Record<string, number> = {
-  احدعشر: 11, احدعش: 11, حدعش: 11, احداعش: 11, حداعش: 11,
-  اثناعشر: 12, اثنيعشر: 12, اثنعش: 12, ثنعش: 12, اطنعش: 12, ثناعش: 12,
-  ثلاثهعشر: 13, ثلطعش: 13, تلطعش: 13, ثلثطعش: 13, تلتطعش: 13,
-  اربعهعشر: 14, اربعطعش: 14, اربطعش: 14, ربعطعش: 14,
-  خمسهعشر: 15, خمسطعش: 15, خمستعش: 15, خمصطعش: 15,
-  ستهعشر: 16, ستطعش: 16, سطعش: 16,
-  سبعهعشر: 17, سبعطعش: 17, سبعتعش: 17,
-  ثمانيهعشر: 18, ثمنطعش: 18, ثمانطعش: 18, تمنطعش: 18,
-  تسعهعشر: 19, تسعطعش: 19, تسعتعش: 19,
+  احدعشر: 11, احدعش: 11, حدعش: 11, احداعش: 11, حداعش: 11, حدعشر: 11, احدطعش: 11,
+  اثناعشر: 12, اثنيعشر: 12, اثنعش: 12, ثنعش: 12, اطنعش: 12, ثناعش: 12, اثنعشر: 12, طنعش: 12, ثنطعش: 12,
+  ثلاثهعشر: 13, ثلطعش: 13, تلطعش: 13, ثلثطعش: 13, تلتطعش: 13, ثلتعش: 13, تلتعش: 13, ثلاثطعش: 13, تلاطعش: 13,
+  اربعهعشر: 14, اربعطعش: 14, اربطعش: 14, ربعطعش: 14, اربعتعش: 14, ارباطعش: 14, اربعتاعش: 14,
+  خمسهعشر: 15, خمسطعش: 15, خمستعش: 15, خمصطعش: 15, خمسطاعش: 15, خمستاعش: 15,
+  ستهعشر: 16, ستطعش: 16, سطعش: 16, ستعش: 16, سطاعش: 16, ستاعش: 16, سدعش: 16,
+  سبعهعشر: 17, سبعطعش: 17, سبعتعش: 17, سبعطاعش: 17, سبعتاعش: 17,
+  ثمانيهعشر: 18, ثمنطعش: 18, ثمانطعش: 18, تمنطعش: 18, ثمنتعش: 18, تمنتعش: 18, ثمانتعش: 18, تمانتعش: 18,
+  ثمنتاعش: 18, ثمنطاعش: 18, ثمانطاعش: 18, ثمانيطعش: 18, ثمانيتعش: 18, تمانطعش: 18,
+  تسعهعشر: 19, تسعطعش: 19, تسعتعش: 19, تسعطاعش: 19, تسعتاعش: 19,
 };
+
+/** اللاحقة العامية للأعداد ١١–١٩ إذا كتبها المحرك كلمة منفصلة: «ثمن طعش» */
+const TEEN_SUFFIX = new Set(['طعش', 'تعش', 'طاعش', 'تاعش', 'طعشر', 'تعشر']);
 
 const TENS: Record<string, number> = {
   عشرين: 20, عشرون: 20,
@@ -182,7 +186,18 @@ export function parseSpokenNumber(text: string): number | null {
 function tokens(text: string): string[] {
   const norm = normalizeArabic(text).replace(/(\d)\s*\.\s*(\d)/g, '$1.$2');
   const out: string[] = [];
-  for (const w of norm.split(' ').filter(Boolean)) {
+  const raw = norm.split(' ').filter(Boolean);
+  // «ثمن طعش» / «ست طعش» ← كلمة واحدة
+  const words: string[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    if (i + 1 < raw.length && TEEN_SUFFIX.has(raw[i + 1])) {
+      const joined = raw[i] + 'طعش';
+      const alt = raw[i] + raw[i + 1];
+      if (joined in TEENS || alt in TEENS) { words.push(joined in TEENS ? joined : alt); i++; continue; }
+    }
+    words.push(raw[i]);
+  }
+  for (const w of words) {
     // «وخمسين» ← «و» + «خمسين» (إلا الكلمات التي تبدأ بالواو أصلاً مثل «واحد»)
     if (w.length > 2 && w.startsWith('و') && !wordValue(w) && wordValue(w.slice(1))) {
       out.push('و', w.slice(1));
@@ -377,6 +392,58 @@ export function parseCommand(text: string, students: Student[], opts: { ordered?
   }
   if (candidates.length) return { type: 'select', candidates, nameText };
   return { type: 'unknown', text };
+}
+
+// ------------------------------------------------------------------ اختيار أفضل ما سمعه المحرك
+/** كلمات الأعداد التي تُرسل للمحرك لتحسين التعرّف عليها (خاصة ١١–١٩ بالعامية حيث يكثر الخلط) */
+export const NUMBER_HINTS = [
+  'احدعش', 'ثنعش', 'ثلطعش', 'اربعطعش', 'خمسطعش', 'سطعش', 'سبعطعش', 'ثمنطعش', 'تسعطعش',
+  'عشرين', 'ثلاثين', 'اربعين', 'خمسين', 'ستين', 'سبعين', 'ثمانين', 'تسعين', 'مية', 'ونص',
+  'غايب', 'تراجع', 'التالي', 'نعم',
+];
+
+export interface Heard {
+  text: string;
+  cmd: VoiceCommand;
+  /** أعداد مختلفة سمعها المحرك في البدائل الأخرى (للتصحيح بلمسة: «أو ١٨؟») */
+  altValues: number[];
+}
+
+function cmdValue(c: VoiceCommand): number | null {
+  return c.type === 'grade' || c.type === 'value' ? c.value : null;
+}
+
+/**
+ * المحرك يعطي عدة احتمالات لما قيل (الأرجح أولاً). نختار أول احتمال «منطقي»:
+ * اسم معروف بثقة + درجة لا تتجاوز العظمى، ثم الأقل منطقية. وتُجمع الأعداد المختلفة في البدائل
+ * حتى يصحّح المدرس بلمسة إن خلط المحرك بين متقاربين صوتياً (ستطعش/ثمنطعش، ستين/سبعين).
+ */
+export function chooseHeard(texts: string[], students: Student[], opts: { ordered?: boolean; max?: number } = {}): Heard | null {
+  const list = texts.map((t) => t.trim()).filter(Boolean);
+  if (!list.length) return null;
+  const max = opts.max ?? Infinity;
+  const scored = list.map((text, i) => {
+    const cmd = parseCommand(text, students, opts);
+    const v = cmdValue(cmd);
+    let score = 0;
+    if (cmd.type === 'grade' || cmd.type === 'mark') score = isConfident(cmd.candidates) ? 4 : cmd.candidates.length ? 2.5 : 1;
+    else if (cmd.type === 'value') score = 2;
+    else if (cmd.type === 'select') score = isConfident(cmd.candidates) ? 2 : 1.5;
+    else if (cmd.type !== 'unknown') score = 3;
+    if (v != null && (v > max || v < 0)) score -= 3;
+    // الاحتمال الأول هو الأرجح عند المحرك: أفضلية صغيرة للترتيب
+    score -= i * 0.05;
+    return { text, cmd, v, score };
+  });
+  const best = scored.reduce((a, b) => (b.score > a.score ? b : a));
+  const altValues: number[] = [];
+  if (best.v != null) {
+    for (const s of scored) {
+      if (s === best || s.v == null || s.v === best.v || s.v > max || s.v < 0 || altValues.includes(s.v)) continue;
+      altValues.push(s.v);
+    }
+  }
+  return { text: best.text, cmd: best.cmd, altValues: altValues.slice(0, 3) };
 }
 
 /** هل الفرق بين أفضل مرشحَين صغير (تشابه أسماء يحتاج اختياراً) */

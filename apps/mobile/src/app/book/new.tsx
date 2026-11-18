@@ -1,4 +1,4 @@
-import { cloneColumns, countSections, schoolYear, TEMPLATES, type TemplateDef } from '@nahj/shared';
+import { arDigits, cloneColumns, countSections, schoolYear, TEMPLATES, type TemplateDef } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -85,7 +85,7 @@ export default function NewBook() {
         </Row>
         <T dim size={12}>اختر أكثر من شعبة لإنشاء نفس السجل لكل منها دفعة واحدة.</T>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {sections.map(({ s, n }) => <Chip key={s.id} label={`${sectionLabel(s.id, true)} (${n})`.replace(/\d+/g, (d) => d.replace(/[0-9]/g, (x) => '٠١٢٣٤٥٦٧٨٩'[Number(x)]))} active={picked.includes(s.id)} onPress={() => toggle(s.id)} />)}
+          {sections.map(({ s, n }) => <Chip key={s.id} label={`${sectionLabel(s.id, true)} (${arDigits(n)})`} active={picked.includes(s.id)} onPress={() => toggle(s.id)} />)}
         </View>
       </View>
       <Row gap={10}>

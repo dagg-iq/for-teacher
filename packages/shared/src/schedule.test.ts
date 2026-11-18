@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { setDigitStyle } from './format';
+setDigitStyle('arab');
 import { DEFAULT_TIMETABLE, formatClock, generatePeriods, inMinutes, isoDay, nextClass, nowState, schoolYear } from './schedule';
 import type { Slot } from './types';
 

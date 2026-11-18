@@ -1,5 +1,5 @@
 import {
-  arDigits, formatScore, isAmbiguous, isConfident, MARK_LABEL, numberToArabicWords, parseCommand,
+  arDigits, chooseHeard, formatScore, isAmbiguous, isConfident, MARK_LABEL, NUMBER_HINTS, numberToArabicWords, parseCommand,
   type GradeColumn, type GradeMark, type NameCandidate, type Student,
 } from '@nahj/shared';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -28,6 +28,8 @@ interface Pending {
   value: number | null;
   mark: GradeMark | null;
   prev: { value: number | null; mark: GradeMark | null } | null;
+  /** أعداد أخرى سمعها المحرك (تصحيح بلمسة) */
+  alts?: number[];
 }
 
 interface Done {
@@ -174,8 +176,10 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
   const scroller = useRef<ScrollView>(null);
   const progress = useSharedValue(0);
 
-  const names = useMemo(() => students.map((s) => s.name), [students]);
-  const rec = useRecognizer({ onFinal: (t) => handle(t), contextual: names });
+  // الأسماء أولاً ثم كلمات الأعداد العامية: المحرك يفضّلها عند التعرّف
+  const hints = useMemo(() => [...students.map((s) => s.name).slice(0, 100 - NUMBER_HINTS.length), ...NUMBER_HINTS], [students]);
+  const rec = useRecognizer({ onFinal: (t) => handleHeard(t), contextual: hints });
+  const alts = useRef<number[]>([]);
 
   const warn = (n: Notice, speak?: string) => {
     setNotice(n);
@@ -224,6 +228,8 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
   };
 
   const propose = (student: Student, value: number | null, mark: GradeMark | null) => {
+    const altValues = value != null ? alts.current.filter((v) => v !== value && v <= column.max) : [];
+    alts.current = [];
     settle();
     setChoices(null);
     if (value != null && value > column.max) {
@@ -233,7 +239,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
     if (value != null && value < 0) return;
     const g = getGrade(bookId, student.id, column.id);
     const prev = g && (g.value != null || g.mark) ? { value: g.value, mark: g.mark ?? null } : null;
-    const p: Pending = { student, value, mark, prev };
+    const p: Pending = { student, value, mark, prev, alts: altValues };
     setNotice(prev ? { tone: 'warn', text: `لديه درجة سابقة (${prev.mark ? MARK_LABEL[prev.mark] : formatScore(prev.value)}) — ستُستبدل.` } : null);
     setCurrent(students.findIndex((s) => s.id === student.id));
     const secs = prefs.voiceConfirm;
@@ -261,10 +267,35 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
     warn({ tone: 'info', text: `تراجعت عن ${last.student.name}.` }, 'تم التراجع');
   };
 
+  /** تصحيح الدرجة المعلّقة إلى عدد آخر سمعه المحرك (يعيد المؤقت) */
+  const swapValue = (v: number) => {
+    if (!pending) return;
+    const others = [pending.value, ...(pending.alts ?? [])].filter((x): x is number => x != null && x !== v);
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    cancelAnimation(progress);
+    const p: Pending = { ...pending, value: v, alts: others };
+    setPending(p);
+    tap('light');
+    const secs = prefs.voiceConfirm;
+    if (secs > 0) {
+      progress.value = 0;
+      progress.value = withTiming(1, { duration: secs * 1000, easing: Easing.linear });
+      timer.current = setTimeout(() => commit(p), secs * 1000);
+    }
+  };
+
   // ------------------------------------------------ فهم الجملة
-  function handle(text: string) {
+  /** من احتمالات المحرك: نختار الأنسب (اسم معروف + درجة ضمن العظمى) ونحتفظ بالأعداد الأخرى للتصحيح */
+  function handleHeard(texts: string[]) {
+    const h = chooseHeard(texts, students, { ordered: mode === 'ordered', max: column.max });
+    if (!h) return;
+    alts.current = h.altValues;
+    handle(h.text, h.cmd);
+  }
+
+  function handle(text: string, parsed?: ReturnType<typeof parseCommand>) {
     setHeard(text);
-    const cmd = parseCommand(text, students, { ordered: mode === 'ordered' });
+    const cmd = parsed ?? parseCommand(text, students, { ordered: mode === 'ordered' });
     const cur = current >= 0 ? students[current] : null;
     switch (cmd.type) {
       case 'confirm':
@@ -382,6 +413,17 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
               </View>
               <T display size={34} color={c.heroInk}>{pending.mark ? MARK_LABEL[pending.mark] : formatScore(pending.value)}</T>
             </Row>
+            {pending.alts?.length ? (
+              <Row gap={8} style={{ flexWrap: 'wrap' }}>
+                <T size={13} color={c.heroInk2}>أو قصدت:</T>
+                {pending.alts.map((v) => (
+                  <PressScale key={v} onPress={() => swapValue(v)} scaleTo={0.94} accessibilityRole="button" accessibilityLabel={`تصحيح إلى ${formatScore(v)}`}
+                    style={{ minWidth: 48, height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}>
+                    <T weight="bold" size={16} color={c.heroInk}>{formatScore(v)}</T>
+                  </PressScale>
+                ))}
+              </Row>
+            ) : null}
             <Row gap={8}>
               <Button title="إلغاء" small variant="secondary" style={{ flex: 1 }} onPress={cancelPending} />
               <Button title="تثبيت" icon="check" small style={{ flex: 2 }} onPress={() => commit(pending)} />
@@ -425,9 +467,9 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
         {!speechAvailable() || rec.state === 'error' || kb ? (
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TextInput value={typed} onChangeText={setTyped} placeholder="أو اكتب: أحمد علي ٨٥" placeholderTextColor={c.ink3}
-              onSubmitEditing={() => { if (typed.trim()) { handle(typed.trim()); setTyped(''); } }} returnKeyType="send" blurOnSubmit={false}
+              onSubmitEditing={() => { if (typed.trim()) { handleHeard([typed.trim()]); setTyped(''); } }} returnKeyType="send" blurOnSubmit={false}
               style={{ flex: 1, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, backgroundColor: c.bg, paddingHorizontal: 16, fontFamily: fonts.regular, fontSize: 15, color: c.ink, textAlign: 'right' }} />
-            <IconButton name="send" label="إرسال" filled onPress={() => { if (typed.trim()) { handle(typed.trim()); setTyped(''); } }} />
+            <IconButton name="send" label="إرسال" filled onPress={() => { if (typed.trim()) { handleHeard([typed.trim()]); setTyped(''); } }} />
           </View>
         ) : null}
       </View>
