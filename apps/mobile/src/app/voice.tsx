@@ -365,7 +365,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, gap: 10 }}>
-        <Header title={column.name} subtitle={`${book?.title ?? ''} · ${sectionLabel(sectionId)} · من ${arDigits(column.max)}`}
+        <Header title={arDigits(column.name)} subtitle={`${book?.title ?? ''} · ${sectionLabel(sectionId)} · من ${arDigits(column.max)}`}
           right={(
             <>
               <IconButton name="settings" label="إعدادات الصوت" onPress={() => setSettingsOpen(true)} />
@@ -466,7 +466,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
         </Row>
         {!speechAvailable() || rec.state === 'error' || kb ? (
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            <TextInput value={typed} onChangeText={setTyped} placeholder="أو اكتب: أحمد علي ٨٥" placeholderTextColor={c.ink3}
+            <TextInput value={typed} onChangeText={setTyped} placeholder={`أو اكتب: أحمد علي ${arDigits(85)}`} placeholderTextColor={c.ink3}
               onSubmitEditing={() => { if (typed.trim()) { handleHeard([typed.trim()]); setTyped(''); } }} returnKeyType="send" blurOnSubmit={false}
               style={{ flex: 1, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, backgroundColor: c.bg, paddingHorizontal: 16, fontFamily: fonts.regular, fontSize: 15, color: c.ink, textAlign: 'right' }} />
             <IconButton name="send" label="إرسال" filled onPress={() => { if (typed.trim()) { handleHeard([typed.trim()]); setTyped(''); } }} />

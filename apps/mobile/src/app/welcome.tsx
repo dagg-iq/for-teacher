@@ -1,4 +1,4 @@
-import { COMMON_SUBJECTS, GOVERNORATES, schoolYear, type TeacherProfile } from '@nahj/shared';
+import { arDigits, COMMON_SUBJECTS, GOVERNORATES, schoolYear, type TeacherProfile } from '@nahj/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -93,7 +93,7 @@ function ProfileForm({ onBack }: { onBack: () => void }) {
       contentContainerStyle={{ padding: 20, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32, gap: 18, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
       <Row style={{ justifyContent: 'space-between' }}>
         <Chip label="رجوع" onPress={onBack} />
-        <T dim size={13}>الخطوة ٢ من ٢</T>
+        <T dim size={13}>الخطوة {arDigits(2)} من {arDigits(2)}</T>
       </Row>
       <View style={{ gap: 4 }}>
         <T display size={32}>عرّفنا بك</T>

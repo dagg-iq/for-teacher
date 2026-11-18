@@ -69,8 +69,8 @@ function saeyBuild(max: number, pass: number, withFinal: boolean) {
   const m2 = col('الشهر الثاني', max);
   const t1 = f('معدل الفصل الأول', max, (i) => `معدل({${i.m1}}، {${i.m2}})`, { m1: m1.id, m2: m2.id });
   const mid = col('نصف السنة', max);
-  const m3 = col('الشهر الأول ف٢', max);
-  const m4 = col('الشهر الثاني ف٢', max);
+  const m3 = col('الشهر الأول ف2', max);
+  const m4 = col('الشهر الثاني ف2', max);
   const t2 = f('معدل الفصل الثاني', max, (i) => `معدل({${i.m3}}، {${i.m4}})`, { m3: m3.id, m4: m4.id });
   const saey = f('السعي السنوي', max, (i) => `({${i.t1}} + {${i.mid}} + {${i.t2}}) / 3`, { t1: t1.id, mid: mid.id, t2: t2.id });
   const columns = [m1, m2, t1, mid, m3, m4, t2, saey];
@@ -88,19 +88,19 @@ export const TEMPLATES: TemplateDef[] = [
   {
     key: 'saey',
     title: 'السعي السنوي',
-    description: 'متوسط وإعدادي (من ١٠٠): شهرين لكل فصل، نصف السنة، والسعي السنوي محسوب تلقائياً.',
+    description: 'متوسط وإعدادي (من 100): شهرين لكل فصل، نصف السنة، والسعي السنوي محسوب تلقائياً.',
     build: () => saeyBuild(100, 50, false),
   },
   {
     key: 'saey-final',
     title: 'السعي + الامتحان النهائي',
-    description: 'مثل السعي السنوي ويضيف الامتحان النهائي والدرجة النهائية = (السعي + النهائي) ÷ ٢.',
+    description: 'مثل السعي السنوي ويضيف الامتحان النهائي والدرجة النهائية = (السعي + النهائي) ÷ 2.',
     build: () => saeyBuild(100, 50, true),
   },
   {
     key: 'primary',
-    title: 'ابتدائي (من ١٠)',
-    description: 'الدرجة من ١٠ والنجاح ٥، بنفس تقسيم الفصلين ونصف السنة.',
+    title: 'ابتدائي (من 10)',
+    description: 'الدرجة من 10 والنجاح 5، بنفس تقسيم الفصلين ونصف السنة.',
     build: () => saeyBuild(10, 50, false),
   },
   {
@@ -117,7 +117,7 @@ export const TEMPLATES: TemplateDef[] = [
   {
     key: 'monthly',
     title: 'امتحان شهري',
-    description: 'عمود واحد من ١٠٠ — للامتحانات الشهرية والسريعة.',
+    description: 'عمود واحد من 100 — للامتحانات الشهرية والسريعة.',
     build: () => {
       const e = col('الدرجة', 100);
       return { columns: [e], result: { column_id: e.id, pass: 50, bands: IRAQI_BANDS } };
@@ -126,7 +126,7 @@ export const TEMPLATES: TemplateDef[] = [
   {
     key: 'written-oral',
     title: 'تحريري + شفهي',
-    description: 'تحريري من ٨٠ وشفهي/يومي من ٢٠، والمجموع من ١٠٠.',
+    description: 'تحريري من 80 وشفهي/يومي من 20، والمجموع من 100.',
     build: () => {
       const w = col('التحريري', 80);
       const o = col('الشفهي', 20);
@@ -137,10 +137,10 @@ export const TEMPLATES: TemplateDef[] = [
   {
     key: 'quizzes',
     title: 'اختبارات يومية',
-    description: 'خمسة اختبارات قصيرة من ١٠ ومعدلها محوّل إلى ١٠٠.',
+    description: 'خمسة اختبارات قصيرة من 10 ومعدلها محوّل إلى 100.',
     build: () => {
-      const qs = [1, 2, 3, 4, 5].map((n) => col(`اختبار ${['١', '٢', '٣', '٤', '٥'][n - 1]}`, 10));
-      const avg = f('المعدل من ١٠٠', 100, () => `معدل(${qs.map((q) => `{${q.id}}`).join('، ')}) * 10`, {}, '1dp');
+      const qs = [1, 2, 3, 4, 5].map((n) => col(`اختبار ${n}`, 10));
+      const avg = f('المعدل من 100', 100, () => `معدل(${qs.map((q) => `{${q.id}}`).join('، ')}) * 10`, {}, '1dp');
       return { columns: [...qs, avg], result: { column_id: avg.id, pass: 50, bands: IRAQI_BANDS } };
     },
   },

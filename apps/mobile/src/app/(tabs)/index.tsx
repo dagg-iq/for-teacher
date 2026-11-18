@@ -227,7 +227,7 @@ function LastExam({ d }: { d: ReturnType<typeof dashboard> }) {
       <Card onPress={() => router.push(`/book/${last.book.id}`)} style={{ gap: 14 }}>
         <View>
           <T weight="bold" size={17} lines={1}>{last.book.title}</T>
-          <T dim size={13}>{sectionLabel(last.book.section_id)} · {last.column.name}</T>
+          <T dim size={13}>{sectionLabel(last.book.section_id)} · {arDigits(last.column.name)}</T>
         </View>
         <Row gap={18}>
           <Ring value={s.passRate} size={96} color={s.passRate != null && s.passRate < 50 ? tone.bad.ink : c.accent}>

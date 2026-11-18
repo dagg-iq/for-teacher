@@ -66,7 +66,7 @@ describe('digit style', () => {
     setDigitStyle('latn');
     expect(arDigits('٧٨٫٥')).toBe('78.5');
     expect(formatScore(85.25)).toBe('85.3');
-    expect(formatPercent(78)).toBe('78%');
+    expect(formatPercent(78)).toBe('\u206678%\u2069');
     setDigitStyle('arab');
     expect(arDigits(78.5)).toBe('٧٨٫٥');
     expect(formatPercent(78)).toBe('٧٨٪');

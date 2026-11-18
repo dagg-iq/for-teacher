@@ -1,4 +1,4 @@
-import { isoDay, type LessonPlan } from '@nahj/shared';
+import { arDigits, isoDay, type LessonPlan } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -69,7 +69,7 @@ export default function PlanEdit() {
         <Field label="طريقة التدريس" value={method} onChangeText={setMethod} />
         <Row gap={6} style={{ flexWrap: 'wrap' }}>{METHODS.map((m) => <Chip key={m} small label={m} onPress={() => add(method, setMethod, m)} />)}</Row>
       </View>
-      <Field label="خطوات الدرس (العرض)" value={steps} onChangeText={setSteps} multiline placeholder={'التمهيد (٥ د)\nالعرض (٣٠ د)\nالخاتمة (٥ د)'} style={{ minHeight: 110 }} />
+      <Field label="خطوات الدرس (العرض)" value={steps} onChangeText={setSteps} multiline placeholder={arDigits('التمهيد (5 د)\nالعرض (30 د)\nالخاتمة (5 د)')} style={{ minHeight: 110 }} />
       <Field label="التقويم" value={evaluation} onChangeText={setEvaluation} multiline style={{ minHeight: 70 }} />
       <Field label="الواجب البيتي" value={homework} onChangeText={setHomework} />
       <ToggleRow title="نُفّذ الدرس" value={done} onChange={setDone} />

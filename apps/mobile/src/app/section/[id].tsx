@@ -67,7 +67,7 @@ function EditSection({ visible, onClose, sectionId }: { visible: boolean; onClos
       <T display size={22}>الشعبة</T>
       <View style={{ gap: 12, marginTop: 8 }}>
         <Field label="اسم الشعبة" value={name} onChangeText={setName} />
-        <Field label="القاعة (اختياري)" value={room} onChangeText={setRoom} placeholder="مثال: القاعة ٣" />
+        <Field label="القاعة (اختياري)" value={room} onChangeText={setRoom} placeholder={`مثال: القاعة ${arDigits(3)}`} />
         <Button title="حفظ" icon="check" disabled={!name.trim()} onPress={() => { update('sections', sectionId, { name: name.trim(), room: room.trim() || null }); onClose(); }} />
       </View>
     </Sheet>

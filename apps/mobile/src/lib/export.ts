@@ -98,7 +98,7 @@ export async function exportBookXlsx(bookId: string) {
   if (!book) throw new Error('السجل غير موجود');
   const h = headerInfo(book.section_id);
   const { rows, cols, decider, cell } = bookTable(book);
-  const head = ['ت', 'اسم الطالب', ...cols.map((c) => `${c.name} (${c.max})`), ...(decider ? ['التقدير', 'النتيجة', 'الترتيب'] : [])];
+  const head = ['ت', 'اسم الطالب', ...cols.map((c) => arDigits(`${c.name} (${c.max})`)), ...(decider ? ['التقدير', 'النتيجة', 'الترتيب'] : [])];
   const width = head.length;
   const aoa: (string | number | null)[][] = [
     [h.school ? `${h.school}${h.governorate ? ` — ${h.governorate}` : ''}` : 'سجل الدرجات'],
@@ -225,7 +225,7 @@ export async function printBook(bookId: string, mode: 'print' | 'pdf' = 'print')
   const h = headerInfo(book.section_id);
   const { rows, cols, decider, cell } = bookTable(book);
   const landscape = cols.length > 5;
-  const head = `<tr><th>ت</th><th>اسم الطالب</th>${cols.map((c) => `<th>${esc(c.name)}<br><small>${arDigits(c.max)}</small></th>`).join('')}${decider ? '<th>التقدير</th><th>النتيجة</th>' : ''}</tr>`;
+  const head = `<tr><th>ت</th><th>اسم الطالب</th>${cols.map((c) => `<th>${esc(arDigits(c.name))}<br><small>${arDigits(c.max)}</small></th>`).join('')}${decider ? '<th>التقدير</th><th>النتيجة</th>' : ''}</tr>`;
   const body = rows.map((r, i) => {
     const tds = cols.map((c) => {
       const v = cell(r, c.id);
@@ -291,7 +291,7 @@ export async function printStudentReport(studentId: string, mode: 'print' | 'pdf
     const { rows, cols, decider, cell } = bookTable(b);
     const r = rows.find((x) => x.student.id === s.id);
     if (!r) return '';
-    return `<h3 style="margin:14px 0 6px;font-size:12pt">${esc(b.title)}</h3><table><tr>${cols.map((c) => `<th>${esc(c.name)}</th>`).join('')}${decider ? '<th>التقدير</th>' : ''}</tr><tr>${cols.map((c) => { const v = cell(r, c.id); return `<td>${v == null ? '—' : n(v)}</td>`; }).join('')}${decider ? `<td>${esc(r.verdict?.label ?? '—')}</td>` : ''}</tr></table>`;
+    return `<h3 style="margin:14px 0 6px;font-size:12pt">${esc(b.title)}</h3><table><tr>${cols.map((c) => `<th>${esc(arDigits(c.name))}</th>`).join('')}${decider ? '<th>التقدير</th>' : ''}</tr><tr>${cols.map((c) => { const v = cell(r, c.id); return `<td>${v == null ? '—' : n(v)}</td>`; }).join('')}${decider ? `<td>${esc(r.verdict?.label ?? '—')}</td>` : ''}</tr></table>`;
   }).join('');
   const ab = absencesOf(s.id);
   const notes = all('student_notes').filter((x) => x.student_id === s.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);

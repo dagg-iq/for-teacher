@@ -33,14 +33,14 @@ export default function NewBook() {
       <Screen edges={['top', 'bottom']}>
         <Header title="سجل جديد" subtitle="اختر قالباً — يمكنك تعديل الأعمدة والمعادلات بعدها" />
         {TEMPLATES.map((t) => (
-          <PressScale key={t.key} onPress={() => { setTpl(t); setTitle(t.key === 'blank' ? '' : t.key === 'monthly' ? 'امتحان شهري' : `سجل ${t.title}`); }} scaleTo={0.98}
+          <PressScale key={t.key} onPress={() => { setTpl(t); setTitle(t.key === 'blank' ? '' : t.key === 'monthly' ? 'امتحان شهري' : `سجل ${arDigits(t.title)}`); }} scaleTo={0.98}
             style={{ backgroundColor: c.card, borderRadius: 22, ...surface, padding: 16, flexDirection: 'row', gap: 14, alignItems: 'center' }}>
             <View style={{ width: 46, height: 46, borderRadius: 15, backgroundColor: t.key === 'saey' ? c.accent : c.soft, alignItems: 'center', justifyContent: 'center' }}>
               <Icon name={t.key === 'blank' ? 'plus' : t.key === 'monthly' ? 'quiz' : t.key === 'quizzes' ? 'list' : 'table'} size={22} color={t.key === 'saey' ? c.accentInk : c.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <T weight="bold" size={16}>{t.title}</T>
-              <T dim size={13}>{t.description}</T>
+              <T weight="bold" size={16}>{arDigits(t.title)}</T>
+              <T dim size={13}>{arDigits(t.description)}</T>
             </View>
           </PressScale>
         ))}
@@ -65,7 +65,7 @@ export default function NewBook() {
   const preview = tpl.build();
   return (
     <Screen edges={['top', 'bottom']}>
-      <Header title={tpl.title} subtitle="العنوان والشعب" />
+      <Header title={arDigits(tpl.title)} subtitle="العنوان والشعب" />
       <Field label="عنوان السجل" value={title} onChangeText={setTitle} placeholder="مثال: امتحان الشهر الأول" autoFocus />
       <View style={{ gap: 8 }}>
         <T weight="bold" size={14}>الأعمدة</T>
@@ -73,7 +73,7 @@ export default function NewBook() {
           {preview.columns.map((col) => (
             <View key={col.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: col.kind === 'formula' ? c.soft : c.card, borderWidth: col.kind === 'formula' ? 0 : 1, borderColor: c.line, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6 }}>
               {col.kind === 'formula' ? <Icon name="formula" size={13} color={c.accent} /> : null}
-              <T size={12} weight="medium" color={col.kind === 'formula' ? c.softInk : c.ink}>{col.name}</T>
+              <T size={12} weight="medium" color={col.kind === 'formula' ? c.softInk : c.ink}>{arDigits(col.name)}</T>
             </View>
           ))}
         </View>

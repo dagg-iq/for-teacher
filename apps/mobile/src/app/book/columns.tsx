@@ -50,7 +50,7 @@ export default function Columns() {
             </View>
             <PressScale style={{ flex: 1 }} onPress={() => setEditing(col)} scaleTo={0.98}>
               <Row gap={6}>
-                <T weight="bold" size={15} lines={1} style={{ flexShrink: 1 }}>{col.name}</T>
+                <T weight="bold" size={15} lines={1} style={{ flexShrink: 1 }}>{arDigits(col.name)}</T>
                 {book.result.column_id === col.id ? <Pill small label="النتيجة" tone="info" /> : null}
                 {col.hidden ? <Pill small label="مخفي" /> : null}
               </Row>
@@ -98,7 +98,7 @@ const OPS: { key: Op; label: string; hint: string }[] = [
   { key: 'weighted', label: 'مرجّح', hint: 'لكل عمود وزن (نسبة) مختلف' },
   { key: 'max', label: 'الأعلى', hint: 'أعلى درجة بين الأعمدة' },
   { key: 'min', label: 'الأدنى', hint: 'أدنى درجة بين الأعمدة' },
-  { key: 'scale', label: 'تحويل', hint: 'تحويل الدرجة إلى عظمى أخرى (مثل من ١٠ إلى ١٠٠)' },
+  { key: 'scale', label: 'تحويل', hint: 'تحويل الدرجة إلى عظمى أخرى (مثل من 10 إلى 100)' },
   { key: 'free', label: 'معادلة حرة', hint: 'اكتب المعادلة بنفسك' },
 ];
 
@@ -175,7 +175,7 @@ function ColumnEditor({ book, col, kind, onClose, onSave }: {
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {OPS.map((o) => <Chip key={o.key} label={o.label} active={op === o.key} onPress={() => { setOp(o.key); if (o.key === 'scale') setPicked((p) => p.slice(0, 1)); }} />)}
             </View>
-            <T dim size={12}>{OPS.find((o) => o.key === op)?.hint}</T>
+            <T dim size={12}>{arDigits(OPS.find((o) => o.key === op)?.hint ?? "")}</T>
 
             {op !== 'free' ? (
               <>

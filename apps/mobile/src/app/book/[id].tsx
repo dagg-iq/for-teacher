@@ -114,7 +114,7 @@ function EntryList({ bookId, columns, active, onColumn, rows, decider, focusStud
   return (
     <>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-        {columns.map((col) => <Chip key={col.id} label={col.name} active={col.id === active.id} onPress={() => onColumn(col.id)} />)}
+        {columns.map((col) => <Chip key={col.id} label={arDigits(col.name)} active={col.id === active.id} onPress={() => onColumn(col.id)} />)}
       </ScrollView>
       <Row style={{ justifyContent: 'space-between' }}>
         <T size={13} weight="bold" style={{ flexShrink: 1 }} lines={1}>{active.name} <T dim size={13}>· من {arDigits(active.max)} · أُدخل {arDigits(filled)} من {arDigits(rows.length)}</T></T>
@@ -226,7 +226,7 @@ function Table({ rows, columns, deciderId, highlight, onCell }: {
               <View key={col.id} style={{ width: COL_W, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}>
                 <Row gap={3}>
                   {col.kind === 'formula' ? <Icon name="formula" size={11} color={c.accent} /> : null}
-                  <T size={11} weight="bold" color={c.softInk} lines={2} center>{col.name}</T>
+                  <T size={11} weight="bold" color={c.softInk} lines={2} center>{arDigits(col.name)}</T>
                 </Row>
                 <T size={10} dim>{arDigits(col.max)}</T>
               </View>

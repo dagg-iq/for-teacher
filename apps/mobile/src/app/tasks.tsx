@@ -1,4 +1,4 @@
-import { formatDayDate, formatTime, relativeDays, TASK_KIND_LABEL, type Task, type TaskKind } from '@nahj/shared';
+import { arDigits, formatDayDate, formatTime, relativeDays, TASK_KIND_LABEL, type Task, type TaskKind } from '@nahj/shared';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Icon, type IconName } from '@/components/icon';
@@ -14,7 +14,7 @@ import { useTheme } from '@/lib/theme';
 
 const KIND_ICON: Record<TaskKind, IconName> = { task: 'flag', exam: 'quiz', event: 'star', meeting: 'users', holiday: 'sun' };
 const REMIND: { v: number | null; label: string }[] = [
-  { v: null, label: 'بلا' }, { v: 30, label: 'قبل ٣٠ د' }, { v: 120, label: 'قبل ساعتين' }, { v: 1440, label: 'قبل يوم' },
+  { v: null, label: 'بلا' }, { v: 30, label: `قبل ${arDigits(30)} د` }, { v: 120, label: 'قبل ساعتين' }, { v: 1440, label: 'قبل يوم' },
 ];
 
 export default function Tasks() {

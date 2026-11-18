@@ -24,9 +24,9 @@ export function seedDemo() {
     insert('classes', { name: 'الرابع العلمي', stage: 'preparatory', subject: 'الفيزياء', hue: 1, sort: 1 }),
   ];
   const sections = [
-    insert('sections', { class_id: classes[0].id, name: 'أ', room: 'القاعة ٣', sort: 0 }),
-    insert('sections', { class_id: classes[0].id, name: 'ب', room: 'القاعة ٤', sort: 1 }),
-    insert('sections', { class_id: classes[1].id, name: 'أ', room: 'القاعة ٧', sort: 0 }),
+    insert('sections', { class_id: classes[0].id, name: 'أ', room: 'القاعة 3', sort: 0 }),
+    insert('sections', { class_id: classes[0].id, name: 'ب', room: 'القاعة 4', sort: 1 }),
+    insert('sections', { class_id: classes[1].id, name: 'أ', room: 'القاعة 7', sort: 0 }),
     insert('sections', { class_id: classes[1].id, name: 'ج', room: 'المختبر', sort: 1 }),
   ];
   const sizes = [26, 24, 28, 22];
@@ -62,7 +62,7 @@ export function seedDemo() {
         data: { gradebook_id: quiz.id, student_id: s.id, column_id: m.columns[0].id, value: Math.round(30 + r() * 70), mark: null },
       })));
     }
-    // حضور آخر ٥ أيام دوام
+    // حضور آخر 5 أيام دوام
     const days: string[] = [];
     const d = new Date();
     while (days.length < 5) {
@@ -77,7 +77,7 @@ export function seedDemo() {
     }
     upsertMany('attendance', att);
   });
-  // الجدول: كل شعبة ٣ حصص أسبوعياً
+  // الجدول: كل شعبة 3 حصص أسبوعياً
   const slots: { day: number; period: number; section_id: string; room: string | null }[] = [];
   const plan: [number, number, number][] = [[0, 0, 0], [0, 2, 1], [0, 4, 2], [1, 1, 3], [1, 3, 0], [2, 0, 1], [2, 2, 2], [2, 5, 3], [3, 1, 0], [3, 3, 1], [4, 0, 2], [4, 2, 3]];
   for (const [day, period, s] of plan) slots.push({ day, period, section_id: sections[s].id, room: sections[s].room ?? null });
@@ -92,8 +92,8 @@ export function seedDemo() {
     date: isoDay(), class_id: classes[0].id, section_ids: [sections[0].id, sections[1].id], title: 'قانون نيوتن الثاني',
     objectives: 'أن يعرّف الطالب القوة المحصلة.\nأن يطبّق العلاقة ق = ك × ت في مسائل.',
     materials: 'السبورة، عربة المختبر، أثقال', method: 'الاستجواب والتجربة العملية',
-    steps: 'مراجعة القانون الأول (٥ د)\nالتجربة العملية (١٥ د)\nاستنتاج العلاقة وحل مثالين (٢٠ د)',
-    evaluation: 'سؤالان شفهيان وتمرين على السبورة', homework: 'أسئلة الفصل ١–٤ صفحة ٤٢',
+    steps: 'مراجعة القانون الأول (5 د)\nالتجربة العملية (15 د)\nاستنتاج العلاقة وحل مثالين (20 د)',
+    evaluation: 'سؤالان شفهيان وتمرين على السبورة', homework: 'أسئلة الفصل 1–4 صفحة 42',
   });
   return { classes: classes.length, sections: sections.length };
 }

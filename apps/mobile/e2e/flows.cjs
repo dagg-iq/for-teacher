@@ -114,7 +114,7 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   await click('خانة الكتابة');
   await page.mouse.click(200, 60);
   await wait(400);
-  const box = page.getByPlaceholder('أو اكتب: أحمد علي ٨٥');
+  const box = page.getByPlaceholder(/أو اكتب: أحمد علي (٨٥|85)/);
   const sayIt = async (t) => { await box.fill(t); await box.press('Enter'); await wait(350); };
   // أسماء الطلاب مرتبة أبجدياً: أحمد عادل، أحمد علي، زيد، علي حسن، مصطفى
   await sayIt('مصطفى خمسة وسبعين');

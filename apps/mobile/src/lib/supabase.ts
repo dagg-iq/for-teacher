@@ -34,7 +34,7 @@ export function arabicError(e: unknown): string {
   const m = (e instanceof Error ? e.message : String(e ?? '')).toLowerCase();
   if (m.includes('invalid login')) return 'البريد أو كلمة السر غير صحيحة.';
   if (m.includes('already registered') || m.includes('already been registered')) return 'هذا البريد مسجّل مسبقاً. سجّل الدخول بدلاً من ذلك.';
-  if (m.includes('password') && m.includes('6')) return 'كلمة السر قصيرة: ٦ أحرف على الأقل.';
+  if (m.includes('password') && m.includes('6')) return 'كلمة السر قصيرة: 6 أحرف على الأقل.';
   if (m.includes('email not confirmed')) return 'أكّد بريدك أولاً من الرسالة التي وصلتك.';
   if (m.includes('network') || m.includes('fetch')) return 'تعذّر الاتصال. تأكد من الإنترنت.';
   if (m.includes('rate limit')) return 'محاولات كثيرة. انتظر قليلاً ثم أعد المحاولة.';

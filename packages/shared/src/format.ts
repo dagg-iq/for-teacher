@@ -22,7 +22,8 @@ export function arDigits(input: string | number): string {
 /** نسبة مئوية للعرض: «78%» أو «٧٨٪» حسب شكل الأرقام */
 export function formatPercent(n: number | null | undefined, digits = 0): string {
   if (n === null || n === undefined || !Number.isFinite(n)) return '—';
-  return `${formatScore(n, digits)}${digitStyle === 'latn' ? '%' : '٪'}`;
+  // الأرقام الإنكليزية داخل نص عربي: نعزلها (LRI…PDI) حتى تظهر «78%» لا «%78»
+  return digitStyle === 'latn' ? `\u2066${formatScore(n, digits)}%\u2069` : `${formatScore(n, digits)}٪`;
 }
 
 /** رقم درجة للعرض: بحد أقصى منزلة عشرية واحدة. */

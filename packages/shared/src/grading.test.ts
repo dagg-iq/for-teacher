@@ -57,7 +57,7 @@ describe('templates', () => {
   it('final exam template', () => {
     const tpl = TEMPLATES.find((t) => t.key === 'saey-final')!.build();
     const ids = Object.fromEntries(tpl.columns.map((c) => [c.name, c.id]));
-    const inputs = ['الشهر الأول', 'الشهر الثاني', 'نصف السنة', 'الشهر الأول ف٢', 'الشهر الثاني ف٢'];
+    const inputs = ['الشهر الأول', 'الشهر الثاني', 'نصف السنة', 'الشهر الأول ف2', 'الشهر الثاني ف2'];
     const grades: Grade[] = inputs.map((n) => ({ id: n, gradebook_id: 'b', student_id: 'a', column_id: ids[n], value: 60, created_at: now, updated_at: now }));
     grades.push({ id: 'f', gradebook_id: 'b', student_id: 'a', column_id: ids['الامتحان النهائي'], value: 41, created_at: now, updated_at: now });
     const [row] = buildSheet({ id: 'b', ...tpl }, [st('a', 'أ')], grades);

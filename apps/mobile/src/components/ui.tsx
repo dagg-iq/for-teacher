@@ -202,7 +202,7 @@ export function IconButton({ name, label, onPress, color, filled, size = 44, bad
           position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4,
           backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: c.bg,
         }}>
-          <T size={10} weight="bold" color={c.accentInk} style={{ lineHeight: 13 }}>{badge > 99 ? '+٩٩' : arDigits(badge)}</T>
+          <T size={10} weight="bold" color={c.accentInk} style={{ lineHeight: 13 }}>{badge > 99 ? arDigits('+99') : arDigits(badge)}</T>
         </View>
       ) : null}
     </PressScale>

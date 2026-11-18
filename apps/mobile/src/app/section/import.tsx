@@ -51,7 +51,7 @@ export default function ImportStudents() {
         <T weight="bold" size={14} color={c.softInk}>الصق القائمة كما هي</T>
         <T size={13} color={c.softInk}>اسم في كل سطر — من واتساب أو Excel أو أي ملف. الأرقام في بداية الأسطر تُحذف تلقائياً، والأسماء المكررة لا تُضاف.</T>
       </Card>
-      <Field value={text} onChangeText={setText} multiline placeholder={'١- أحمد علي حسين\n٢- علي حسن كاظم\n٣- …'} style={{ minHeight: 220 }} />
+      <Field value={text} onChangeText={setText} multiline placeholder={arDigits('1- أحمد علي حسين\n2- علي حسن كاظم\n3- …')} style={{ minHeight: 220 }} />
       <Button title="من ملف Excel أو CSV" icon="excel" variant="secondary" loading={busy} onPress={fromFile} />
       {parsed.length ? (
         <Card style={{ gap: 10 }}>

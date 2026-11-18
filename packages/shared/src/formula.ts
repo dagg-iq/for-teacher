@@ -98,7 +98,7 @@ export const FUNCTION_HELP: { fn: Fn; ar: string; desc: string }[] = [
   { fn: 'sum', ar: 'مجموع', desc: 'مجموع الأعمدة' },
   { fn: 'max', ar: 'أعلى', desc: 'أعلى قيمة' },
   { fn: 'min', ar: 'أدنى', desc: 'أدنى قيمة' },
-  { fn: 'round', ar: 'تقريب', desc: 'تقريب لأقرب عدد صحيح (٠٫٥ للأعلى)' },
+  { fn: 'round', ar: 'تقريب', desc: 'تقريب لأقرب عدد صحيح (0.5 للأعلى)' },
   { fn: 'if', ar: 'اذا', desc: 'اذا(شرط، قيمة إن تحقق، قيمة إن لم يتحقق)' },
 ];
 
