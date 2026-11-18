@@ -170,3 +170,9 @@ export function dashboard() {
     tasks: where('tasks', (t) => !t.done).sort((a, b) => (a.due ?? '9').localeCompare(b.due ?? '9')).slice(0, 4),
   };
 }
+
+/** عنوان الحصة في الجدول، أو null إن كانت شعبتها محذوفة (فلا تظهر في الويدجت ولا التذكير) */
+export function slotTitle(slot: { section_id?: string | null; label?: string | null }, short = true): string | null {
+  if (slot.section_id) return sectionLabel(slot.section_id, short) || null;
+  return slot.label?.trim() || null;
+}

@@ -2,8 +2,8 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
-import { all, getSettings, getTimetable, onLocalChange } from '@/data/db';
-import { sectionLabel } from '@/data/queries';
+import { all, getSettings, getTimetable, onAnyChange } from '@/data/db';
+import { slotTitle } from '@/data/queries';
 import { useTheme } from '@/lib/theme';
 import { writeSnapshot, type WidgetSnapshot } from './snapshot';
 
@@ -14,18 +14,25 @@ function build(theme: WidgetSnapshot['theme']): WidgetSnapshot {
   return {
     days: cfg.days,
     periods: cfg.periods,
-    slots: all('slots').filter((x) => x.section_id || x.label).map((x) => ({
-      day: x.day, period: x.period, title: x.section_id ? sectionLabel(x.section_id, true) : x.label ?? '', room: x.room ?? null,
-    })),
+    slots: all('slots').flatMap((x) => {
+      const title = slotTitle(x);
+      return title ? [{ day: x.day, period: x.period, title, room: x.room ?? null }] : [];
+    }),
     theme,
     configured: !!getSettings().timetable,
     updatedAt: new Date().toISOString(),
   };
 }
 
+let lastHash = '';
+
 async function push(theme: WidgetSnapshot['theme']) {
   if (!widgetsSupported) return;
   const s = build(theme);
+  // لا نعيد الرسم إن لم يتغير ما يعرضه الويدجت (الدرجات والحضور لا تهمه)
+  const hash = JSON.stringify([s.days, s.periods, s.slots, s.theme, s.configured]);
+  if (hash === lastHash) return;
+  lastHash = hash;
   await writeSnapshot(s);
   try {
     /* eslint-disable @typescript-eslint/no-require-imports */
@@ -46,8 +53,8 @@ export function useWidgetSync() {
     let t: ReturnType<typeof setTimeout> | null = null;
     const run = () => { if (t) clearTimeout(t); t = setTimeout(() => { push(mode).catch(() => {}); }, 1500); };
     run();
-    const off = onLocalChange(run);
-    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') run(); });
+    const off = onAnyChange(run);
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { lastHash = ''; run(); } });
     return () => { off(); sub.remove(); if (t) clearTimeout(t); };
   }, [mode]);
 }

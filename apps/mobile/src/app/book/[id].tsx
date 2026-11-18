@@ -36,6 +36,12 @@ export default function BookScreen() {
   const [menu, setMenu] = useState(false);
   const [rename, setRename] = useState(false);
   const [copy, setCopy] = useState(false);
+  // السجل وصل متأخراً (مزامنة) أو حُذف العمود المختار: نختار أول عمود ناقص مرة واحدة
+  useEffect(() => {
+    if (!book || inputs.some((c) => c.id === col)) return;
+    setCol((firstIncomplete(inputs, rows) ?? inputs[0])?.id ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [book, col]);
   const activeCol = inputs.find((c) => c.id === col) ?? inputs[0];
 
   if (!book) return <Screen><Header /><Empty title="السجل غير موجود" /></Screen>;

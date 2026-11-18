@@ -51,3 +51,44 @@ describe('timetable', () => {
     expect(schoolYear(new Date(2027, 2, 1))).toBe('2026-2027');
   });
 });
+
+import { dayPlan } from './schedule';
+
+describe('widget day plan', () => {
+  const cfg = DEFAULT_TIMETABLE; // ٨:٠٠–٨:٤٥، ٨:٥٠–٩:٣٥، ٩:٤٠–١٠:٢٥، (فرصة) ١٠:٤٠…
+  const slots = [0, 1, 2, 3, 4, 5].map((p) => ({ day: 0, period: p, title: `ح${p}`, room: null }));
+  const sun = (h: number, m: number) => new Date(2026, 9, 18, h, m);
+  const input = { days: cfg.days, periods: cfg.periods, slots };
+  it('before school: first class is next, not live', () => {
+    const r = dayPlan(input, sun(7, 30), 3);
+    expect(r.state).toBe('active');
+    expect(r.focus).toBe(0);
+    expect(r.live).toBe(false);
+    expect(r.rows.map((x) => x.period)).toEqual([0, 1, 2]);
+    expect(r.remaining).toBe(3);
+  });
+  it('mid-day keeps one previous class for context, remaining excludes finished', () => {
+    const r = dayPlan(input, sun(9, 0), 3); // الحصة الثانية جارية
+    expect(r.focus).toBe(1);
+    expect(r.live).toBe(true);
+    expect(r.rows.map((x) => x.period)).toEqual([0, 1, 2]);
+    expect(r.remaining).toBe(3);
+    const late = dayPlan(input, sun(11, 0), 3); // الرابعة (١٠:٤٠–١١:٢٥ بعد الفرصة)
+    expect(late.focus).toBe(3);
+    expect(late.rows.map((x) => x.period)).toEqual([2, 3, 4]);
+    expect(late.remaining).toBe(1);
+    const last = dayPlan(input, sun(12, 30), 3); // السادسة والأخيرة
+    expect(last.rows.map((x) => x.period)).toEqual([4, 5]);
+    expect(last.remaining).toBe(0);
+  });
+  it('small widget shows the focused class only', () => {
+    const r = dayPlan(input, sun(9, 0), 1);
+    expect(r.rows.map((x) => x.period)).toEqual([1]);
+    expect(r.remaining).toBe(4);
+  });
+  it('done, empty, off', () => {
+    expect(dayPlan(input, sun(15, 0), 3).state).toBe('done');
+    expect(dayPlan({ ...input, slots: [] }, sun(9, 0), 3).state).toBe('empty');
+    expect(dayPlan(input, new Date(2026, 9, 23, 9, 0), 3).state).toBe('off');
+  });
+});

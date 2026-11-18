@@ -141,3 +141,29 @@ export function schoolYear(d: Date = new Date()): string {
   const y = d.getMonth() >= 8 ? d.getFullYear() : d.getFullYear() - 1;
   return `${y}-${y + 1}`;
 }
+
+export interface DayPlanInput {
+  days: number[];
+  periods: PeriodTime[];
+  slots: { day: number; period: number; title: string; room: string | null }[];
+}
+
+/**
+ * ما يعرضه ويدجت «حصص اليوم»: حصص اليوم المرئية، الحصة المميزة (الحالية أو التالية)، وكم بقي بعدها.
+ * state: off عطلة، empty لا حصص، done انتهت، active فيها حصص قادمة.
+ */
+export function dayPlan(input: DayPlanInput, now: Date, maxRows: number) {
+  const day = now.getDay();
+  const t = now.getHours() * 60 + now.getMinutes();
+  if (!input.days.includes(day)) return { state: 'off' as const, rows: [], focus: -1, live: false, remaining: 0 };
+  const valid = input.slots.filter((x) => x.day === day && input.periods[x.period]).sort((a, b) => a.period - b.period);
+  if (!valid.length) return { state: 'empty' as const, rows: [], focus: -1, live: false, remaining: 0 };
+  const idx = valid.findIndex((x) => toMinutes(input.periods[x.period].end) > t);
+  if (idx < 0) return { state: 'done' as const, rows: [], focus: -1, live: false, remaining: 0 };
+  const focus = valid[idx].period;
+  const live = toMinutes(input.periods[focus].start) <= t;
+  const max = Math.max(1, maxRows);
+  const start = Math.max(0, max >= 3 ? idx - 1 : idx);
+  const rows = valid.slice(start, start + max);
+  return { state: 'active' as const, rows, focus, live, remaining: Math.max(0, valid.length - (start + rows.length)) };
+}

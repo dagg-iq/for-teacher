@@ -80,6 +80,9 @@ function subscribe(cb: () => void) {
   return () => { listeners.delete(cb); };
 }
 
+/** أي تغيير في البيانات (محلي، أو من المزامنة، أو التحميل، أو المسح) */
+export const onAnyChange = subscribe;
+
 /** رقم نسخة البيانات: يتغير مع كل تعديل */
 export function useDBVersion() {
   return useSyncExternalStore(subscribe, () => state.version, () => state.version);
@@ -392,7 +395,8 @@ export async function wipeLocal() {
   for (const t of SYNC_TABLES) state.dirty[t] = new Set();
   state.settings = { profile: null, timetable: null, prefs: DEFAULT_PREFS, updated_at: new Date(0).toISOString() };
   state.settingsDirty = false;
-  await AsyncStorage.multiRemove([...SYNC_TABLES.map(KEY), DIRTY_KEY, SETTINGS_KEY]);
+  // لقطة الويدجت أيضاً: لا تبقى أسماء الشعب على شاشة الهاتف بعد المسح
+  await AsyncStorage.multiRemove([...SYNC_TABLES.map(KEY), DIRTY_KEY, SETTINGS_KEY, 'rasd.widget.snapshot']);
   emit();
 }
 

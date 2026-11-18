@@ -6,8 +6,8 @@ import { formatClock, fromMinutes, minutesLabel, toMinutes, type Task } from '@r
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import { all, getSettings, getTimetable, onLocalChange } from '@/data/db';
-import { sectionLabel } from '@/data/queries';
+import { all, getSettings, getTimetable, onAnyChange } from '@/data/db';
+import { slotTitle } from '@/data/queries';
 
 const CHANNEL = 'classes';
 const TASKS_CHANNEL = 'tasks';
@@ -50,7 +50,7 @@ export async function rescheduleAll(force = false) {
   if (Platform.OS === 'web') return;
   const s = getSettings();
   const cfg = getTimetable();
-  const slots = all('slots').filter((x) => x.section_id || x.label);
+  const slots = all('slots').filter((x) => slotTitle(x, false));
   const tasks = all('tasks').filter((t) => !t.done && t.due && t.remind != null && Date.parse(t.due) - (t.remind ?? 0) * 60000 > Date.now());
   const wantClasses = s.prefs.classReminders && cfg.remind > 0 && !!s.timetable;
   const hash = JSON.stringify([wantClasses, cfg, slots.map((x) => [x.day, x.period, x.section_id, x.label, x.room]), tasks.map((t) => [t.id, t.due, t.remind, t.title])]);
@@ -69,7 +69,7 @@ export async function rescheduleAll(force = false) {
       const [hour, minute] = hhmm.split(':').map(Number);
       // اليوم نفسه قبل منتصف الليل فقط (تذكير الحصة الأولى لا يرجع لليوم السابق)
       if (at < 0) continue;
-      const title = slot.section_id ? sectionLabel(slot.section_id) : slot.label ?? 'حصة';
+      const title = slotTitle(slot, false) ?? 'حصة';
       await Notifications.scheduleNotificationAsync({
         content: {
           title: `حصتك بعد ${minutesLabel(cfg.remind)}`,
@@ -102,7 +102,7 @@ export function useClassReminders() {
       t = setTimeout(() => { rescheduleAll().catch(() => {}); }, 2000);
     };
     run();
-    const off = onLocalChange(run);
+    const off = onAnyChange(run);
     const sub = Notifications.addNotificationResponseReceivedListener((r) => {
       const route = (r.notification.request.content.data as { route?: string } | undefined)?.route;
       if (route) {
