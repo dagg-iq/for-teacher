@@ -47,5 +47,5 @@ jobs:
         run: |
           for d in supabase/functions/*/; do
             n=$(basename "$d"); [ "$n" = "_shared" ] && continue
-            supabase functions deploy "$n" --project-ref "$PROJECT_REF"
+            supabase functions deploy "$n" --project-ref "$PROJECT_REF" --yes
           done
