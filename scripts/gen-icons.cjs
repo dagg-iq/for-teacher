@@ -46,6 +46,7 @@ const jobs = [
   [`${SITE}/apple-touch-icon.png`, 180, { bg: GREEN, ink: PAPER, dot: GOLD, pad: 2.6, radius: 0 }],
   [`${SITE}/favicon.png`, 64, { bg: GREEN, ink: PAPER, dot: GOLD, pad: 1.6 }],
   [`${SITE}/og-icon.png`, 1024, { bg: GREEN, ink: PAPER, dot: GOLD, pad: 2.6, radius: 0 }],
+  [path.join(ROOT, 'apps/desktop/build/icon.png'), 1024, { bg: GREEN, ink: PAPER, dot: GOLD, pad: 2.2, radius: 0.225 }],
 ];
 
 (async () => {

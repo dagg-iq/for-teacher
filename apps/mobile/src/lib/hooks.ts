@@ -9,3 +9,11 @@ export function useNow(everyMs = 30000) {
   }, [everyMs]);
   return now;
 }
+
+/** شاشة عريضة (لابتوب/تابلت أفقي): شريط جانبي بدل الشريط السفلي، وتخطيط أوسع */
+export const WIDE_MIN = 900;
+export function useWide(): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { useWindowDimensions } = require('react-native') as typeof import('react-native');
+  return useWindowDimensions().width >= WIDE_MIN;
+}

@@ -12,7 +12,7 @@ import { Button, Card, Empty, Header, IconButton, Row, Screen, SectionTitle, T }
 import { getTimetable, useQuery, useSettings, all } from '@/data/db';
 import { dashboard, sectionLabel } from '@/data/queries';
 import { useSyncStatus } from '@/data/sync';
-import { useNow } from '@/lib/hooks';
+import { useNow, useWide } from '@/lib/hooks';
 import { useTheme } from '@/lib/theme';
 
 export default function Home() {
@@ -24,11 +24,13 @@ export default function Home() {
   const p = settings.profile;
   const title = p ? teacherTitle(p.name, p.gender) : '';
   const insets = useSafeAreaInsets();
+  const wide = useWide();
 
   return (
     <Screen>
-      {/* السبورة: التحية والحصة الحالية مكتوبة بالطباشير */}
-      <View style={{ marginHorizontal: -20, marginTop: -(insets.top + 8), paddingTop: insets.top + 14, paddingHorizontal: 20, paddingBottom: 46, backgroundColor: c.heroBg, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, gap: 14, overflow: 'hidden' }}>
+      {/* السبورة: التحية والحصة الحالية مكتوبة بالطباشير (على الشاشة العريضة: بطاقة مستديرة) */}
+      <View style={[{ paddingHorizontal: 20, paddingBottom: 46, backgroundColor: c.heroBg, gap: 14, overflow: 'hidden' },
+        wide ? { marginTop: 8, paddingTop: 22, borderRadius: 30 } : { marginHorizontal: -20, marginTop: -(insets.top + 8), paddingTop: insets.top + 14, borderBottomLeftRadius: 34, borderBottomRightRadius: 34 }]}>
         <Row style={{ justifyContent: 'space-between' }}>
           <View style={{ flexShrink: 1 }}>
             <T size={13} color={c.gold} weight="bold">{formatDayDate(now)}</T>

@@ -12,6 +12,7 @@ import { PortalProvider } from '@/components/portal';
 import { Intro } from '@/components/intro';
 import { UpdateSheet } from '@/components/update-sheet';
 import { cleanOldApks } from '@/lib/updater';
+import { IS_DESKTOP } from '@/lib/config';
 import { loadDB, useSettings } from '@/data/db';
 import { startSync } from '@/data/sync';
 import { AuthProvider, useAuth } from '@/lib/auth';
@@ -77,8 +78,8 @@ function Navigator() {
   const digits = settings.prefs.digits ?? 'latn';
   setDigitStyle(digits);
   const hasProfile = !!settings.profile?.name;
-  // حركة الشعار عند الفتح (على الهاتف). على الويب نخفي شاشة البداية مباشرة
-  const [introDone, setIntroDone] = useState(Platform.OS === 'web');
+  // حركة الشعار عند الفتح (الهاتف وتطبيق الحاسوب). على الويب نخفي شاشة البداية مباشرة
+  const [introDone, setIntroDone] = useState(Platform.OS === 'web' && !IS_DESKTOP);
 
   // أول فتح: شاشة الترحيب وإعداد الملف
   useEffect(() => {

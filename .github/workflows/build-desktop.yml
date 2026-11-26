@@ -1,0 +1,71 @@
+# يبني نسخة نَهج للحاسوب (ويندوز): مثبّت Setup.exe ونسخة محمولة Portable.exe لا تحتاج تثبيتاً،
+# من نفس واجهة التطبيق (نسخة الويب من Expo) داخل Electron، وينشرهما في صفحة Releases.
+name: Build Desktop
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, claude/fervent-faraday-pi2wwb]
+    paths:
+      - 'apps/mobile/src/**'
+      - 'apps/mobile/assets/**'
+      - 'packages/shared/src/**'
+      - 'apps/desktop/**'
+      - '.github/workflows/build-desktop.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      EXPO_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://nahj-iq.web.app' }}
+      APK_BUILD: ${{ github.run_number }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Web build of the app
+        working-directory: apps/mobile
+        run: npx expo export -p web --output-dir ../desktop/web
+      - name: Package for Windows
+        working-directory: apps/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          npm install --no-audit --no-fund
+          npm pkg set version="1.0.${{ github.run_number }}"
+          npx electron-builder --win nsis portable --x64 --publish never
+          ls -la dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nahj-windows
+          path: |
+            apps/desktop/dist/*.exe
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-${{ github.run_number }}
+          name: نَهج للحاسوب — نسخة ${{ github.run_number }}
+          body: |
+            نَهج لويندوز:
+            - **Nahj-Setup-…exe**: مثبّت (اختصار على سطح المكتب وقائمة ابدأ).
+            - **Nahj-Portable-…exe**: يعمل مباشرة بلا تثبيت.
+            إن ظهر تحذير SmartScreen: «مزيد من المعلومات» ← «تشغيل على أي حال» (النسخة غير موقّعة بشهادة تجارية بعد).
+            الكود: ${{ github.sha }}
+          prerelease: true
+          files: apps/desktop/dist/*.exe

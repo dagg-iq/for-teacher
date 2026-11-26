@@ -1,0 +1,44 @@
+{
+  "name": "nahj-desktop",
+  "productName": "Nahj",
+  "version": "1.0.0",
+  "description": "نَهج — تطبيق المدرّس العراقي (نسخة الحاسوب)",
+  "author": "Mohammed Hazim",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "web": "cd ../mobile && npx expo export -p web --output-dir ../desktop/web",
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis portable --publish never",
+    "dist:linux": "electron-builder --linux AppImage --publish never"
+  },
+  "devDependencies": {
+    "electron": "^39.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "app.nahj.teacher.desktop",
+    "productName": "Nahj",
+    "copyright": "© نَهج",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.cjs", "preload.cjs", "web/**/*", "build/icon.png"],
+    "asar": true,
+    "win": {
+      "icon": "build/icon.png",
+      "target": ["nsis", "portable"],
+      "artifactName": "Nahj-${version}-${arch}-${target}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "نَهج",
+      "uninstallDisplayName": "نَهج",
+      "artifactName": "Nahj-Setup-${version}.${ext}"
+    },
+    "portable": { "artifactName": "Nahj-Portable-${version}.${ext}" },
+    "linux": { "icon": "build/icon.png", "category": "Education", "target": ["AppImage"] }
+  }
+}

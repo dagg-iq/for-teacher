@@ -6,3 +6,6 @@ export const SITE_URL = (process.env.EXPO_PUBLIC_SITE_URL || 'https://nahj-iq.we
 /** رقم النسخة (رقم بناء GitHub) */
 export const BUILD_NUMBER = Number((Constants.expoConfig?.extra as { buildNumber?: number } | undefined)?.buildNumber ?? 0);
 export const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
+
+/** يعمل داخل تطبيق الحاسوب (Electron، apps/desktop) */
+export const IS_DESKTOP = typeof window !== 'undefined' && !!(window as unknown as { nahjDesktop?: unknown }).nahjDesktop;
