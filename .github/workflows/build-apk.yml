@@ -38,6 +38,8 @@ jobs:
       EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
       # المزامنة عبر خادم Oracle بدل Supabase (docs/ORACLE.md)
       EXPO_PUBLIC_SYNC_BACKEND: ${{ vars.SYNC_BACKEND || 'supabase' }}
+      EXPO_PUBLIC_GOOGLE_AUTH: ${{ secrets.GOOGLE_CLIENT_SECRET != '' }}
+      EXPO_PUBLIC_PASSWORD_RESET: ${{ secrets.SMTP_PASS != '' }}
       EXPO_PUBLIC_API_URL: ${{ vars.API_URL || '' }}
     steps:
       - uses: actions/checkout@v4

@@ -5,7 +5,9 @@ import { View } from 'react-native';
 import { AppIcon, Icon, type IconName } from '@/components/icon';
 import { Group } from '@/components/kit';
 import { Button, Card, Divider, Field, Header, ListItem, Row, Screen, Segmented, T } from '@/components/ui';
+import { cloudBackupAvailable } from '@/data/cloud-backup';
 import { syncNow, useSyncStatus } from '@/data/sync';
+import { GOOGLE_AUTH, PASSWORD_RESET } from '@/lib/config';
 import { useAuth } from '@/lib/auth';
 import { Alert } from '@/lib/dialog';
 import { arabicError, isConfigured } from '@/lib/supabase';
@@ -61,6 +63,11 @@ function Signed({ email }: { email: string | null }) {
         </Row>
         <Button title="زامن الآن" icon="refresh" loading={busy || sync.state === 'syncing'} onPress={async () => { setBusy(true); await syncNow(); setBusy(false); }} />
       </Card>
+      {cloudBackupAvailable ? (
+        <Group>
+          <ListItem icon="upload" title="النسخ في السحابة" subtitle="نسخة يومية تلقائية — واستعادة يوم سابق" onPress={() => router.push('/settings/backups')} />
+        </Group>
+      ) : null}
       <Group>
         <ListItem icon="logout" title="تسجيل الخروج" onPress={out} />
         <Divider />
@@ -104,17 +111,21 @@ function SignIn() {
           </Row>
         ))}
       </Card>
-      <Button title="المتابعة بحساب Google" icon="user" variant="secondary" loading={busy === 'google'} onPress={() => run('google', async () => { await signInWithGoogle(); })} />
-      <Row gap={10} style={{ alignItems: 'center' }}>
-        <View style={{ flex: 1 }}><Divider /></View>
-        <T dim size={12}>أو بالبريد</T>
-        <View style={{ flex: 1 }}><Divider /></View>
-      </Row>
+      {GOOGLE_AUTH ? (
+        <>
+          <Button title="المتابعة بحساب Google" icon="user" variant="secondary" loading={busy === 'google'} onPress={() => run('google', async () => { await signInWithGoogle(); })} />
+          <Row gap={10} style={{ alignItems: 'center' }}>
+            <View style={{ flex: 1 }}><Divider /></View>
+            <T dim size={12}>أو بالبريد</T>
+            <View style={{ flex: 1 }}><Divider /></View>
+          </Row>
+        </>
+      ) : null}
       <Segmented options={[{ key: 'up', label: 'حساب جديد' }, { key: 'in', label: 'تسجيل الدخول' }]} value={mode} onChange={setMode} />
       <Field label="البريد الإلكتروني" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" style={{ textAlign: 'left', writingDirection: 'ltr' }} />
       <Field label="كلمة السر" value={password} onChangeText={setPassword} secureTextEntry autoComplete={mode === 'up' ? 'new-password' : 'current-password'} hint={mode === 'up' ? '٦ أحرف على الأقل' : undefined} style={{ textAlign: 'left', writingDirection: 'ltr' }} />
       <Button title={mode === 'in' ? 'دخول' : 'إنشاء الحساب'} icon="check" loading={busy === 'email'} disabled={!/.+@.+\..+/.test(email) || password.length < 6} onPress={submit} />
-      {mode === 'in' ? (
+      {mode === 'in' && PASSWORD_RESET ? (
         <Button title="نسيت كلمة السر" variant="ghost" small onPress={() => {
           if (!/.+@.+\..+/.test(email)) { toast('اكتب بريدك أولاً', { icon: 'info' }); return; }
           run('reset', async () => { await resetPassword(email); Alert.alert('أُرسل الرابط', 'افتح بريدك واتبع الرابط لتعيين كلمة سر جديدة.'); });

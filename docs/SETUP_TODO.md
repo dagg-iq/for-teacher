@@ -23,8 +23,12 @@
    - `PUSH_SECRET` (أي نص سري طويل — لإرسال الإعلانات)
 4. أضف **متغيراً** (Variables) باسم `SUPABASE_PROJECT_REF` = رمز المشروع (الجزء الأول من الرابط).
 5. Actions ← **Deploy Supabase** ← Run workflow (يطبّق الجداول والصلاحيات ويرفع الدوال).
-6. Authentication ← URL Configuration: أضف `nahj://auth-callback` في Redirect URLs.
-7. (اختياري) تسجيل Google: Authentication ← Providers ← Google، وأدخل Client ID/Secret من Google Cloud Console (OAuth، نوع Web، Redirect = `https://<ref>.supabase.co/auth/v1/callback`).
+   ويضبط تلقائياً إعدادات الدخول: بلا رسالة تأكيد بالبريد، روابط الرجوع (`nahj://auth-callback` والموقع)، وحاوية التخزين `backups` للنسخ السحابية.
+6. (اختياري) تسجيل الدخول بـ Google: في Google Cloud Console أنشئ OAuth Client (نوع Web، Authorized redirect URI = `https://<ref>.supabase.co/auth/v1/callback`)،
+   ثم أضف السرين `GOOGLE_CLIENT_ID` و `GOOGLE_CLIENT_SECRET` وأعد **Deploy Supabase** و **Build APK** — يظهر الزر في التطبيق تلقائياً.
+7. (اختياري) «نسيت كلمة السر»: بريد Supabase المجاني لا يصل إلا لأعضاء فريق المشروع. لتفعيله أضف خادم بريد SMTP
+   (مثلاً Gmail بكلمة سر تطبيق: `smtp.gmail.com`، أو Resend/Brevo): الأسرار `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` `SMTP_SENDER`،
+   ثم أعد **Deploy Supabase** و **Build APK** — يظهر الزر تلقائياً.
 8. أعد تشغيل **Build APK** لتأخذ النسخة الجديدة مفاتيح Supabase.
 
 ## ٣) Firebase (الإشعارات + الموقع) — ١٠ دقائق
@@ -96,5 +100,7 @@
 | FIREBASE_SERVICE_ACCOUNT / FCM_SERVICE_ACCOUNT | Firebase ← Service accounts | للموقع والإشعارات |
 | RELEASES_TOKEN | GitHub ← Developer settings | لتحديث APK من داخل التطبيق |
 | EXPO_TOKEN + متغير EAS_PROJECT_ID | expo.dev | للتحديث الفوري بلا تنزيل (OTA) |
+| GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | Google Cloud ← OAuth | اختياري: الدخول بـ Google |
+| SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / SMTP_SENDER | مزوّد بريد | اختياري: «نسيت كلمة السر» |
 
 </div>

@@ -9,6 +9,7 @@ import { useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import { isConfigured } from '@/lib/supabase';
 import { backend } from './backends';
+import { maybeAutoBackup } from './cloud-backup';
 import { getSettings, onLocalChange, syncState } from './db';
 
 export type SyncStatus = { state: 'off' | 'idle' | 'syncing' | 'error'; lastSync: string | null; error?: string; pending: number };
@@ -92,6 +93,8 @@ async function run() {
     const at = new Date().toISOString();
     await AsyncStorage.setItem(LAST, at);
     set({ state: 'idle', lastSync: at });
+    // لقطة يومية كاملة في Supabase Storage (بعد السحب، فهي تحوي كل بيانات الحساب)
+    maybeAutoBackup(uid);
   } catch (e) {
     if (e instanceof Stale) return;
     const msg = e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e);

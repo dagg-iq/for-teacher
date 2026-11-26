@@ -28,6 +28,9 @@ jobs:
       EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       EXPO_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://nahj-iq.web.app' }}
       EXPO_PUBLIC_SYNC_BACKEND: ${{ vars.SYNC_BACKEND || 'supabase' }}
+      # الحاسوب: الرجوع من Google/روابط البريد يفتح تطبيق الهاتف (nahj://)، فالزرّان مخفيان
+      EXPO_PUBLIC_GOOGLE_AUTH: 'false'
+      EXPO_PUBLIC_PASSWORD_RESET: 'false'
       EXPO_PUBLIC_API_URL: ${{ vars.API_URL || '' }}
       APK_BUILD: ${{ github.run_number }}
     defaults:

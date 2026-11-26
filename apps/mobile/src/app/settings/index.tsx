@@ -10,7 +10,9 @@ import { Platform, View } from 'react-native';
 import { Group } from '@/components/kit';
 import { Card, Divider, Header, ListItem, Row, Screen, Segmented, T } from '@/components/ui';
 import { exportBackup, importBackup, setPrefs, useSettings, wipeLocal, type Backup } from '@/data/db';
+import { cloudBackupAvailable } from '@/data/cloud-backup';
 import { allSections } from '@/data/queries';
+import { useAuth } from '@/lib/auth';
 import { Alert } from '@/lib/dialog';
 import { saveAndShare } from '@/lib/export';
 import { useTheme, type ThemeMode } from '@/lib/theme';
@@ -21,6 +23,7 @@ export default function Settings() {
   const s = useSettings();
   const p = s.profile;
   const prefs = s.prefs;
+  const { session } = useAuth();
 
   const backup = async () => {
     try {
@@ -99,9 +102,15 @@ export default function Settings() {
       </Group>
 
       <Group title="البيانات">
-        <ListItem icon="download" title="أخذ نسخة احتياطية" subtitle="ملف واحد فيه كل بياناتك — احفظه في Drive أو أرسله لنفسك" onPress={backup} />
+        {cloudBackupAvailable ? (
+          <>
+            <ListItem icon="cloud" title="النسخ في السحابة" subtitle={session ? 'نسخة يومية تلقائية في حسابك، واستعادة بلمسة' : 'سجّل الدخول لتُحفظ نسخك في حسابك'} onPress={() => router.push(session ? '/settings/backups' : '/account')} />
+            <Divider />
+          </>
+        ) : null}
+        <ListItem icon="download" title="نسخة في ملف" subtitle="ملف واحد فيه كل بياناتك — احفظه في Drive أو أرسله لنفسك" onPress={backup} />
         <Divider />
-        <ListItem icon="upload" title="استعادة نسخة" subtitle="من ملف نسخة احتياطية سابق" onPress={restore} />
+        <ListItem icon="upload" title="استعادة من ملف" subtitle="من ملف نسخة احتياطية سابق" onPress={restore} />
         <Divider />
         <ListItem icon="cloud" title="الحساب والمزامنة" onPress={() => router.push('/account')} />
       </Group>
