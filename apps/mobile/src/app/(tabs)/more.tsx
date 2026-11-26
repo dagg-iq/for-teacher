@@ -48,7 +48,7 @@ export default function More() {
         <ListItem icon={sync.state === 'error' ? 'cloud-off' : 'cloud'} title="الحساب والمزامنة"
           subtitle={sync.state === 'off' ? 'بياناتك محفوظة على هذا الهاتف' : email ? email : 'سجّل الدخول لحفظ بياناتك في السحابة'} onPress={() => router.push('/account')} />
         <Divider />
-        <ListItem icon="settings" title="الإعدادات" subtitle="الملف، المظهر، الإدخال الصوتي، النسخ الاحتياطي" onPress={() => router.push('/settings')} />
+        <ListItem icon="settings" title="الإعدادات" subtitle="الملف، المظهر، الطلاب، الدرجات، الحضور، الطباعة، النسخ الاحتياطي" onPress={() => router.push('/settings')} />
       </Group>
       <Group title="نَهج">
         <ListItem icon="share" title="شارك التطبيق مع زملائك" onPress={() => Share.share({ message: `نَهج — تطبيق المدرّس العراقي: سجل الدرجات، الإدخال الصوتي، الحضور، والجدول.\n${SITE_URL}` }).catch(() => {})} />

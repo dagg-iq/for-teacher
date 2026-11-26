@@ -1,5 +1,5 @@
 import {
-  arDigits, countPeriods, DAY_NAMES, DAY_SHORT, formatClock, nowState, periodName, toMinutes, WEEK_ORDER, weeklyLoad, type Slot,
+  arDigits, breaksBetween, countPeriods, DAY_NAMES, DAY_SHORT, formatClock, nowState, periodName, toMinutes, WEEK_ORDER, weeklyLoad, type Slot,
 } from '@nahj/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -11,7 +11,6 @@ import { Sheet } from '@/components/sheet';
 import { Button, Card, Chip, Empty, Field, Header, IconButton, Row, Screen, Segmented, T } from '@/components/ui';
 import { all, getTimetable, insert, remove, update, useQuery, useSettings } from '@/data/db';
 import { allSections, sectionClass, sectionLabel } from '@/data/queries';
-import { printTimetable } from '@/lib/export';
 import { useNow } from '@/lib/hooks';
 import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
@@ -41,6 +40,7 @@ export default function Schedule() {
   }
 
   const st = nowState(cfg, slots, now);
+  const brk = breaksBetween(cfg.periods, cfg.plan?.gap ?? 5);
   const slotAt = (d: number, p: number) => slots.find((s) => s.day === d && s.period === p);
 
   return (
@@ -48,7 +48,7 @@ export default function Schedule() {
       <Header back={false} title="الجدول" subtitle={`${countPeriods(total)} في الأسبوع`}
         right={(
           <>
-            <IconButton name="print" label="طباعة الجدول" onPress={() => printTimetable().catch((e) => toast(String(e.message ?? e), { tone: 'bad' }))} />
+            <IconButton name="print" label="طباعة الجدول" onPress={() => router.push('/print?kind=timetable')} />
             <IconButton name="settings" label="أوقات الدوام" onPress={() => router.push('/schedule/setup')} />
           </>
         )} />
@@ -67,8 +67,17 @@ export default function Schedule() {
               const k = s?.section_id ? sectionClass(s.section_id) : undefined;
               const live = day === now.getDay() && st.kind === 'in' && st.period === i;
               const past = day === now.getDay() && toMinutes(p.end) <= now.getHours() * 60 + now.getMinutes();
+              const br = brk.find((b) => b.after === i);
               return (
-                <PressScale key={i} onPress={() => setEdit({ day, period: i })} scaleTo={0.98} accessibilityLabel={`الحصة ${periodName(i)}`}
+                <View key={i} style={{ gap: 10 }}>
+                {br ? (
+                  <Row style={{ justifyContent: 'center', gap: 8, paddingVertical: 2 }}>
+                    <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
+                    <T size={12} weight="bold" dim>الفرصة {periodName(brk.indexOf(br))} · {formatClock(br.start)}–{formatClock(br.end)}</T>
+                    <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
+                  </Row>
+                ) : null}
+                <PressScale onPress={() => setEdit({ day, period: i })} scaleTo={0.98} accessibilityLabel={`الحصة ${periodName(i)}`}
                   style={{
                     flexDirection: 'row', alignItems: 'stretch', gap: 12, backgroundColor: live ? c.heroBg : c.card, borderRadius: 22,
                     borderWidth: live ? 0 : 1, borderColor: c.line, padding: 14, opacity: past && !live ? 0.6 : 1,
@@ -91,6 +100,7 @@ export default function Schedule() {
                   </View>
                   {live ? <View style={{ alignSelf: 'center' }}><Pill small label="الآن" tone="info" /></View> : null}
                 </PressScale>
+                </View>
               );
             })}
           </View>

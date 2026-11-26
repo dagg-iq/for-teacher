@@ -1,21 +1,17 @@
 /**
- * التصدير والطباعة:
- *  - Excel (من اليمين لليسار) عبر SheetJS.
- *  - طباعة / PDF بترويسة رسمية (المدرسة، المدرس، المادة، الشعبة، العام) وخط ثمانية.
- *  - استيراد أسماء الطلاب من Excel/CSV.
+ * التصدير إلى Excel (من اليمين لليسار) عبر SheetJS، والمشاركة، واستيراد أسماء الطلاب من Excel/CSV.
+ * الطباعة وملفات PDF في استوديو الطباعة: lib/print و app/print.tsx.
  */
 import {
-  arDigits, ATTENDANCE_LABEL, buildSheet, columnStats, DAY_NAMES, formatClock, formatDate, formatScore, MARK_LABEL,
-  parseIsoDay, periodName, schoolYear, STAGE_LABEL, WEEK_ORDER, type Gradebook, formatPercent } from '@nahj/shared';
-import { Asset } from 'expo-asset';
+  arDigits, ATTENDANCE_LABEL, columnStats, formatNumericDate, MARK_LABEL, parseIsoDay, schoolYear, STAGE_LABEL, type Gradebook,
+} from '@nahj/shared';
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
-import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import * as XLSX from 'xlsx';
-import { all, get, getSettings, getTimetable } from '@/data/db';
-import { absencesOf, attendanceDays, booksOfSection, sectionClass, sectionLabel, sectionReport, sheetOf, studentsOf } from '@/data/queries';
+import { all, get, getSettings } from '@/data/db';
+import { absencesOf, attendanceDays, sectionClass, sectionLabel, sectionReport, sheetOf, studentsOf } from '@/data/queries';
 
 // ------------------------------------------------------------------ الملفات
 function safeName(name: string) {
@@ -121,128 +117,6 @@ export async function exportBookXlsx(bookId: string) {
   await saveAndShare(`${book.title} - ${h.section}.xlsx`, data, XLSX_MIME);
 }
 
-// ------------------------------------------------------------------ الطباعة
-let fontCache: string | null = null;
-
-/** خط ثمانية مضمّن (base64) حتى تخرج الطباعة بنفس خط التطبيق */
-async function fontCss(): Promise<string> {
-  if (fontCache != null) return fontCache;
-  const faces: [string, number, number][] = [
-    ['Nahj', 400, require('../../assets/fonts/thmanyahsans-Regular.otf')],
-    ['Nahj', 700, require('../../assets/fonts/thmanyahsans-Bold.otf')],
-    ['NahjDisplay', 900, require('../../assets/fonts/thmanyahserifdisplay-Black.otf')],
-  ];
-  const out: string[] = [];
-  for (const [family, weight, mod] of faces) {
-    try {
-      const asset = Asset.fromModule(mod);
-      await asset.downloadAsync();
-      if (Platform.OS === 'web') {
-        out.push(`@font-face{font-family:${family};font-weight:${weight};src:url(${asset.uri}) format('opentype');}`);
-      } else {
-        const b64 = await new File(asset.localUri ?? asset.uri).base64();
-        out.push(`@font-face{font-family:${family};font-weight:${weight};src:url(data:font/otf;base64,${b64}) format('opentype');}`);
-      }
-    } catch {
-      // نكمل بخط النظام
-    }
-  }
-  fontCache = out.join('\n');
-  return fontCache;
-}
-
-const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const n = (v: unknown) => (typeof v === 'number' ? formatScore(v, 2) : esc(v));
-
-export async function renderPage(title: string, body: string, landscape = false) {
-  const fonts = await fontCss();
-  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${esc(title)}</title>
-<style>
-${fonts}
-@page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: 12mm 10mm; }
-* { box-sizing: border-box; }
-body { font-family: Nahj, 'Noto Naskh Arabic', 'Noto Sans Arabic', Tahoma, sans-serif; color: #111; margin: 0; font-size: 11pt; direction: rtl; }
-.head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 10px; gap: 12px; }
-.head .r, .head .l { font-size: 10pt; line-height: 1.7; }
-.head .c { text-align: center; }
-.head h1 { font-family: NahjDisplay, Nahj, serif; font-size: 18pt; margin: 0; }
-.head h2 { font-size: 11pt; margin: 2px 0 0; font-weight: 700; color: #333; }
-table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
-tr { page-break-inside: avoid; }
-th, td { border: 1px solid #555; padding: 4px 5px; text-align: center; font-size: 10pt; }
-th { background: #E3F0EC; font-weight: 700; }
-td.name { text-align: right; white-space: nowrap; }
-td.fail { color: #A82620; font-weight: 700; }
-td.mark { color: #8A4700; }
-tr:nth-child(even) td { background: #FAFAF8; }
-.stats { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 10pt; }
-.stats b { font-weight: 700; }
-.sign { display: flex; justify-content: space-between; margin-top: 28px; font-size: 11pt; }
-.sign div { text-align: center; min-width: 160px; }
-.sign span { display: block; margin-top: 26px; border-top: 1px dotted #555; padding-top: 4px; }
-.foot { margin-top: 14px; font-size: 8pt; color: #8A8A85; text-align: center; }
-.grid td { height: 52px; vertical-align: middle; }
-.grid td small { display: block; color: #555; font-size: 8.5pt; }
-</style></head><body>${body}<div class="foot">أُعدّ بتطبيق نَهج</div></body></html>`;
-}
-
-function headBlock(h: ReturnType<typeof headerInfo>, title: string, sub: string) {
-  return `<div class="head">
-  <div class="r">جمهورية العراق<br>وزارة التربية<br>${esc(h.governorate ? `المديرية العامة لتربية ${h.governorate}` : '')}</div>
-  <div class="c"><h1>${esc(title)}</h1><h2>${esc(sub)}</h2></div>
-  <div class="l">المدرسة: ${esc(h.school)}<br>المادة: ${esc(h.subject)}<br>العام الدراسي: ${esc(arDigits(h.year))}</div>
-</div>`;
-}
-
-function signBlock(h: ReturnType<typeof headerInfo>) {
-  return `<div class="sign"><div>${h.gender === 'f' ? 'مدرّسة' : 'مدرّس'} المادة<span>${esc(h.teacher)}</span></div><div>مدير المدرسة<span>${esc(h.principal)}</span></div></div>`;
-}
-
-/** يطبع أو يحفظ PDF */
-export async function outputHtml(html: string, fileName: string, mode: 'print' | 'pdf', landscape = false) {
-  if (Platform.OS === 'web') {
-    const w = window.open('', '_blank');
-    if (!w) throw new Error('اسمح بالنوافذ المنبثقة للطباعة');
-    w.document.write(html);
-    w.document.close();
-    setTimeout(() => w.print(), 600);
-    return;
-  }
-  if (mode === 'print') {
-    await Print.printAsync({ html, orientation: landscape ? Print.Orientation.landscape : Print.Orientation.portrait });
-    return;
-  }
-  const { uri } = await Print.printToFileAsync({ html, width: landscape ? 842 : 595, height: landscape ? 595 : 842 });
-  const bytes = await new File(uri).bytes();
-  await saveAndShare(`${fileName}.pdf`, bytes, 'application/pdf');
-}
-
-export async function printBook(bookId: string, mode: 'print' | 'pdf' = 'print') {
-  const book = get('gradebooks', bookId);
-  if (!book) throw new Error('السجل غير موجود');
-  const h = headerInfo(book.section_id);
-  const { rows, cols, decider, cell } = bookTable(book);
-  const landscape = cols.length > 5;
-  const head = `<tr><th>ت</th><th>اسم الطالب</th>${cols.map((c) => `<th>${esc(arDigits(c.name))}<br><small>${arDigits(c.max)}</small></th>`).join('')}${decider ? '<th>النتيجة</th>' : ''}</tr>`;
-  const body = rows.map((r, i) => {
-    const tds = cols.map((c) => {
-      const v = cell(r, c.id);
-      const mark = typeof v === 'string';
-      const fail = c.id === decider?.id && r.verdict && !r.verdict.pass;
-      return `<td class="${mark ? 'mark' : fail ? 'fail' : ''}">${v == null ? '' : n(v)}</td>`;
-    }).join('');
-    const res = decider ? `<td class="${r.verdict && !r.verdict.pass ? 'fail' : ''}">${r.verdict ? (r.verdict.pass ? 'ناجح' : 'راسب') : ''}</td>` : '';
-    return `<tr><td>${arDigits(i + 1)}</td><td class="name">${esc(r.student.name)}</td>${tds}${res}</tr>`;
-  }).join('');
-  let stats = '';
-  if (decider) {
-    const st = columnStats(rows.map((r) => r.values[decider.id]), decider.max, { pass: book.result.pass });
-    stats = `<div class="stats"><span>عدد الطلاب: <b>${arDigits(st.total)}</b></span><span>الناجحون: <b>${arDigits(st.passCount)}</b></span><span>الراسبون: <b>${arDigits(st.failCount)}</b></span><span>نسبة النجاح: <b>${st.passRate == null ? '—' : formatPercent(st.passRate, 1)}</b></span><span>المعدل: <b>${formatScore(st.avg)}</b></span></div>`;
-  }
-  const html = await renderPage(book.title, `${headBlock(h, book.title, h.section)}<table><thead>${head}</thead><tbody>${body}</tbody></table>${stats}${signBlock(h)}`, landscape);
-  await outputHtml(html, `${book.title} - ${h.section}`, mode, landscape);
-}
-
 // ------------------------------------------------------------------ قوائم الأسماء والحضور
 export async function exportStudentList(sectionId: string) {
   const h = headerInfo(sectionId);
@@ -250,14 +124,6 @@ export async function exportStudentList(sectionId: string) {
   const aoa = [[`قائمة أسماء ${h.section}`], [], ['ت', 'اسم الطالب', 'هاتف ولي الأمر', 'الغيابات'],
     ...students.map((s, i) => [i + 1, s.name, s.parent_phone ?? '', absencesOf(s.id).absent])];
   await saveAndShare(`قائمة ${h.section}.xlsx`, workbook([{ name: h.section, rows: aoa, widths: [5, 32, 16, 9], merges: [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }] }]), XLSX_MIME);
-}
-
-export async function printStudentList(sectionId: string, mode: 'print' | 'pdf' = 'print') {
-  const h = headerInfo(sectionId);
-  const students = studentsOf(sectionId);
-  const blank = Array.from({ length: 8 }, () => '<td></td>').join('');
-  const body = `${headBlock(h, 'قائمة أسماء الطلاب', h.section)}<table><thead><tr><th>ت</th><th>اسم الطالب</th>${Array.from({ length: 8 }, () => '<th></th>').join('')}</tr></thead><tbody>${students.map((s, i) => `<tr><td>${arDigits(i + 1)}</td><td class="name">${esc(s.name)}</td>${blank}</tr>`).join('')}</tbody></table>${signBlock(h)}`;
-  await outputHtml(await renderPage('قائمة الأسماء', body, true), `قائمة ${h.section}`, mode, true);
 }
 
 /** سجل الغياب لشعبة (كل الأيام المسجلة) */
@@ -270,54 +136,13 @@ export async function exportAttendanceXlsx(sectionId: string) {
   const short = { present: '✓', absent: 'غ', late: 'م', excused: 'ج' } as const;
   const aoa: (string | number | null)[][] = [
     [`سجل الحضور — ${h.section}`], ['✓ حاضر   غ غائب   م متأخر   ج مُجاز'], [],
-    ['ت', 'اسم الطالب', ...days.map((d) => formatDate(parseIsoDay(d))), 'الغيابات', 'التأخير'],
+    ['ت', 'اسم الطالب', ...days.map((d) => formatNumericDate(parseIsoDay(d), false)), 'الغيابات', 'التأخير'],
     ...students.map((s, i) => {
       const st = days.map((d) => map.get(`${s.id}|${d}`));
       return [i + 1, s.name, ...st.map((x) => (x ? short[x] : '')), st.filter((x) => x === 'absent').length, st.filter((x) => x === 'late').length];
     }),
   ];
   await saveAndShare(`حضور ${h.section}.xlsx`, workbook([{ name: 'الحضور', rows: aoa, widths: [5, 30, ...days.map(() => 12), 9, 9] }]), XLSX_MIME);
-}
-
-// ------------------------------------------------------------------ تقرير الطالب
-export async function printStudentReport(studentId: string, mode: 'print' | 'pdf' = 'pdf') {
-  const s = get('students', studentId);
-  if (!s) throw new Error('الطالب غير موجود');
-  const h = headerInfo(s.section_id);
-  const bs = booksOfSection(s.section_id);
-  const books = [...bs.sets.flatMap((x) => x.books), ...bs.loose];
-  const parts = books.map((b) => {
-    const { rows, cols, decider, cell } = bookTable(b);
-    const r = rows.find((x) => x.student.id === s.id);
-    if (!r) return '';
-    return `<h3 style="margin:14px 0 6px;font-size:12pt">${esc(b.title)}</h3><table><tr>${cols.map((c) => `<th>${esc(arDigits(c.name))}</th>`).join('')}${decider ? '<th>النتيجة</th>' : ''}</tr><tr>${cols.map((c) => { const v = cell(r, c.id); return `<td>${v == null ? '—' : n(v)}</td>`; }).join('')}${decider ? `<td>${esc(r.verdict?.label ?? '—')}</td>` : ''}</tr></table>`;
-  }).join('');
-  const ab = absencesOf(s.id);
-  const notes = all('student_notes').filter((x) => x.student_id === s.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
-  const body = `${headBlock(h, 'تقرير الطالب', s.name)}
-<p style="font-size:11pt">الصف والشعبة: <b>${esc(h.section)}</b> · الغيابات: <b>${arDigits(ab.absent)}</b> · التأخير: <b>${arDigits(ab.late)}</b> · الإجازات: <b>${arDigits(ab.excused)}</b></p>
-${parts || '<p>لا درجات بعد.</p>'}
-${notes.length ? `<h3 style="margin:14px 0 6px;font-size:12pt">الملاحظات</h3><ul>${notes.map((x) => `<li>${esc(formatDate(parseIsoDay(x.date)))}: ${esc(x.text)}</li>`).join('')}</ul>` : ''}
-${signBlock(h)}`;
-  await outputHtml(await renderPage(`تقرير ${s.name}`, body), `تقرير ${s.name}`, mode);
-}
-
-// ------------------------------------------------------------------ الجدول
-export async function printTimetable(mode: 'print' | 'pdf' = 'print') {
-  const s = getSettings();
-  const cfg = getTimetable();
-  const slots = all('slots');
-  const days = WEEK_ORDER.filter((d) => cfg.days.includes(d));
-  const p = s.profile;
-  const head = `<tr><th>اليوم</th>${cfg.periods.map((pp, i) => `<th>${periodName(i)}<br><small>${formatClock(pp.start)}–${formatClock(pp.end)}</small></th>`).join('')}</tr>`;
-  const body = days.map((d) => `<tr><th>${DAY_NAMES[d]}</th>${cfg.periods.map((_, i) => {
-    const sl = slots.find((x) => x.day === d && x.period === i);
-    if (!sl) return '<td></td>';
-    const label = sl.section_id ? sectionLabel(sl.section_id) : sl.label ?? '';
-    return `<td>${esc(label)}${sl.room ? `<small>${esc(arDigits(sl.room))}</small>` : ''}</td>`;
-  }).join('')}</tr>`).join('');
-  const html = await renderPage('جدول الحصص', `<div class="head"><div class="r">${esc(p?.school ?? '')}</div><div class="c"><h1>جدول الحصص الأسبوعي</h1><h2>${esc(p ? `${p.gender === 'f' ? 'المدرّسة' : 'المدرّس'}: ${p.name}` : '')}</h2></div><div class="l">${esc(p?.subject ?? '')}<br>${esc(arDigits(p?.year ?? schoolYear()))}</div></div><table class="grid"><thead>${head}</thead><tbody>${body}</tbody></table>`, true);
-  await outputHtml(html, 'جدول الحصص', mode, true);
 }
 
 // ------------------------------------------------------------------ الاستيراد
@@ -392,18 +217,4 @@ export async function exportSectionReportXlsx(sectionId: string) {
     { name: 'الغياب', rows: absences, widths: [30, 8, 8, 8] },
   ]);
   await saveAndShare(`${title}.xlsx`, data, XLSX_MIME);
-}
-
-/** تقرير الشعبة للطباعة / PDF */
-export async function printSectionReport(sectionId: string, mode: 'print' | 'pdf' = 'print') {
-  const h = headerInfo(sectionId);
-  const rep = sectionReport(sectionId);
-  const title = 'تقرير الشعبة';
-  const sum = `<table><thead><tr><th>السجل</th><th>أُدخلت</th><th>الناجحون</th><th>الراسبون</th><th>نسبة النجاح</th><th>المعدل</th><th>الأعلى</th><th>الأدنى</th></tr></thead><tbody>${rep.stages.map((s) => `<tr><td class="name">${esc(s.book.title)}</td><td>${arDigits(s.stats?.count ?? 0)}</td><td>${arDigits(s.stats?.passCount ?? 0)}</td><td class="${s.stats?.failCount ? 'fail' : ''}">${arDigits(s.stats?.failCount ?? 0)}</td><td>${s.stats?.passRate == null ? '—' : formatPercent(s.stats.passRate, 1)}</td><td>${formatScore(s.stats?.avg)}</td><td>${formatScore(s.stats?.max)}</td><td>${formatScore(s.stats?.min)}</td></tr>`).join('')}</tbody></table>`;
-  const short = (t: string) => t.replace(' — ', '<br>');
-  const mx = `<h3 style="margin:16px 0 6px;font-size:12pt">السجل الشامل</h3><table><thead><tr><th>ت</th><th>اسم الطالب</th>${rep.stages.map((s) => `<th>${short(esc(s.book.title))}</th>`).join('')}<th>الغياب</th></tr></thead><tbody>${rep.matrix.map((m, i) => `<tr><td>${arDigits(i + 1)}</td><td class="name">${esc(m.student.name)}</td>${m.values.map((v, j) => `<td class="${m.fails[j] ? 'fail' : ''}">${v == null ? '' : n(v)}</td>`).join('')}<td>${m.absent ? arDigits(m.absent) : ''}</td></tr>`).join('')}</tbody></table>`;
-  const fails = rep.stages.filter((s) => s.failing.length && s.book.role !== 'month');
-  const fl = fails.length ? `<h3 style="margin:16px 0 6px;font-size:12pt">الراسبون</h3>${fails.map((s) => `<p style="margin:4px 0"><b>${esc(s.book.title)} (${arDigits(s.failing.length)}):</b> ${s.failing.map((f) => `${esc(f.student.name)} (${n(f.value)})`).join('، ')}</p>`).join('')}` : '';
-  const html = await renderPage(title, `${headBlock(h, title, h.section)}${sum}${mx}${fl}${signBlock(h)}`, rep.stages.length > 5);
-  await outputHtml(html, `تقرير ${h.section}`, mode, rep.stages.length > 5);
 }

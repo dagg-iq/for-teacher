@@ -6,7 +6,7 @@ import { ComponentsEditor, SectionPicker, validComponents } from '@/components/c
 import { Icon, type IconName } from '@/components/icon';
 import { PressScale } from '@/components/motion';
 import { Button, Card, Empty, Field, Header, Row, Screen, T } from '@/components/ui';
-import { count, insert, useQuery } from '@/data/db';
+import { count, insert, useQuery, getSettings } from '@/data/db';
 import { allSections } from '@/data/queries';
 import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
@@ -74,7 +74,7 @@ export default function NewBook() {
     let firstId = '';
     for (const sid of picked) {
       const { columns, result } = cloneColumns(base.columns, base.result);
-      const b = insert('gradebooks', { section_id: sid, title: title.trim(), template: tpl.key, columns, result, year: schoolYear(), role: 'custom' });
+      const b = insert('gradebooks', { section_id: sid, title: title.trim(), template: tpl.key, columns, result: { ...result, pass: getSettings().prefs.passMark ?? 50 }, year: schoolYear(), role: 'custom' });
       if (!firstId) firstId = b.id;
     }
     toast(picked.length > 1 ? `أُنشئ السجل لـ${countSections(picked.length)}` : 'أُنشئ السجل', { icon: 'check' });

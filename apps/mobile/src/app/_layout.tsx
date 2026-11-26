@@ -3,7 +3,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { setDigitStyle } from '@nahj/shared';
+import { setDateStyle, setDigitStyle } from '@nahj/shared';
 import { I18nManager, LogBox, Platform, ScrollView, Text, View } from 'react-native';
 import type { ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -19,7 +19,7 @@ import { AuthProvider, useAuth } from '@/lib/auth';
 import { DialogHost } from '@/lib/dialog';
 import { useClassReminders } from '@/lib/notify';
 import { registerDevice } from '@/lib/push';
-import { AppThemeProvider, fontAssets, useTheme } from '@/lib/theme';
+import { AppThemeProvider, fontAssets, loadThemeMode, useTheme } from '@/lib/theme';
 import { ToastHost } from '@/lib/toast';
 import { useWidgetSync } from '@/widgets/sync';
 
@@ -54,7 +54,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const [dbReady, setDbReady] = useState(false);
-  useEffect(() => { loadDB().finally(() => setDbReady(true)); }, []);
+  useEffect(() => { Promise.all([loadDB(), loadThemeMode()]).finally(() => setDbReady(true)); }, []);
   if ((!fontsLoaded && !fontError) || !dbReady) return null;
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -77,6 +77,8 @@ function Navigator() {
   // شكل الأرقام يُضبط قبل رسم أي شاشة؛ تغييره يعيد بناء الشاشات (key) لتظهر الأرقام الجديدة في كل مكان
   const digits = settings.prefs.digits ?? 'latn';
   setDigitStyle(digits);
+  const dateStyle = settings.prefs.dateStyle ?? 'numeric';
+  setDateStyle(dateStyle);
   const hasProfile = !!settings.profile?.name;
   // حركة الشعار عند الفتح (الهاتف وتطبيق الحاسوب). على الويب نخفي شاشة البداية مباشرة
   const [introDone, setIntroDone] = useState(Platform.OS === 'web' && !IS_DESKTOP);
@@ -111,7 +113,7 @@ function Navigator() {
       <PortalProvider>
         <StatusBar style={dark ? 'light' : 'dark'} />
         {!ready ? <View style={{ flex: 1, backgroundColor: c.bg }} /> : (
-          <Stack key={digits} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg }, animation: 'ios_from_left' }}>
+          <Stack key={`${digits}-${dateStyle}`} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg }, animation: 'ios_from_left' }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
             <Stack.Screen name="voice" options={{ animation: 'fade_from_bottom' }} />

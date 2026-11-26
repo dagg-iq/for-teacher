@@ -32,32 +32,88 @@ export function formatClock(hhmm: string, withSuffix = false): string {
   return withSuffix ? `${s} ${h < 12 ? 'ص' : 'م'}` : s;
 }
 
+/** فرصة (استراحة) بعد حصة معينة */
+export interface BreakDef {
+  /** بعد أي حصة (رقمها من ١) */
+  after: number;
+  /** المدة بالدقائق */
+  length: number;
+}
+
 /**
- * يولّد أوقات الحصص: البداية، مدة الحصة، الاستراحة بين الحصص، والفرصة الكبيرة بعد حصة معينة.
+ * يولّد أوقات الحصص: البداية، مدة الحصة، الاستراحة بين الحصص، والفرص (واحدة أو أكثر) بعد حصص معينة.
+ * `breakAfter`/`breakLength` للتوافق مع الإعدادات القديمة (فرصة واحدة).
  */
 export function generatePeriods(opts: {
   start: string;
   count: number;
   length: number;
   gap: number;
+  breaks?: BreakDef[];
   /** بعد أي حصة (رقمها من ١) تأتي الفرصة الكبيرة */
   breakAfter?: number;
   breakLength?: number;
 }): PeriodTime[] {
+  const breaks = normalizeBreaks(opts.breaks ?? (opts.breakAfter ? [{ after: opts.breakAfter, length: opts.breakLength ?? 15 }] : []), opts.count);
   const out: PeriodTime[] = [];
   let t = toMinutes(opts.start);
   for (let i = 0; i < opts.count; i++) {
     out.push({ start: fromMinutes(t), end: fromMinutes(t + opts.length) });
     t += opts.length;
-    if (i < opts.count - 1) t += opts.breakAfter === i + 1 ? (opts.breakLength ?? 15) : opts.gap;
+    if (i < opts.count - 1) {
+      const br = breaks.find((b) => b.after === i + 1);
+      t += br ? br.length : opts.gap;
+    }
   }
   return out;
 }
 
+/** فرص صالحة فقط: بعد حصة موجودة (ليس بعد الأخيرة)، بلا تكرار، مرتبة */
+export function normalizeBreaks(breaks: BreakDef[], count: number): BreakDef[] {
+  const seen = new Set<number>();
+  return breaks
+    .filter((b) => b.after >= 1 && b.after < count && b.length > 0)
+    .sort((a, b) => a.after - b.after)
+    .filter((b) => (seen.has(b.after) ? false : (seen.add(b.after), true)));
+}
+
+/** الفرص الظاهرة بين الحصص (من الأوقات الفعلية): كل فجوة أطول من الاستراحة العادية */
+export function breaksBetween(periods: PeriodTime[], gap: number): { after: number; start: string; end: string; length: number }[] {
+  const out: { after: number; start: string; end: string; length: number }[] = [];
+  for (let i = 0; i < periods.length - 1; i++) {
+    const a = toMinutes(periods[i].end);
+    const b = toMinutes(periods[i + 1].start);
+    if (b - a > gap) out.push({ after: i + 1, start: periods[i].end, end: periods[i + 1].start, length: b - a });
+  }
+  return out;
+}
+
+/** معاملات توليد الجدول (تُحفظ ليعود النموذج كما تركه المدرّس) */
+export interface TimetablePlan {
+  start: string;
+  count: number;
+  length: number;
+  gap: number;
+  breaks: BreakDef[];
+}
+
+/** يستنتج معاملات التوليد من أوقات محفوظة قديمة (قبل حفظ المعاملات) */
+export function inferPlan(periods: PeriodTime[]): TimetablePlan {
+  if (!periods.length) return { start: '08:00', count: 6, length: 45, gap: 5, breaks: [{ after: 3, length: 15 }] };
+  const length = toMinutes(periods[0].end) - toMinutes(periods[0].start);
+  const gaps = periods.slice(1).map((p, i) => toMinutes(p.start) - toMinutes(periods[i].end));
+  const gap = gaps.length ? Math.min(...gaps) : 5;
+  const breaks = gaps.map((g, i) => ({ after: i + 1, length: g })).filter((b) => b.length > gap);
+  return { start: periods[0].start, count: periods.length, length: length > 0 ? length : 45, gap: Math.max(0, gap), breaks };
+}
+
+export const DEFAULT_PLAN: TimetablePlan = { start: '08:00', count: 6, length: 45, gap: 5, breaks: [{ after: 3, length: 15 }] };
+
 export const DEFAULT_TIMETABLE: TimetableConfig = {
   days: [0, 1, 2, 3, 4],
-  periods: generatePeriods({ start: '08:00', count: 6, length: 45, gap: 5, breakAfter: 3, breakLength: 15 }),
+  periods: generatePeriods(DEFAULT_PLAN),
   remind: 5,
+  plan: DEFAULT_PLAN,
 };
 
 export type NowState =

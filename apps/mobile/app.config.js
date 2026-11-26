@@ -9,7 +9,7 @@ const path = require('path');
  * رقم «الطبقة الأصلية». تحديثات OTA تصل فقط للنسخ التي تحمل نفس الرقم.
  * ارفعه (2، 3…) عند إضافة أو ترقية أي مكتبة أصلية (native) — حينها يلزم APK جديد.
  */
-const RUNTIME_VERSION = '1';
+const RUNTIME_VERSION = '2';
 
 module.exports = ({ config }) => {
   const build = Number(process.env.APK_BUILD) || 0;

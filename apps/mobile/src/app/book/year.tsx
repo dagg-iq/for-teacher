@@ -6,7 +6,7 @@ import { ComponentsEditor, SectionPicker, validComponents } from '@/components/c
 import { Icon } from '@/components/icon';
 import { Stepper, ToggleRow } from '@/components/kit';
 import { Button, Card, Empty, Header, Row, Screen, Segmented, T } from '@/components/ui';
-import { count, useQuery } from '@/data/db';
+import { count, getSettings, useQuery } from '@/data/db';
 import { createYearSet } from '@/data/grades';
 import { allSections, booksOfSection } from '@/data/queries';
 import { useTheme } from '@/lib/theme';
@@ -20,11 +20,14 @@ export default function YearSetup() {
   const [picked, setPicked] = useState<string[]>(section ? [section] : sections.length === 1 ? [sections[0].s.id] : []);
   const [components, setComponents] = useState<Component[]>(COMPONENT_PRESETS[0].items.map((x) => ({ ...x })));
   const [midSame, setMidSame] = useState<'one' | 'same'>('one');
-  const [boost, setBoost] = useState(true);
-  const [below, setBelow] = useState(3);
+  // القيم الافتراضية من «إعدادات الدرجات» (مكان واحد لها)
+  const prefs = getSettings().prefs;
+  const [pass, setPass] = useState(prefs.passMark ?? 50);
+  const [boost, setBoost] = useState((prefs.criticalBelow ?? 3) > 0);
+  const [below, setBelow] = useState(prefs.criticalBelow || 3);
   const [final, setFinal] = useState(false);
   const total = components.reduce((s, x) => s + (x.max || 0), 0);
-  const plan = { components, midComponents: midSame === 'same' ? components : undefined, boostBelow: boost ? below : 0, withFinal: final };
+  const plan = { components, midComponents: midSame === 'same' ? components : undefined, pass, boostBelow: boost ? below : 0, withFinal: final, round: prefs.rounding ?? 'int' };
   const preview = useMemo(() => (validComponents(components) ? buildYearSet(plan) : []), [JSON.stringify(plan)]); // eslint-disable-line react-hooks/exhaustive-deps
   const existing = picked.filter((id) => booksOfSection(id).sets.length > 0).length;
 
@@ -60,8 +63,12 @@ export default function YearSetup() {
       </View>
 
       <View style={{ gap: 4 }}>
-        <T weight="bold" size={15}>٣. الدرجات الحرجة</T>
-        <ToggleRow title="نبّهني بالدرجات القريبة من النجاح" subtitle={`في السعي: إن كانت الدرجة ${arDigits(50 - below)}–${arDigits(49)} تُعرض عليك لتقرر رفعها إلى ${arDigits(50)}. لا شيء يتغير بدون موافقتك.`} value={boost} onChange={setBoost} />
+        <T weight="bold" size={15}>٣. النجاح والدرجات الحرجة</T>
+        <Row style={{ justifyContent: 'space-between', paddingVertical: 6 }}>
+          <T size={14}>حد النجاح (من ١٠٠)</T>
+          <Stepper value={pass} onChange={setPass} min={30} max={80} step={5} />
+        </Row>
+        <ToggleRow title="نبّهني بالدرجات القريبة من النجاح" subtitle={`في السعي: إن كانت الدرجة ${arDigits(pass - below)}–${arDigits(pass - 1)} (من ١٠٠) تُعرض عليك لتقرر رفعها إلى ${arDigits(pass)}. لا شيء يتغير بدون موافقتك.`} value={boost} onChange={setBoost} />
         {boost ? (
           <Row style={{ justifyContent: 'space-between' }}>
             <T size={14}>عدد الدرجات تحت النجاح</T>

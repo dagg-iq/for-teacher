@@ -1,6 +1,6 @@
 /** استعلامات جاهزة فوق قاعدة البيانات المحلية */
 import {
-  buildSheet, columnStats, gradeId, isoDay,
+  buildSheet, columnStats, compareArabic, gradeId, isoDay,
   type Attendance, type Gradebook, type GradeColumn, type SchoolClass, type Section, type SheetRow, type Student,
 } from '@nahj/shared';
 import { all, get, getSettings, onAnyChange, where } from './db';
@@ -21,13 +21,32 @@ export function allSections(): Section[] {
     .sort((a, b) => (order.get(a.class_id)! - order.get(b.class_id)!) || a.sort - b.sort || a.name.localeCompare(b.name, 'ar'));
 }
 
+/**
+ * طلاب الشعبة بالترتيب المعتمد في كل مكان (القائمة، السجلات، الحضور، الصوت، الطباعة، Excel).
+ * رقم الطالب «ت» = مكانه في هذا الترتيب (١، ٢، ٣…) — لا رقم مخزّن يتعارض مع الترتيب.
+ *  - أبجدي: حسب الاسم (الطالب الجديد يأخذ مكانه الأبجدي).
+ *  - حسب التسلسل: حسب ترتيب الإضافة أو الترتيب اليدوي (الطالب الجديد يأتي آخراً).
+ */
 export function studentsOf(sectionId: string): Student[] {
   const order = getSettings().prefs.studentOrder;
   const list = where('students', (s) => s.section_id === sectionId);
   if (order === 'number') {
-    return list.sort((a, b) => (a.number ?? 1e9) - (b.number ?? 1e9) || a.name.localeCompare(b.name, 'ar'));
+    return list.sort((a, b) => (a.number ?? 1e9) - (b.number ?? 1e9) || a.created_at.localeCompare(b.created_at) || compareArabic(a.name, b.name));
   }
-  return list.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+  return list.sort((a, b) => compareArabic(a.name, b.name) || a.created_at.localeCompare(b.created_at));
+}
+
+/** رقم الطالب في قائمة شعبته (١ = الأول) */
+export function studentNo(studentId: string): number | null {
+  const s = get('students', studentId);
+  if (!s) return null;
+  const i = studentsOf(s.section_id).findIndex((x) => x.id === studentId);
+  return i < 0 ? null : i + 1;
+}
+
+/** آخر رقم تسلسل في الشعبة (لإضافة طالب في آخر القائمة) */
+export function nextSeq(sectionId: string): number {
+  return where('students', (s) => s.section_id === sectionId).reduce((m, s) => Math.max(m, s.number ?? 0), 0) + 1;
 }
 
 /** «الخامس العلمي / أ» */
@@ -144,6 +163,20 @@ export function bookStats(book: Gradebook, columnId?: string) {
   return { column: col, rows, stats: columnStats(rows.map((r) => r.values[col.id]), col.max, { pass: book.result.pass }) };
 }
 
+/**
+ * إحصاء عمود النتيجة فقط (لا عمود آخر): لا تظهر نسبة نجاح لسجل لم يُحسب بعد.
+ * shown = أُدخل لعدد كافٍ من الطلاب (إعداد «متى تظهر نسبة النجاح»).
+ */
+export function resultStats(book: Gradebook) {
+  const dec = deciderOf(book);
+  if (!dec) return null;
+  const rows = sheetOf(book);
+  const stats = columnStats(rows.map((r) => r.values[dec.id]), dec.max, { pass: book.result.pass });
+  const min = getSettings().prefs.rateMinFilled ?? 50;
+  const shown = stats.count > 0 && (stats.total === 0 || (stats.count / stats.total) * 100 + 1e-9 >= min);
+  return { column: dec, stats, shown };
+}
+
 export function gradeValue(bookId: string, studentId: string, columnId: string) {
   return get('grades', gradeId(bookId, studentId, columnId));
 }
@@ -161,13 +194,51 @@ export function attendanceOn(sectionId: string, date: string): Map<string, Atten
 
 export function absencesOf(studentId: string) {
   const rows = where('attendance', (a) => a.student_id === studentId);
+  const excused = rows.filter((a) => a.status === 'excused').length;
+  const absent = rows.filter((a) => a.status === 'absent').length;
   return {
-    absent: rows.filter((a) => a.status === 'absent').length,
+    /** الغيابات المحسوبة للتنبيه (تشمل المجاز إن اختار المدرس ذلك) */
+    count: absent + (getSettings().prefs.excusedCounts ? excused : 0),
+    absent,
     late: rows.filter((a) => a.status === 'late').length,
     excused: rows.filter((a) => a.status === 'excused').length,
     days: rows.length,
     rows: rows.sort((a, b) => b.date.localeCompare(a.date)),
   };
+}
+
+export interface DayLog {
+  date: string;
+  sectionId: string;
+  absent: Student[];
+  late: Student[];
+  excused: Student[];
+  /** عدد من سُجّل لهم ذلك اليوم */
+  marked: number;
+}
+
+/**
+ * سجل الغياب: لكل يوم ولكل شعبة من غاب ومن تأخر ومن أُجيز (بالأسماء)، الأحدث أولاً.
+ * sectionId = null لكل الشعب. يمرّ على سجلات الحضور مرة واحدة.
+ */
+export function attendanceLog(sectionId: string | null): DayLog[] {
+  const byKey = new Map<string, DayLog>();
+  const students = new Map(all('students').map((s) => [s.id, s]));
+  for (const a of where('attendance', (x) => !sectionId || x.section_id === sectionId)) {
+    const st = students.get(a.student_id);
+    if (!st) continue;
+    const key = `${a.section_id}|${a.date}`;
+    let d = byKey.get(key);
+    if (!d) { d = { date: a.date, sectionId: a.section_id, absent: [], late: [], excused: [], marked: 0 }; byKey.set(key, d); }
+    d.marked++;
+    if (a.status === 'absent') d.absent.push(st);
+    else if (a.status === 'late') d.late.push(st);
+    else if (a.status === 'excused') d.excused.push(st);
+  }
+  const byName = (x: Student, y: Student) => compareArabic(x.name, y.name);
+  return [...byKey.values()]
+    .map((d) => ({ ...d, absent: d.absent.sort(byName), late: d.late.sort(byName), excused: d.excused.sort(byName) }))
+    .sort((a, b) => b.date.localeCompare(a.date) || a.sectionId.localeCompare(b.sectionId));
 }
 
 /** أيام سُجّل فيها حضور لشعبة (الأحدث أولاً) */
@@ -192,24 +263,29 @@ export function dashboard() {
     const st = bookStats(lastBook);
     if (st) last = { ...st, book: lastBook };
   }
-  // نسبة النجاح العامة: كل السجلات الفعالة، عمود النتيجة
+  // يحتاجون متابعة: لكل طالب آخر مرحلة في السنة ظهرت له فيها نتيجة (بترتيب السنة: الأشهر، السعي، النصف… السنوي)؛
+  // راسب فيها = يحتاج متابعة. (لا نعدّ الرسوب في كل سجل: الراسب في الشهر الأول ليس «راسباً في ٥»)
+  const latest = new Map<string, { student: Student; book: Gradebook; pass: boolean; score: number; value: number | null }>();
   let pass = 0;
   let graded = 0;
-  const weak = new Map<string, { student: Student; fails: number; book: Gradebook }>();
   for (const b of books) {
-    const st = bookStats(b);
-    if (!st) continue;
-    pass += st.stats.passCount;
-    graded += st.stats.count;
-    for (const r of st.rows) {
-      if (r.verdict && !r.verdict.pass) {
-        const cur = weak.get(r.student.id);
-        weak.set(r.student.id, { student: r.student, fails: (cur?.fails ?? 0) + 1, book: b });
+    const dec = deciderOf(b);
+    if (!dec) continue;
+    const rows = sheetOf(b);
+    const score = b.group_id ? (b.ord ?? 0) : 0;
+    for (const r of rows) {
+      if (!r.verdict) continue;
+      const cur = latest.get(r.student.id);
+      if (!cur || score > cur.score || (score === cur.score && b.updated_at > cur.book.updated_at)) {
+        latest.set(r.student.id, { student: r.student, book: b, pass: r.verdict.pass, score, value: r.values[dec.id] });
       }
     }
   }
+  for (const x of latest.values()) { graded++; if (x.pass) pass++; }
+  const weak = [...latest.values()].filter((x) => !x.pass).sort((a, b) => (a.value ?? 0) - (b.value ?? 0));
   const today = isoDay();
   const attendanceToday = where('attendance', (a) => a.date === today);
+  const criticalBooks = getSettings().prefs.criticalAlerts === false ? [] : books.map((b) => ({ b, n: criticalCount(b) })).filter((x) => x.n);
   return {
     classes: classesSorted().length,
     sections: sections.length,
@@ -218,9 +294,13 @@ export function dashboard() {
     passRate: graded ? Math.round((pass / graded) * 1000) / 10 : null,
     graded,
     last,
-    weak: [...weak.values()].sort((a, b) => b.fails - a.fails).slice(0, 5),
+    weak: weak.slice(0, 6),
+    weakCount: weak.length,
     absentToday: attendanceToday.filter((a) => a.status === 'absent').length,
-    critical: books.reduce((n, b) => n + criticalCount(b), 0),
+    /** عدد الشعب التي سُجّل حضورها اليوم (صفر = لم يُسجَّل بعد، لا «لا غياب») */
+    takenToday: new Set(attendanceToday.map((a) => a.section_id)).size,
+    critical: criticalBooks.reduce((n, x) => n + x.n, 0),
+    criticalBook: criticalBooks[0]?.b ?? null,
     tasks: where('tasks', (t) => !t.done).sort((a, b) => (a.due ?? '9').localeCompare(b.due ?? '9')).slice(0, 4),
   };
 }

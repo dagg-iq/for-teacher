@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { setDigitStyle } from './format';
 setDigitStyle('arab');
-import { DEFAULT_TIMETABLE, formatClock, generatePeriods, inMinutes, isoDay, nextClass, nowState, schoolYear } from './schedule';
+import { breaksBetween, DEFAULT_TIMETABLE, formatClock, generatePeriods, inferPlan, normalizeBreaks, inMinutes, isoDay, nextClass, nowState, schoolYear } from './schedule';
 import type { Slot } from './types';
 
 const now = new Date().toISOString();
@@ -16,6 +16,21 @@ describe('timetable', () => {
       { start: '09:55', end: '10:40' },
       { start: '10:45', end: '11:30' },
     ]);
+  });
+  it('generates periods with two breaks (first and second recess)', () => {
+    const p = generatePeriods({ start: '08:00', count: 6, length: 40, gap: 5, breaks: [{ after: 4, length: 15 }, { after: 2, length: 10 }] });
+    expect(p.map((x) => x.start)).toEqual(['08:00', '08:45', '09:35', '10:20', '11:15', '12:00']);
+    expect(breaksBetween(p, 5)).toEqual([
+      { after: 2, start: '09:25', end: '09:35', length: 10 },
+      { after: 4, start: '11:00', end: '11:15', length: 15 },
+    ]);
+  });
+  it('ignores invalid/duplicate breaks', () => {
+    expect(normalizeBreaks([{ after: 6, length: 10 }, { after: 0, length: 10 }, { after: 2, length: 10 }, { after: 2, length: 20 }], 6)).toEqual([{ after: 2, length: 10 }]);
+  });
+  it('infers the plan back from saved periods', () => {
+    const periods = generatePeriods({ start: '07:30', count: 7, length: 40, gap: 5, breaks: [{ after: 2, length: 10 }, { after: 5, length: 20 }] });
+    expect(inferPlan(periods)).toEqual({ start: '07:30', count: 7, length: 40, gap: 5, breaks: [{ after: 2, length: 10 }, { after: 5, length: 20 }] });
   });
   it('now state', () => {
     const cfg = DEFAULT_TIMETABLE;

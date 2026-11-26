@@ -178,6 +178,16 @@ export interface TimetableConfig {
   periods: PeriodTime[];
   /** التذكير قبل الحصة بالدقائق (٠ = بلا تذكير) */
   remind: number;
+  /** معاملات التوليد (البداية، المدة، الاستراحة، الفرص) — ليعود نموذج «أوقات الدوام» كما حُفظ */
+  plan?: {
+    start: string;
+    count: number;
+    length: number;
+    gap: number;
+    breaks: { after: number; length: number }[];
+    /** عُدّلت أوقات بعض الحصص يدوياً بعد التوليد */
+    manual?: boolean;
+  } | null;
 }
 
 export type TaskKind = 'task' | 'exam' | 'event' | 'meeting' | 'holiday';

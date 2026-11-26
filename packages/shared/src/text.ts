@@ -1,5 +1,6 @@
 /** أدوات نصية: قوائم الأسماء الملصوقة، العدّ بالعربية، رسائل أولياء الأمور، CSV */
 import { arDigits } from './format';
+import { normalizeArabic } from './voice';
 
 /**
  * «٣ طلاب»، «طالب واحد»، «طالبان»، «١٢ طالباً» — العدّ العربي الصحيح.
@@ -48,8 +49,19 @@ export function parseNameList(raw: string): string[] {
 }
 
 /** يرتب الأسماء أبجدياً بالعربية */
+/**
+ * ترتيب أبجدي كما في سجلات المدارس: الهمزات (أ إ آ ا) والتاء المربوطة والياء تُعامل حرفاً واحداً،
+ * فيأتي «أحمد» و«احمد» معاً، ولا يختلف الترتيب بين الهاتف والحاسوب والطباعة (لا يعتمد على لغة الجهاز).
+ */
+export function compareArabic(a: string, b: string): number {
+  const na = normalizeArabic(a);
+  const nb = normalizeArabic(b);
+  if (na !== nb) return na < nb ? -1 : 1;
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 export function sortArabic(names: string[]): string[] {
-  return [...names].sort((a, b) => a.localeCompare(b, 'ar'));
+  return [...names].sort(compareArabic);
 }
 
 /** رقم هاتف عراقي بصيغة دولية لواتساب: 07xx → 9647xx */

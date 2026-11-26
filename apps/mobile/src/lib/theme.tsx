@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { classHues, palette, toneColors, type ThemeColors, type TonePalette } from '@nahj/shared';
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { useColorScheme, type ViewStyle } from 'react-native';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
@@ -42,15 +42,19 @@ interface ThemeValue {
 const Ctx = createContext<ThemeValue | null>(null);
 const KEY = 'nahj.theme';
 
+/** المظهر المحفوظ يُقرأ قبل رسم أول شاشة (فلا تومض الشاشة بالفاتح ثم الداكن) */
+let initialMode: ThemeMode = 'light';
+export async function loadThemeMode() {
+  try {
+    const v = await AsyncStorage.getItem(KEY);
+    if (v === 'light' || v === 'dark' || v === 'system') initialMode = v;
+  } catch { /* الافتراضي: فاتح */ }
+}
+
 export function AppThemeProvider({ children }: { children: ReactNode }) {
   const system = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>('system');
-
-  useEffect(() => {
-    AsyncStorage.getItem(KEY).then((v) => {
-      if (v === 'light' || v === 'dark' || v === 'system') setModeState(v);
-    }).catch(() => {});
-  }, []);
+  // الافتراضي عند التثبيت: الفاتح دائماً (لا يتبع النظام إلا إن اختار المدرّس «تلقائي»)
+  const [mode, setModeState] = useState<ThemeMode>(initialMode);
 
   const value = useMemo<ThemeValue>(() => {
     const dark = mode === 'dark' || (mode === 'system' && system === 'dark');

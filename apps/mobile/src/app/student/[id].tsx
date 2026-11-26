@@ -10,16 +10,17 @@ import { Pill } from '@/components/kit';
 import { Sheet, SheetItem } from '@/components/sheet';
 import { Button, Card, Chip, Empty, Field, Header, IconButton, Row, Screen, SectionTitle, T } from '@/components/ui';
 import { all, get, insert, remove, update, useQuery, useSettings } from '@/data/db';
-import { absencesOf, allSections, booksOfSection, sectionLabel, sheetOf } from '@/data/queries';
+import { absencesOf, allSections, booksOfSection, nextSeq, sectionLabel, sheetOf, studentNo } from '@/data/queries';
 import { Alert } from '@/lib/dialog';
-import { printStudentReport } from '@/lib/export';
 import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
 
 export default function StudentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { c } = useTheme();
-  const profile = useSettings().profile;
+  const settings = useSettings();
+  const profile = settings.profile;
+  const profile_alert = settings.prefs.absenceAlert;
   const [menu, setMenu] = useState(false);
   const [editing, setEditing] = useState(false);
   const [moving, setMoving] = useState(false);
@@ -31,6 +32,7 @@ export default function StudentScreen() {
     return { b, row };
   }) : []), [s?.section_id, id]);
   const ab = useQuery(() => absencesOf(id), [id]);
+  const no = useQuery(() => studentNo(id), [id]);
   const notes = useQuery(() => all('student_notes').filter((n) => n.student_id === id).sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at)), [id]);
   if (!s) return <Screen><Header /><Empty title="الطالب غير موجود" /></Screen>;
 
@@ -47,11 +49,11 @@ export default function StudentScreen() {
 
   return (
     <Screen>
-      <Header title={s.name} subtitle={`${sectionLabel(s.section_id)}${s.number ? ` · رقم ${arDigits(s.number)}` : ''}`}
+      <Header title={s.name} subtitle={`${sectionLabel(s.section_id)}${no ? ` · رقم ${arDigits(no)} في القائمة` : ''}`}
         right={<IconButton name="more" label="خيارات" onPress={() => setMenu(true)} />} />
       <Card style={{ flexDirection: 'row', paddingVertical: 12 }}>
         {[
-          { label: 'غياب', v: ab.absent, bad: ab.absent >= 5 },
+          { label: 'غياب', v: ab.absent, bad: ab.count >= profile_alert },
           { label: 'تأخير', v: ab.late, bad: false },
           { label: 'إجازة', v: ab.excused, bad: false },
           { label: 'ملاحظات', v: notes.length, bad: false },
@@ -131,16 +133,16 @@ export default function StudentScreen() {
       <Sheet visible={menu} onClose={() => setMenu(false)}>
         <SheetItem icon="edit" label="تعديل البيانات" onPress={() => { setMenu(false); setEditing(true); }} />
         <SheetItem icon="forward" label="نقل إلى شعبة أخرى" onPress={() => { setMenu(false); setMoving(true); }} />
-        <SheetItem icon="print" label="تقرير الطالب PDF" onPress={() => { setMenu(false); printStudentReport(id).catch((e) => toast(String(e.message ?? e), { tone: 'bad' })); }} />
+        <SheetItem icon="print" label="طباعة تقرير الطالب / PDF" onPress={() => { setMenu(false); router.push(`/print?kind=student&id=${id}`); }} />
         <SheetItem icon="trash" label="حذف الطالب" danger onPress={() => { setMenu(false); del(); }} />
       </Sheet>
-      <EditStudent visible={editing} onClose={() => setEditing(false)} id={id} />
+      {editing ? <EditStudent visible onClose={() => setEditing(false)} id={id} /> : null}
       <Sheet visible={moving} onClose={() => setMoving(false)}>
         <T display size={22}>نقل {s.name.split(' ')[0]}</T>
-        <T dim size={13}>تبقى درجاته في سجلات شعبته الحالية، وتبدأ سجلاته في الشعبة الجديدة فارغة.</T>
+        <T dim size={13}>السجلات تختلف بين الشعب، فدرجاته وحضوره في هذه الشعبة لا تنتقل معه: تبقى محفوظة هنا (وتعود إن أعدته)، ويبدأ في الشعبة الجديدة بسجلات فارغة وفي آخر قائمتها إن كانت مرتبة بالتسلسل.</T>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
           {allSections().filter((x) => x.id !== s.section_id).map((x) => (
-            <Chip key={x.id} label={sectionLabel(x.id, true)} onPress={() => { update('students', s.id, { section_id: x.id }); setMoving(false); toast(`نُقل إلى ${sectionLabel(x.id)}`, { icon: 'check' }); }} />
+            <Chip key={x.id} label={sectionLabel(x.id, true)} onPress={() => { update('students', s.id, { section_id: x.id, number: nextSeq(x.id), sort: nextSeq(x.id) }); setMoving(false); toast(`نُقل إلى ${sectionLabel(x.id)}`, { icon: 'check' }); }} />
           ))}
         </View>
       </Sheet>
@@ -151,7 +153,6 @@ export default function StudentScreen() {
 function EditStudent({ visible, onClose, id }: { visible: boolean; onClose: () => void; id: string }) {
   const s = get('students', id);
   const [name, setName] = useState(s?.name ?? '');
-  const [num, setNum] = useState(s?.number ? String(s.number) : '');
   const [phone, setPhone] = useState(s?.parent_phone ?? '');
   const [notes, setNotes] = useState(s?.notes ?? '');
   return (
@@ -159,14 +160,11 @@ function EditStudent({ visible, onClose, id }: { visible: boolean; onClose: () =
       <T display size={22}>بيانات الطالب</T>
       <View style={{ gap: 10, marginTop: 8 }}>
         <Field label="الاسم" value={name} onChangeText={setName} />
-        <Row gap={10}>
-          <View style={{ flex: 1 }}><Field label="التسلسل" value={num} onChangeText={setNum} keyboardType="number-pad" /></View>
-          <View style={{ flex: 2 }}><Field label="هاتف ولي الأمر" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="07xxxxxxxxx" /></View>
-        </Row>
+        <Field label="هاتف ولي الأمر" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="07xxxxxxxxx" style={{ textAlign: 'right' }} />
+        <T dim size={12}>رقم الطالب يتبع ترتيب القائمة. لتغييره: اجعل الترتيب «حسب التسلسل» من قائمة الطلاب ثم «ترتيب الطلاب يدوياً».</T>
         <Field label="ملاحظة دائمة" value={notes} onChangeText={setNotes} placeholder="اختياري" />
         <Button title="حفظ" icon="check" disabled={name.trim().length < 2} onPress={() => {
-          const n = Number(num.replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))));
-          update('students', id, { name: name.trim(), number: Number.isFinite(n) && n > 0 ? n : null, parent_phone: phone.trim() || null, notes: notes.trim() || null });
+          update('students', id, { name: name.trim().replace(/\s+/g, ' '), parent_phone: phone.trim() || null, notes: notes.trim() || null });
           onClose();
         }} />
       </View>

@@ -33,6 +33,12 @@ export function formatScore(n: number | null | undefined, digits = 1): string {
   return arDigits(fixed);
 }
 
+/** العام الدراسي «2026-2027» يُقرأ من اليسار لليمين حتى داخل النص العربي (لا ينقلب إلى 2027-2026) */
+export function formatYear(y: string | null | undefined): string {
+  if (!y) return '';
+  return `\u2066${arDigits(String(y).replace(/[–—]/g, '-'))}\u2069`;
+}
+
 /** يقبل أرقاماً عربية أو إنكليزية من لوحة المفاتيح. */
 export function parseNumber(input: string): number | null {
   const normalized = input
@@ -47,12 +53,33 @@ export function parseNumber(input: string): number | null {
 const MONTHS = ['كانون الثاني', 'شباط', 'آذار', 'نيسان', 'أيار', 'حزيران', 'تموز', 'آب', 'أيلول', 'تشرين الأول', 'تشرين الثاني', 'كانون الأول'];
 const DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
-/** «الأحد، ٥ تشرين الأول» بالأشهر العراقية */
+/**
+ * شكل التاريخ: «numeric» رقمي 26/11/2026 (الافتراضي — الأوضح) أو «months» بأسماء الأشهر العراقية (٢٦ تشرين الثاني ٢٠٢٦).
+ * يُضبط من الإعدادات (setDateStyle) مثل شكل الأرقام.
+ */
+export type DateStyle = 'numeric' | 'months';
+let dateStyle: DateStyle = 'numeric';
+export function setDateStyle(s: DateStyle) { dateStyle = s; }
+export function getDateStyle(): DateStyle { return dateStyle; }
+
+export const MONTH_NAMES = MONTHS;
+export const DAY_LONG = DAYS;
+
+/** «26/11/2026» — اليوم/الشهر/السنة، معزول الاتجاه حتى لا ينقلب داخل النص العربي */
+export function formatNumericDate(d: Date, isolate = true): string {
+  const s = arDigits(`${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`);
+  return isolate ? `\u2066${s}\u2069` : s;
+}
+
+/** «الخميس 26/11/2026» (أو «الخميس، ٢٦ تشرين الثاني» بأسماء الأشهر) */
 export function formatDayDate(d: Date): string {
+  if (dateStyle === 'numeric') return `${DAYS[d.getDay()]} ${formatNumericDate(d)}`;
   return `${DAYS[d.getDay()]}، ${arDigits(d.getDate())} ${MONTHS[d.getMonth()]}`;
 }
 
+/** «26/11/2026» (أو «٢٦ تشرين الثاني ٢٠٢٦») */
 export function formatDate(d: Date): string {
+  if (dateStyle === 'numeric') return formatNumericDate(d);
   return `${arDigits(d.getDate())} ${MONTHS[d.getMonth()]} ${arDigits(d.getFullYear())}`;
 }
 

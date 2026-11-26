@@ -14,7 +14,7 @@ import { setGrade, setOverride } from '@/data/grades';
 import { allSections, linkLabel, sectionLabel, sheetOf } from '@/data/queries';
 import { useWide } from '@/lib/hooks';
 import { Alert } from '@/lib/dialog';
-import { exportBookXlsx, printBook } from '@/lib/export';
+import { exportBookXlsx } from '@/lib/export';
 import { fonts, useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
 
@@ -114,8 +114,7 @@ export default function BookScreen() {
       <Sheet visible={menu} onClose={() => setMenu(false)}>
         <SheetItem icon="excel" label="تصدير Excel" onPress={() => { setMenu(false); run(() => exportBookXlsx(book.id)); }} />
         {inputs.length ? <SheetItem icon="upload" label="استيراد درجات من Excel" onPress={() => { setMenu(false); router.push(`/book/import?id=${book.id}`); }} /> : null}
-        <SheetItem icon="print" label="طباعة" onPress={() => { setMenu(false); run(() => printBook(book.id, 'print')); }} />
-        <SheetItem icon="share" label="مشاركة PDF" onPress={() => { setMenu(false); run(() => printBook(book.id, 'pdf')); }} />
+        <SheetItem icon="print" label="طباعة / PDF" onPress={() => { setMenu(false); router.push(`/print?kind=book&id=${book.id}`); }} />
         {!book.group_id ? <SheetItem icon="copy" label="نسخ السجل لشعبة أخرى" onPress={() => { setMenu(false); setCopy(true); }} /> : null}
         <SheetItem icon="edit" label="إعادة التسمية" onPress={() => { setMenu(false); setRename(true); }} />
         <SheetItem icon="pin" label={book.pinned ? 'إلغاء التثبيت' : 'تثبيت في الأعلى'} onPress={() => { setMenu(false); update('gradebooks', book.id, { pinned: !book.pinned }); }} />

@@ -1,6 +1,6 @@
 import {
   arDigits, countStudents, formatClock, formatDayDate, formatScore, greeting, inMinutes, nextClass, nowState, periodName,
-  relativeDays, teacherTitle, TASK_KIND_LABEL, type Slot, formatPercent } from '@nahj/shared';
+  relativeDays, teacherTitle, TASK_KIND_LABEL, type Slot, formatPercent, DAY_NAMES } from '@nahj/shared';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View } from 'react-native';
@@ -58,8 +58,9 @@ export default function Home() {
             <Stat label="الشعب" value={d.sections} icon="grid" onPress={() => router.push('/classes')} />
           </View>
           <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-            <Stat label="درجات حرجة" value={d.critical} icon="info" tone={d.critical ? 'warn' : undefined} onPress={() => router.push('/reports')} />
-            <Stat label="غياب اليوم" value={d.absentToday} icon="check-square" tone={d.absentToday ? 'warn' : undefined} onPress={() => router.push('/attendance')} />
+            <Stat label="درجات حرجة" value={d.critical} icon="info" tone={d.critical ? 'warn' : undefined}
+              onPress={() => (d.criticalBook ? router.push(`/book/${d.criticalBook.id}`) : router.push('/grades'))} />
+            <Stat label={d.takenToday ? 'غياب اليوم' : 'الحضور لم يُسجَّل اليوم'} value={d.takenToday ? d.absentToday : '—'} icon="check-square" tone={d.absentToday ? 'warn' : undefined} onPress={() => router.push('/attendance')} />
           </View>
 
           <QuickActions />
@@ -68,19 +69,19 @@ export default function Home() {
 
           {d.weak.length ? (
             <>
-              <SectionTitle title="يحتاجون متابعة" />
+              <SectionTitle title={`يحتاجون متابعة (${arDigits(d.weakCount)})`} action={d.weakCount > d.weak.length ? 'التقارير' : undefined} onAction={() => router.push('/reports')} />
               <Card style={{ paddingVertical: 6 }}>
                 {d.weak.map((w, i) => (
                   <PressScale key={w.student.id} onPress={() => router.push(`/student/${w.student.id}`)} scaleTo={0.98}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
                     <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: c.soft, alignItems: 'center', justifyContent: 'center' }}>
-                      <T weight="bold" size={14} color={c.accent}>{w.student.name.charAt(0)}</T>
+                      <T weight="bold" size={14} color={c.accent}>{w.student.name.trim().replace(/^[إأآ]/, 'ا').charAt(0)}</T>
                     </View>
                     <View style={{ flex: 1 }}>
                       <T weight="bold" size={15} lines={1}>{w.student.name}</T>
                       <T dim size={12} lines={1}>{sectionLabel(w.student.section_id)} · {w.book.title}</T>
                     </View>
-                    <Pill label={w.fails > 1 ? `راسب في ${arDigits(w.fails)}` : 'راسب'} tone="bad" small />
+                    <Pill label={`راسب ${formatScore(w.value)}`} tone="bad" small />
                   </PressScale>
                 ))}
               </Card>
@@ -142,7 +143,7 @@ function NowCard({ now }: { now: Date }) {
     sub = `تنتهي ${inMinutes(st.endsIn)}${st.slot?.room ? ` · ${arDigits(st.slot.room)}` : ''}`;
     sectionId = st.slot?.section_id ?? null;
   } else if (next) {
-    kicker = next.dayOffset === 0 ? `حصتك القادمة — ${periodName(next.slot.period)}` : next.dayOffset === 1 ? 'أول حصة غداً' : `حصتك القادمة — ${formatDayDate(new Date(now.getTime() + next.dayOffset * 86400000)).split('،')[0]}`;
+    kicker = next.dayOffset === 0 ? `حصتك القادمة — ${periodName(next.slot.period)}` : next.dayOffset === 1 ? 'أول حصة غداً' : `حصتك القادمة — ${DAY_NAMES[new Date(now.getTime() + next.dayOffset * 86400000).getDay()]}`;
     main = label(next.slot);
     const startsIn = next.dayOffset === 0 && (st.kind === 'before' || st.kind === 'between') && st.period === next.slot.period ? st.startsIn : null;
     sub = startsIn != null ? `تبدأ ${inMinutes(startsIn)}` : `الساعة ${formatClock(next.start)}`;
@@ -223,6 +224,9 @@ function LastExam({ d }: { d: ReturnType<typeof dashboard> }) {
   const { c, tone } = useTheme();
   const last = d.last!;
   const s = last.stats;
+  // لا «نجاح ١٠٠٪» بعد درجة طالب واحد: النسبة تظهر بعد إدخال نسبة كافية من الطلاب (إعدادات الدرجات)
+  const enough = s.total > 0 && (s.count / s.total) * 100 + 1e-9 >= (useSettings().prefs.rateMinFilled ?? 50);
+  const rate = enough ? s.passRate : null;
   return (
     <>
       <SectionTitle title="آخر سجل" action="فتح" onAction={() => router.push(`/book/${last.book.id}`)} />
@@ -232,13 +236,14 @@ function LastExam({ d }: { d: ReturnType<typeof dashboard> }) {
           <T dim size={13}>{sectionLabel(last.book.section_id)} · {arDigits(last.column.name)}</T>
         </View>
         <Row gap={18}>
-          <Ring value={s.passRate} size={96} color={s.passRate != null && s.passRate < 50 ? tone.bad.ink : c.accent}>
-            <T display size={22}>{s.passRate == null ? '—' : formatPercent(s.passRate)}</T>
+          <Ring value={rate} size={96} color={rate != null && rate < 50 ? tone.bad.ink : c.accent}>
+            <T display size={22}>{rate == null ? '—' : formatPercent(rate)}</T>
             <T dim size={11} style={{ marginTop: -6 }}>نجاح</T>
           </Ring>
           <View style={{ flex: 1, gap: 8 }}>
             <Line label="المعدل" value={formatScore(s.avg)} />
-            <Line label="الأعلى / الأدنى" value={`${formatScore(s.max)} / ${formatScore(s.min)}`} />
+            <Line label="الأعلى" value={formatScore(s.max)} />
+            <Line label="الأدنى" value={formatScore(s.min)} />
             <Row gap={6}>
               <Pill label={`ناجح ${arDigits(s.passCount)}`} tone="good" small />
               <Pill label={`راسب ${arDigits(s.failCount)}`} tone="bad" small />

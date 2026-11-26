@@ -8,7 +8,6 @@ import { Button, Chip, Field, Header, IconButton, Row, Screen, T } from '@/compo
 import { get, insert, remove, update } from '@/data/db';
 import { classesSorted, sectionLabel, sectionsOf } from '@/data/queries';
 import { Alert } from '@/lib/dialog';
-import { printLessonPlan } from '@/lib/export-plan';
 import { toast } from '@/lib/toast';
 
 const METHODS = ['المحاضرة', 'المناقشة والحوار', 'الاستجواب', 'الاستقراء', 'حل المشكلات', 'التعلّم التعاوني', 'العصف الذهني', 'التجربة العملية', 'الخرائط الذهنية'];
@@ -74,7 +73,7 @@ export default function PlanEdit() {
       <Field label="الواجب البيتي" value={homework} onChangeText={setHomework} />
       <ToggleRow title="نُفّذ الدرس" value={done} onChange={setDone} />
       <Row gap={8}>
-        <Button title="طباعة" icon="print" variant="secondary" disabled={!title.trim()} onPress={() => save((pid) => printLessonPlan(pid).catch((e) => toast(String(e.message ?? e), { tone: 'bad' })))} />
+        <Button title="طباعة" icon="print" variant="secondary" disabled={!title.trim()} onPress={() => save((pid) => router.push(`/print?kind=plan&id=${pid}`))} />
         <Button title="حفظ" icon="check" style={{ flex: 1 }} disabled={!title.trim()} onPress={() => save()} />
       </Row>
     </Screen>
