@@ -263,7 +263,7 @@ function GridCell({ bookId, studentId, col, value, mark, inputRef, onDown, onUp,
 }) {
   const { c, tone } = useTheme();
   // الغائب يُحسب صفراً في المعادلات، لكنه يُعرض «غ» لا «0»
-  const shown = mark === 'absent' && (value == null || value === 0) ? 'غ' : value == null ? '' : arDigits(value);
+  const shown = mark === 'absent' && (value == null || value === 0) ? 'غ' : mark === 'exempt' ? 'م' : mark === 'cheat' ? 'غش' : value == null ? '' : arDigits(value);
   const [text, setText] = useState(shown);
   const [bad, setBad] = useState(false);
   useEffect(() => { setText(shown); }, [shown]);
@@ -272,8 +272,11 @@ function GridCell({ bookId, studentId, col, value, mark, inputRef, onDown, onUp,
     if (s === shown) return true;
     if (!s) { setGrade(bookId, studentId, col.id, null, null); setBad(false); return true; }
     if (s === 'غ' || s === 'غائب') { setGrade(bookId, studentId, col.id, null, 'absent'); setBad(false); return true; }
+    // «م» معفى (لا يدخل الحساب)، «غش» يُحسب صفراً
+    if (s === 'م' || s === 'معفى' || s === 'معفي') { setGrade(bookId, studentId, col.id, null, 'exempt'); setBad(false); return true; }
+    if (s === 'غش') { setGrade(bookId, studentId, col.id, 0, 'cheat'); setBad(false); return true; }
     const n = parseNumber(s);
-    if (n == null || n < 0 || n > col.max) { setBad(true); toast(n != null && n > col.max ? `الدرجة أكبر من العظمى (${arDigits(col.max)})` : 'اكتب رقماً أو «غ» للغائب', { tone: 'bad', icon: 'info' }); return false; }
+    if (n == null || n < 0 || n > col.max) { setBad(true); toast(n != null && n > col.max ? `الدرجة أكبر من العظمى (${arDigits(col.max)})` : 'اكتب رقماً، أو «غ» للغائب، «م» للمعفى، «غش»', { tone: 'bad', icon: 'info' }); return false; }
     setBad(false);
     setGrade(bookId, studentId, col.id, n, null);
     return true;
@@ -317,7 +320,7 @@ function EntryList({ bookId, columns, active, onColumn, rows, decider, focusStud
       </ScrollView>
       <Row style={{ justifyContent: 'space-between' }}>
         <T size={13} weight="bold" style={{ flexShrink: 1 }} lines={1}>{active.name} <T dim size={13}>· من {arDigits(active.max)} · أُدخل {arDigits(filled)} من {arDigits(rows.length)}</T></T>
-        <T dim size={12}>«غ» = غائب</T>
+        <T dim size={12}>«غ» غائب · «م» معفى · «غش»</T>
       </Row>
       <Card style={{ paddingVertical: 4 }}>
         {rows.map((r, i) => (
@@ -338,7 +341,7 @@ function EntryRow({ row, index, col, bookId, decider, inputRef, onNext, divider,
   const { c, tone } = useTheme();
   const mark = row.marks[col.id] ?? null;
   // الغائب يُعرض «غائب» لا «0»
-  const v = mark === 'absent' && !row.values[col.id] ? null : row.values[col.id];
+  const v = (mark === 'absent' || mark === 'cheat') && !row.values[col.id] ? null : row.values[col.id];
   const [text, setText] = useState(v == null ? '' : arDigits(v));
   const [bad, setBad] = useState(false);
   useEffect(() => { setText(v == null ? '' : arDigits(v)); }, [v]);
@@ -350,8 +353,11 @@ function EntryRow({ row, index, col, bookId, decider, inputRef, onNext, divider,
       setBad(false);
       return true;
     }
+    if (s === 'غ' || s === 'غائب') { setGrade(bookId, row.student.id, col.id, null, 'absent'); setBad(false); return true; }
+    if (s === 'م' || s === 'معفى' || s === 'معفي') { setGrade(bookId, row.student.id, col.id, null, 'exempt'); setBad(false); return true; }
+    if (s === 'غش') { setGrade(bookId, row.student.id, col.id, 0, 'cheat'); setBad(false); return true; }
     const n = parseNumber(s);
-    if (n == null || n < 0) { setBad(true); toast('اكتب رقماً صحيحاً', { tone: 'bad', icon: 'info' }); return false; }
+    if (n == null || n < 0) { setBad(true); toast('اكتب رقماً، أو «غ» للغائب، «م» للمعفى، «غش»', { tone: 'bad', icon: 'info' }); return false; }
     if (n > col.max) { setBad(true); tap('medium'); toast(`الدرجة أكبر من العظمى (${arDigits(col.max)})`, { tone: 'bad', icon: 'info' }); return false; }
     setBad(false);
     if (n !== v || mark) setGrade(bookId, row.student.id, col.id, n, null);
