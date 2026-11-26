@@ -29,8 +29,9 @@ jobs:
       - name: Link project and apply migrations
         if: steps.check.outputs.ok == 'true'
         run: |
-          supabase link --project-ref "$PROJECT_REF" -p "$SUPABASE_DB_PASSWORD"
-          supabase db push -p "$SUPABASE_DB_PASSWORD" --include-all
+          supabase link --project-ref "$PROJECT_REF"
+          # كلمة السر تُقرأ من SUPABASE_DB_PASSWORD؛ CLI 3 يحتاج --linked (أو --remote) ليستهدف المشروع المرتبط
+          supabase db push --linked --include-all || supabase db push --remote --include-all
       - name: Function secrets
         if: steps.check.outputs.ok == 'true'
         env:
