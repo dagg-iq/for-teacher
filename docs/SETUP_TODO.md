@@ -31,6 +31,17 @@
    ثم أعد **Deploy Supabase** و **Build APK** — يظهر الزر تلقائياً.
 8. أعد تشغيل **Build APK** لتأخذ النسخة الجديدة مفاتيح Supabase.
 
+## ٢-ب) لوحة الإدارة (nahj-iq.web.app/admin) — ٥ دقائق
+اللوحة تدخلها بحساب Google فقط، ومنها: قبول/رفض الحسابات الجديدة، إيقاف وتفعيل، تغيير كلمة السر والبريد، إخراج من الأجهزة، حذف حساب،
+إضافة مدرّس، إحصاءات كاملة، إعلانات وإشعارات، ومدراء إضافيون. كل حساب جديد يسجّل في التطبيق ينتظر موافقتك قبل أن تُزامن بياناته.
+1. GitHub ← Secrets ← سر جديد `ADMIN_EMAILS` = بريد Gmail الخاص بك (أكثر من بريد: افصل بفاصلة). لا يُكتب البريد في الكود لأن المستودع عام.
+2. Firebase Console ← Authentication ← Get started ← Sign-in method ← **Google** ← Enable ← اختر بريد الدعم ← Save.
+3. Firebase Console ← Project settings ← Your apps ← **Add app ← Web (</>)** ← اسم مثل `nahj-admin` ← Register app (لا تحتاج Hosting ولا نسخ أي كود).
+4. Actions ← **Deploy Supabase** ثم **Deploy Site**.
+5. افتح `https://<project>.web.app/admin` وادخل بحساب Google.
+- إشعار على هاتفك عند كل طلب جديد: سجّل الدخول في تطبيق نَهج بنفس بريد المدير.
+- إيقاف شرط الموافقة: من اللوحة ← الإعدادات.
+
 ## ٣) Firebase (الإشعارات + الموقع) — ١٠ دقائق
 1. console.firebase.google.com ← مشروع جديد (مثلاً `nahj-iq`).
 2. أضف تطبيق Android بالحزمة **`app.nahj.teacher`** ← نزّل `google-services.json` ← ضع محتواه كاملاً في السر `GOOGLE_SERVICES_JSON`.
@@ -100,6 +111,7 @@
 | FIREBASE_SERVICE_ACCOUNT / FCM_SERVICE_ACCOUNT | Firebase ← Service accounts | للموقع والإشعارات |
 | RELEASES_TOKEN | GitHub ← Developer settings | لتحديث APK من داخل التطبيق |
 | EXPO_TOKEN + متغير EAS_PROJECT_ID | expo.dev | للتحديث الفوري بلا تنزيل (OTA) |
+| ADMIN_EMAILS | بريد Gmail الخاص بك | للوحة الإدارة |
 | GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | Google Cloud ← OAuth | اختياري: الدخول بـ Google |
 | SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / SMTP_SENDER | مزوّد بريد | اختياري: «نسيت كلمة السر» |
 

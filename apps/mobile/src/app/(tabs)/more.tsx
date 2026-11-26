@@ -46,7 +46,7 @@ export default function More() {
       </Group>
       <Group title="الحساب">
         <ListItem icon={sync.state === 'error' ? 'cloud-off' : 'cloud'} title="الحساب والمزامنة"
-          subtitle={sync.state === 'off' ? 'بياناتك محفوظة على هذا الهاتف' : email ? email : 'سجّل الدخول لحفظ بياناتك في السحابة'} onPress={() => router.push('/account')} />
+          subtitle={sync.state === 'off' ? 'بياناتك محفوظة على هذا الهاتف' : sync.state === 'waiting' ? (sync.account === 'pending' ? 'بانتظار موافقة الإدارة' : 'المزامنة متوقفة — الحساب موقوف') : email ? email : 'سجّل الدخول لحفظ بياناتك في السحابة'} onPress={() => router.push('/account')} />
         <Divider />
         <ListItem icon="settings" title="الإعدادات" subtitle="الملف، المظهر، الطلاب، الدرجات، الحضور، الطباعة، النسخ الاحتياطي" onPress={() => router.push('/settings')} />
       </Group>

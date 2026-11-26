@@ -14,4 +14,12 @@ const d = { url: process.env.DOWNLOAD_URL || cfg.link || "", version: process.en
 fs.writeFileSync("hosting/download.json", JSON.stringify(d));
 console.log("download.json:", JSON.stringify(d));
 '
+# لوحة الإدارة: عنوان Supabase والمفتاح العام (آمن للعلن؛ الصلاحيات تُفحص في الخادم)
+node -e '
+const fs = require("fs");
+const c = { supabaseUrl: (process.env.SUPABASE_URL || "").replace(/\/$/, ""), supabaseKey: process.env.SUPABASE_ANON_KEY || "" };
+fs.writeFileSync("hosting/admin/config.js", "window.NAHJ_ADMIN = " + JSON.stringify(c) + ";\n");
+console.log("admin/config.js:", c.supabaseUrl ? "ok" : "بلا Supabase");
+'
+sed -i "s#/admin/admin.css\"#/admin/admin.css?v=$V\"#; s#/admin/admin.js\"#/admin/admin.js?v=$V\"#; s#/admin/config.js\"#/admin/config.js?v=$V\"#" hosting/admin/index.html
 echo "✓ hosting/ جاهز"

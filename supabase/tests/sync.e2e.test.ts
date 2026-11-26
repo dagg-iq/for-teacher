@@ -19,6 +19,9 @@ async function user(email: string) {
   const c = createClient(URL!, ANON!, { auth: { persistSession: false } });
   const { data, error: e2 } = await c.auth.signInWithPassword({ email, password: 'secret-123456' });
   if (e2) throw e2;
+  // الحسابات الجديدة بانتظار موافقة المدير
+  const { error: e3 } = await admin.from('teacher_accounts').update({ status: 'approved' }).eq('id', data.user!.id);
+  if (e3) throw e3;
   return { c, id: data.user!.id };
 }
 
@@ -91,4 +94,25 @@ run('sync against real Supabase', () => {
     const { data: none } = await a.c.from('grades').select('id');
     expect(none).toHaveLength(0);
   }, 60000);
+});
+
+run('approval gate', () => {
+  it('a new account is pending and cannot sync until approved', async () => {
+    const admin = createClient(URL!, SERVICE!, { auth: { persistSession: false } });
+    const email = `p${Date.now()}@nahj.test`;
+    const { error } = await admin.auth.admin.createUser({ email, password: 'secret-123456', email_confirm: true });
+    if (error) throw error;
+    const c = createClient(URL!, ANON!, { auth: { persistSession: false } });
+    const { data } = await c.auth.signInWithPassword({ email, password: 'secret-123456' });
+    const id = data.user!.id;
+    const me = await c.from('teacher_accounts').select('status').maybeSingle();
+    expect(me.data?.status).toBe('pending');
+    const t = now();
+    const row = { id: uuid(), name: 'صف', stage: 'other', subject: '', hue: 0, sort: 0, created_at: t, updated_at: t, deleted: false, owner_id: id };
+    const blocked = await c.from('classes').upsert([row], { onConflict: 'id', defaultToNull: false });
+    expect(blocked.error).toBeTruthy();
+    await admin.from('teacher_accounts').update({ status: 'approved' }).eq('id', id);
+    const ok = await c.from('classes').upsert([row], { onConflict: 'id', defaultToNull: false });
+    expect(ok.error).toBeNull();
+  });
 });

@@ -4,6 +4,11 @@ insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'a@x.iq'),
   ('22222222-2222-2222-2222-222222222222', 'b@x.iq')
 on conflict do nothing;
+-- الحسابات الجديدة بانتظار موافقة المدير؛ نفعّلها للاختبار
+do $$ begin
+  if (select count(*) from public.teacher_accounts where status = 'pending' and id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')) <> 2 then raise exception 'new users not pending'; end if;
+end $$;
+update public.teacher_accounts set status = 'approved' where id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222');
 
 set role authenticated;
 select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
@@ -92,3 +97,48 @@ begin
   if (select name from public.classes where id = 'aaaaaaaa-0000-0000-0000-0000000000b1') <> 'أحدث وأحدث' then raise exception 'newer write rejected'; end if;
 end $$;
 reset role;
+
+-- حساب بانتظار الموافقة: لا يقرأ ولا يكتب شيئاً، ويرى حالته فقط
+insert into auth.users (id, email) values ('33333333-3333-3333-3333-333333333333', 'C@x.iq') on conflict do nothing;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false);
+do $$ begin
+  if (select status from public.teacher_accounts) <> 'pending' then raise exception 'pending user cannot see own status'; end if;
+  if (select count(*) from public.teacher_accounts) <> 1 then raise exception 'user sees other accounts'; end if;
+  if (select email from public.teacher_accounts) <> 'c@x.iq' then raise exception 'email not lower-cased'; end if;
+  begin
+    insert into public.classes (id, name) values ('aaaaaaaa-0000-0000-0000-0000000000c1', 'بانتظار');
+    raise exception 'pending user inserted';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    update public.teacher_accounts set status = 'approved';
+    if (select status from public.teacher_accounts) = 'approved' then raise exception 'user approved himself'; end if;
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform 1 from public.admin_emails;
+    if found then raise exception 'user reads admin_emails'; end if;
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+-- موقوف: نفس الشيء
+reset role;
+update public.teacher_accounts set status = 'suspended' where id = '11111111-1111-1111-1111-111111111111';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+do $$ begin
+  if (select count(*) from public.classes) <> 0 then raise exception 'suspended user reads data'; end if;
+end $$;
+reset role;
+-- الإحصاءات لا يصلها المستخدم العادي
+set role authenticated;
+do $$ begin
+  begin
+    perform * from public.admin_teacher_stats();
+    raise exception 'user called admin_teacher_stats';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+select count(*) > 0 as stats_ok from public.admin_teacher_stats();
