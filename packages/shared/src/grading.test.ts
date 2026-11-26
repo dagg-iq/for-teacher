@@ -128,8 +128,8 @@ describe('year set (linked books)', () => {
 
   it('optional final exam: (annual + final) / 2', () => {
     const set = buildYearSet({ components: [{ name: 'الدرجة', max: 100 }], withFinal: true });
-    expect(set.at(-1)!.title).toBe('النتيجة النهائية');
-    expect(set.at(-1)!.columns.map((c) => c.kind)).toEqual(['link', 'input', 'formula']);
+    expect(set[set.length - 1].title).toBe('النتيجة النهائية');
+    expect(set[set.length - 1].columns.map((c) => c.kind)).toEqual(['link', 'input', 'formula']);
   });
 });
 
