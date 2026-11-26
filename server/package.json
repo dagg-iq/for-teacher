@@ -1,0 +1,18 @@
+{
+  "name": "nahj-sync-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "خادم مزامنة نَهج مع قاعدة بيانات Oracle (REST) — يستبدل Supabase في المزامنة",
+  "type": "module",
+  "main": "src/server.mjs",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "ddl": "node src/ddl.mjs > sql/schema.sql",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "jose": "^5.9.6",
+    "oracledb": "^6.7.0"
+  }
+}

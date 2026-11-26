@@ -34,7 +34,10 @@
 12. ✅ حركة شعار عند الفتح (`components/intro.tsx`)، بطاقة المطوّر (`components/developer.tsx`)، «عن التطبيق» جديدة.
 13. ✅ التحديثات: OTA عبر expo-updates (`RUNTIME_VERSION` في app.config.js + `.github/workflows/ota-update.yml`) وتحميل APK داخل التطبيق (`lib/updater.ts`).
 14. ✅ التراخيص (`scripts/gen-licenses.cjs` → شاشة `/licenses`)، شروط الاستخدام `apps/site/terms.html`، أيقونات ثنائية اللون.
-15. التالي: تجربة المستخدم على هاتفه، ثم إعداد Supabase/Firebase/مفتاح التوقيع/EAS (`docs/SETUP_TODO.md`).
+15. ✅ نسخة الحاسوب (ويندوز exe عبر Electron، `apps/desktop`) وشريط جانبي للشاشات العريضة.
+16. ✅ (جلسة ٦) إعادة الترتيب: سجلات السنة المترابطة (`buildYearSet`، أعمدة link)، الدرجات الحرجة بموافقة المدرس، إلغاء التقدير، تبويب الدرجات حسب الشعبة، صفحة الشعبة مركز، التقارير (`/reports` + Excel/PDF)، جدول الحاسوب القابل للكتابة، الحضور الأوضح، الصوت بلا نطق آلي و«بالترتيب» افتراضياً.
+17. ✅ تجهيز Oracle: `server/` (مخطط + خادم مزامنة REST) وطبقة `data/backends.ts` — انظر `docs/ORACLE.md`.
+18. التالي: معلومات Oracle من المستخدم، ثم تشغيل الخادم واختباره على قاعدة حقيقية.
 
 ## أوامر التحقق
 ```bash

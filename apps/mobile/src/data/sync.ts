@@ -7,7 +7,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { chunk, fromServerRow, SYNC_TABLES, toServerRow, type Base, type TableName, type TableRow } from '@nahj/shared';
 import { useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
-import { isConfigured, supabase } from '@/lib/supabase';
+import { isConfigured } from '@/lib/supabase';
+import { backend } from './backends';
 import { getSettings, onLocalChange, syncState } from './db';
 
 export type SyncStatus = { state: 'off' | 'idle' | 'syncing' | 'error'; lastSync: string | null; error?: string; pending: number };
@@ -49,10 +50,7 @@ async function run() {
     // ١) الإعدادات
     if (syncState.settingsDirty()) {
       const s = getSettings();
-      const { error } = await supabase.from('teacher_settings').upsert({
-        owner_id: uid, profile: s.profile, timetable: s.timetable, prefs: s.prefs, updated_at: s.updated_at,
-      });
-      if (error) throw error;
+      await backend.pushSettings(uid, { profile: s.profile, timetable: s.timetable, prefs: s.prefs, updated_at: s.updated_at });
       alive();
       syncState.markSettingsClean(s.updated_at);
     }
@@ -64,18 +62,14 @@ async function run() {
       for (const part of chunk(ids, 400)) {
         const rows = syncState.rowsByIds(t, part);
         if (!rows.length) continue;
-        // الحقول غير الموجودة تأخذ القيمة الافتراضية في الخادم (لا null) — وإلا رُفضت الأعمدة الإلزامية
-        const payload = rows.map((r) => toServerRow(r, uid));
-        const { error } = await supabase.from(t).upsert(payload, { onConflict: 'id', defaultToNull: false });
-        if (error) throw error;
+        await backend.push(t, rows.map((r) => toServerRow(r, uid)));
         alive();
         syncState.markClean(t, rows);
       }
     }
 
     // ٣) السحب
-    const { data: sRow, error: sErr } = await supabase.from('teacher_settings').select('*').eq('owner_id', uid).maybeSingle();
-    if (sErr) throw sErr;
+    const sRow = await backend.pullSettings(uid);
     alive();
     if (sRow) syncState.applyRemoteSettings(sRow as never);
 
@@ -84,8 +78,7 @@ async function run() {
       for (let page = 0; page < 50; page++) {
         // الصفحة الأولى تتداخل ١٠ ثوانٍ مع السحب السابق (معاملات انتهت متأخرة) — الدمج لا يتأثر بالتكرار
         const from = page === 0 && cursor[t] ? new Date(Date.parse(since) - 10000).toISOString() : since;
-        const { data, error } = await supabase.from(t).select('*').gt('synced_at', from).order('synced_at', { ascending: true }).limit(1000);
-        if (error) throw error;
+        const data = await backend.pull(t, from, 1000);
         alive();
         if (!data?.length) break;
         syncState.applyRemote(t as TableName, data.map((r) => fromServerRow<Base>(r as Record<string, unknown>)) as TableRow[TableName][]);

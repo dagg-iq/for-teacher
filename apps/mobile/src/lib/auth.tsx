@@ -1,4 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
+import { backend } from '@/data/backends';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
@@ -135,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     deleteAccount: async () => {
-      const { error } = await supabase.functions.invoke('delete-account', { body: {} });
+      const error = await backend.deleteAccount().then(() => null, (e: unknown) => e);
       if (error) throw new Error('تعذّر حذف الحساب. تأكد من الإنترنت وحاول مرة أخرى.');
       await supabase.auth.signOut().catch(() => {});
       await wipeLocal();

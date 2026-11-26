@@ -36,6 +36,9 @@ jobs:
       EXPO_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://nahj-iq.web.app' }}
       # يفعّل التحديث الفوري (OTA) داخل النسخة إن رُبط المشروع بـ EAS
       EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
+      # المزامنة عبر خادم Oracle بدل Supabase (docs/ORACLE.md)
+      EXPO_PUBLIC_SYNC_BACKEND: ${{ vars.SYNC_BACKEND || 'supabase' }}
+      EXPO_PUBLIC_API_URL: ${{ vars.API_URL || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

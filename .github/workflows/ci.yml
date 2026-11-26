@@ -35,6 +35,23 @@ jobs:
           name: screenshots
           path: apps/mobile/e2e/shots
 
+  oracle-api:
+    # خادم المزامنة مع Oracle: اختبار بناء الاستعلامات، والتأكد أن المخطط المولَّد محدَّث
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
+      - run: node --check src/server.mjs
+      - name: Oracle schema is up to date
+        run: node src/ddl.mjs | diff - sql/schema.sql
+
   rls:
     runs-on: ubuntu-latest
     services:
