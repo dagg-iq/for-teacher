@@ -1,6 +1,6 @@
 import {
-  arDigits, displayToFormula, evaluateRow, formatScore, formulaToDisplay, FUNCTION_HELP, IRAQI_BANDS, PASS_FAIL_BANDS,
-  quickFormula, uuid, validateFormula, type Band, type GradeColumn, type Gradebook, formatPercent } from '@nahj/shared';
+  arDigits, defaultBoost, displayToFormula, evaluateRow, formatScore, formulaToDisplay, FUNCTION_HELP,
+  quickFormula, uuid, validateFormula, type GradeColumn, type Gradebook } from '@nahj/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -10,7 +10,7 @@ import { PressScale } from '@/components/motion';
 import { Sheet } from '@/components/sheet';
 import { Button, Card, Chip, Empty, Field, Header, IconButton, Row, Screen, Segmented, SectionTitle, T } from '@/components/ui';
 import { get, update, useQuery } from '@/data/db';
-import { sheetOf } from '@/data/queries';
+import { booksOfSection, linkLabel, sheetOf } from '@/data/queries';
 import { Alert } from '@/lib/dialog';
 import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
@@ -20,7 +20,7 @@ export default function Columns() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { c } = useTheme();
   const book = useQuery(() => get('gradebooks', id), [id]);
-  const [editing, setEditing] = useState<GradeColumn | 'new-input' | 'new-formula' | null>(null);
+  const [editing, setEditing] = useState<GradeColumn | 'new-input' | 'new-formula' | 'new-link' | null>(null);
   if (!book) return <Screen><Header /><Empty title="السجل غير موجود" /></Screen>;
 
   const save = (columns: GradeColumn[], result = book.result) => update('gradebooks', book.id, { columns, result });
@@ -45,17 +45,18 @@ export default function Columns() {
       <Card style={{ paddingVertical: 4 }}>
         {book.columns.map((col, i) => (
           <View key={col.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
-            <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: col.kind === 'formula' ? c.accent : c.soft, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={col.kind === 'formula' ? 'formula' : 'edit'} size={17} color={col.kind === 'formula' ? c.accentInk : c.accent} />
+            <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: col.kind === 'input' ? c.soft : c.accent, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={col.kind === 'formula' ? 'formula' : col.kind === 'link' ? 'link' : 'edit'} size={17} color={col.kind === 'input' ? c.accent : c.accentInk} />
             </View>
             <PressScale style={{ flex: 1 }} onPress={() => setEditing(col)} scaleTo={0.98}>
               <Row gap={6}>
                 <T weight="bold" size={15} lines={1} style={{ flexShrink: 1 }}>{arDigits(col.name)}</T>
                 {book.result.column_id === col.id ? <Pill small label="النتيجة" tone="info" /> : null}
+                {col.boost ? <Pill small label={`حرجة ${arDigits(col.boost.from)}–${arDigits(col.boost.to)}`} tone="warn" /> : null}
                 {col.hidden ? <Pill small label="مخفي" /> : null}
               </Row>
               <T dim size={12} lines={1}>
-                {col.kind === 'formula' ? safeDisplay(col.formula ?? '', book.columns) : `إدخال · من ${arDigits(col.max)}`}
+                {col.kind === 'formula' ? safeDisplay(col.formula ?? '', book.columns) : col.kind === 'link' ? `من سجل: ${linkLabel(col)}` : `إدخال · من ${arDigits(col.max)}`}
               </T>
             </PressScale>
             <View style={{ gap: 2 }}>
@@ -66,15 +67,17 @@ export default function Columns() {
           </View>
         ))}
       </Card>
-      <Row gap={8}>
-        <Button title="عمود إدخال" icon="plus" variant="secondary" small style={{ flex: 1 }} onPress={() => setEditing('new-input')} />
-        <Button title="عمود معادلة" icon="formula" small style={{ flex: 1 }} onPress={() => setEditing('new-formula')} />
+      <Row gap={8} style={{ flexWrap: 'wrap' }}>
+        <Button title="حقل إدخال" icon="plus" variant="secondary" small style={{ flexGrow: 1 }} onPress={() => setEditing('new-input')} />
+        <Button title="معادلة" icon="formula" small style={{ flexGrow: 1 }} onPress={() => setEditing('new-formula')} />
+        <Button title="من سجل آخر" icon="link" variant="secondary" small style={{ flexGrow: 1 }} onPress={() => setEditing('new-link')} />
       </Row>
+      <T dim size={12}>«حقل إدخال» تكتب فيه الدرجات (تحريري، شفهي…)، و«معادلة» تُحسب من الحقول، و«من سجل آخر» تأخذ درجة محسوبة من سجل ثانٍ للشعبة نفسها (مثل مجموع الشهر الأول).</T>
 
       <ResultRuleEditor book={book} onChange={(result) => save(book.columns, result)} />
 
       {editing ? (
-        <ColumnEditor book={book} col={typeof editing === 'string' ? null : editing} kind={editing === 'new-input' ? 'input' : editing === 'new-formula' ? 'formula' : (editing as GradeColumn).kind}
+        <ColumnEditor book={book} col={typeof editing === 'string' ? null : editing} kind={editing === 'new-input' ? 'input' : editing === 'new-formula' ? 'formula' : editing === 'new-link' ? 'link' : (editing as GradeColumn).kind}
           onClose={() => setEditing(null)}
           onSave={(col) => {
             const exists = book.columns.some((x) => x.id === col.id);
@@ -104,7 +107,7 @@ const OPS: { key: Op; label: string; hint: string }[] = [
 
 /** محرر عمود: الاسم، العظمى، ومنشئ المعادلة مع معاينة فورية */
 function ColumnEditor({ book, col, kind, onClose, onSave }: {
-  book: Gradebook; col: GradeColumn | null; kind: 'input' | 'formula'; onClose: () => void; onSave: (c: GradeColumn) => void;
+  book: Gradebook; col: GradeColumn | null; kind: GradeColumn['kind']; onClose: () => void; onSave: (c: GradeColumn) => void;
 }) {
   const { c, tone } = useTheme();
   const [colId] = useState(col?.id ?? uuid());
@@ -118,6 +121,15 @@ function ColumnEditor({ book, col, kind, onClose, onSave }: {
   const [weights, setWeights] = useState<Record<string, number>>({});
   const [scaleFrom, setScaleFrom] = useState(10);
   const [free, setFree] = useState(() => (col?.formula ? safeFree(col.formula, book.columns) : ''));
+  const [boostOn, setBoostOn] = useState(!!col?.boost);
+  const [boostFrom, setBoostFrom] = useState(col?.boost?.from ?? defaultBoost(col?.max ?? 100, book.result.pass).from);
+  // العمود المرتبط: سجل آخر للشعبة نفسها وعمود منه
+  const [src, setSrc] = useState<{ book_id: string; column_id: string } | null>(col?.source ?? null);
+  const sourceBooks = useMemo(() => {
+    const { sets, loose } = booksOfSection(book.section_id);
+    return [...sets.flatMap((x) => x.books), ...loose].filter((b) => b.id !== book.id);
+  }, [book.section_id, book.id]);
+  const srcBook = sourceBooks.find((b) => b.id === src?.book_id);
 
   const formula = useMemo(() => {
     if (kind !== 'formula') return '';
@@ -139,7 +151,7 @@ function ColumnEditor({ book, col, kind, onClose, onSave }: {
 
   const error = kind === 'formula'
     ? (!formula ? 'اختر الأعمدة أو اكتب المعادلة' : formula.startsWith('!') ? formula.slice(1) : validateFormula(formula, [...others, { id: colId, name, kind: 'formula', max }], colId))
-    : null;
+    : kind === 'link' ? (!src ? 'اختر السجل والعمود' : null) : null;
 
   // معاينة على أول ثلاثة طلاب
   const preview = useMemo(() => {
@@ -147,7 +159,7 @@ function ColumnEditor({ book, col, kind, onClose, onSave }: {
     const trial: GradeColumn[] = [...others, { id: colId, name, kind: 'formula', max, formula, round }];
     return sheetOf({ ...book, columns: book.columns }).slice(0, 3).map((r) => {
       const inputs: Record<string, number | null> = {};
-      for (const x of others) if (x.kind === 'input') inputs[x.id] = r.values[x.id];
+      for (const x of others) if (x.kind !== 'formula') inputs[x.id] = r.values[x.id];
       return { name: r.student.name, value: evaluateRow(trial, inputs)[colId] };
     });
   }, [error, kind, others, colId, name, max, formula, round, book]);
@@ -159,7 +171,29 @@ function ColumnEditor({ book, col, kind, onClose, onSave }: {
   return (
     <Sheet visible onClose={onClose}>
       <ScrollView style={{ maxHeight: 620 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 12, paddingBottom: 8 }}>
-        <T display size={22}>{col ? 'تعديل العمود' : kind === 'formula' ? 'عمود معادلة' : 'عمود إدخال'}</T>
+        <T display size={22}>{col ? 'تعديل العمود' : kind === 'formula' ? 'معادلة' : kind === 'link' ? 'درجة من سجل آخر' : 'حقل إدخال'}</T>
+        {kind === 'link' ? (
+          <View style={{ gap: 8 }}>
+            <T weight="bold" size={14}>السجل</T>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {sourceBooks.length ? sourceBooks.map((b) => (
+                <Chip key={b.id} label={b.title} active={src?.book_id === b.id} onPress={() => {
+                  const dec = b.columns.find((x) => x.id === b.result.column_id) ?? b.columns[b.columns.length - 1];
+                  setSrc(dec ? { book_id: b.id, column_id: dec.id } : null);
+                  if (dec) { setMax(dec.max); if (!name.trim() || name === 'المعدل') setName(b.title); }
+                }} />
+              )) : <T dim size={13}>لا سجلات أخرى لهذه الشعبة.</T>}
+            </View>
+            {srcBook ? (
+              <>
+                <T weight="bold" size={14}>العمود</T>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {srcBook.columns.map((x) => <Chip key={x.id} small label={x.name} active={src?.column_id === x.id} onPress={() => { setSrc({ book_id: srcBook.id, column_id: x.id }); setMax(x.max); }} />)}
+                </View>
+              </>
+            ) : null}
+          </View>
+        ) : null}
         <Field label="اسم العمود" value={name} onChangeText={setName} placeholder={kind === 'formula' ? 'مثال: معدل الفصل' : 'مثال: الشهر الأول'} />
         <Row style={{ justifyContent: 'space-between' }}>
           <T weight="bold" size={14}>الدرجة العظمى</T>
@@ -229,11 +263,20 @@ function ColumnEditor({ book, col, kind, onClose, onSave }: {
             </View>
             <T weight="bold" size={14}>التقريب</T>
             <Segmented options={[{ key: 'int', label: 'عدد صحيح' }, { key: '1dp', label: 'منزلة واحدة' }, { key: 'none', label: 'بلا تقريب' }]} value={round} onChange={setRound} />
+            <ToggleRow title="تنبيه الدرجات الحرجة" subtitle={`الدرجة القريبة من النجاح تُعرض عليك لتقرر رفعها إلى ${arDigits(defaultBoost(max, book.result.pass).to)}`} value={boostOn} onChange={setBoostOn} />
+            {boostOn ? (
+              <Row style={{ justifyContent: 'space-between' }}>
+                <T size={14}>من الدرجة</T>
+                <Stepper value={boostFrom} onChange={setBoostFrom} min={0} max={Math.max(0, defaultBoost(max, book.result.pass).to - 0.5)} step={1} suffix={`إلى ${arDigits(defaultBoost(max, book.result.pass).to)}`} />
+              </Row>
+            ) : null}
           </>
         ) : null}
         <ToggleRow title="إخفاء من الطباعة والتصدير" value={hidden} onChange={setHidden} />
         <Button title="حفظ العمود" icon="check" disabled={!name.trim() || !!error} onPress={() => onSave({
-          id: colId, name: name.trim(), kind, max, round, hidden, ...(kind === 'formula' ? { formula } : {}),
+          id: colId, name: name.trim(), kind, max, round: kind === 'formula' ? round : 'none', hidden,
+          ...(kind === 'formula' ? { formula, boost: boostOn ? { from: boostFrom, to: defaultBoost(max, book.result.pass).to } : null } : {}),
+          ...(kind === 'link' ? { source: src } : {}),
         })} />
       </ScrollView>
     </Sheet>
@@ -244,14 +287,12 @@ function safeFree(f: string, cols: GradeColumn[]) {
   try { return formulaToDisplay(f, cols); } catch { return ''; }
 }
 
-/** قاعدة النجاح والتقديرات */
+/** قاعدة النجاح: العمود الذي يقرر النتيجة ونسبة النجاح (النتيجة ناجح/راسب فقط) */
 function ResultRuleEditor({ book, onChange }: { book: Gradebook; onChange: (r: Gradebook['result']) => void }) {
   const r = book.result;
-  const [editBand, setEditBand] = useState<number | null>(null);
-  const preset = sameBands(r.bands, IRAQI_BANDS) ? 'iraqi' : sameBands(r.bands, PASS_FAIL_BANDS) ? 'passfail' : 'custom';
   return (
     <>
-      <SectionTitle title="النتيجة والتقديرات" />
+      <SectionTitle title="النتيجة" />
       <Group>
         <View style={{ paddingVertical: 12, gap: 8 }}>
           <T weight="bold" size={14}>العمود الذي يحدد النجاح</T>
@@ -266,62 +307,7 @@ function ResultRuleEditor({ book, onChange }: { book: Gradebook; onChange: (r: G
           </View>
           <Stepper value={r.pass} onChange={(v) => onChange({ ...r, pass: v })} min={1} max={100} step={5} suffix={arDigits('%')} />
         </Row>
-        <View style={{ paddingVertical: 12, gap: 8 }}>
-          <T weight="bold" size={14}>التقديرات</T>
-          <Row gap={8}>
-            <Chip small label="عراقية (امتياز…ضعيف)" active={preset === 'iraqi'} onPress={() => onChange({ ...r, bands: IRAQI_BANDS.map((b) => ({ ...b })) })} />
-            <Chip small label="ناجح/راسب" active={preset === 'passfail'} onPress={() => onChange({ ...r, bands: PASS_FAIL_BANDS.map((b) => ({ ...b, min: b.min ? r.pass : 0 })) })} />
-          </Row>
-          {[...r.bands].sort((a, b) => b.min - a.min).map((b) => {
-            const i = r.bands.indexOf(b);
-            return (
-              <PressScale key={`${b.label}-${i}`} onPress={() => setEditBand(i)} scaleTo={0.98}>
-                <Row style={{ justifyContent: 'space-between', paddingVertical: 4 }}>
-                  <Pill label={b.label} tone={b.tone} />
-                  <T dim size={13}>من {formatPercent(b.min)} فأعلى</T>
-                </Row>
-              </PressScale>
-            );
-          })}
-          <Button small variant="ghost" title="إضافة تقدير" icon="plus" onPress={() => onChange({ ...r, bands: [...r.bands, { min: 0, label: 'تقدير', tone: 'neutral' }] })} />
-        </View>
       </Group>
-      {editBand != null && r.bands[editBand] ? (
-        <BandEditor band={r.bands[editBand]} onClose={() => setEditBand(null)}
-          onSave={(b) => { onChange({ ...r, bands: r.bands.map((x, i) => (i === editBand ? b : x)) }); setEditBand(null); }}
-          onDelete={() => { onChange({ ...r, bands: r.bands.filter((_, i) => i !== editBand) }); setEditBand(null); }} />
-      ) : null}
     </>
-  );
-}
-
-function sameBands(a: Band[], b: Band[]) {
-  return a.length === b.length && a.every((x, i) => x.label === b[i].label && x.min === b[i].min);
-}
-
-function BandEditor({ band, onClose, onSave, onDelete }: { band: Band; onClose: () => void; onSave: (b: Band) => void; onDelete: () => void }) {
-  const [label, setLabel] = useState(band.label);
-  const [min, setMin] = useState(band.min);
-  const [toneKey, setTone] = useState(band.tone);
-  return (
-    <Sheet visible onClose={onClose}>
-      <T display size={22}>تقدير</T>
-      <View style={{ gap: 12, marginTop: 8 }}>
-        <Field label="الاسم" value={label} onChangeText={setLabel} />
-        <Row style={{ justifyContent: 'space-between' }}>
-          <T weight="bold" size={14}>يبدأ من</T>
-          <Stepper value={min} onChange={setMin} min={0} max={100} step={5} suffix={arDigits('%')} />
-        </Row>
-        <Row gap={8} style={{ flexWrap: 'wrap' }}>
-          {(['good', 'info', 'neutral', 'warn', 'bad'] as const).map((t) => (
-            <PressScale key={t} onPress={() => setTone(t)}><View style={{ opacity: toneKey === t ? 1 : 0.45 }}><Pill label={label || 'تقدير'} tone={t} /></View></PressScale>
-          ))}
-        </Row>
-        <Row gap={8}>
-          <Button title="حذف" variant="danger" small onPress={onDelete} />
-          <Button title="حفظ" icon="check" style={{ flex: 1 }} disabled={!label.trim()} onPress={() => onSave({ label: label.trim(), min, tone: toneKey })} />
-        </Row>
-      </View>
-    </Sheet>
   );
 }

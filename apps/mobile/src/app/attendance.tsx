@@ -8,7 +8,7 @@ import { Pill } from '@/components/kit';
 import { PressScale, tap } from '@/components/motion';
 import { Button, Card, Chip, Empty, Header, IconButton, Row, Screen, T } from '@/components/ui';
 import { all, getTimetable, upsertMany, useQuery } from '@/data/db';
-import { allSections, attendanceId, attendanceOn, sectionLabel, studentsOf } from '@/data/queries';
+import { allSections, attendanceDays, attendanceId, attendanceOn, sectionLabel, studentsOf } from '@/data/queries';
 import { exportAttendanceXlsx } from '@/lib/export';
 import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
@@ -94,21 +94,30 @@ export default function AttendanceScreen() {
       <Row gap={6} style={{ flexWrap: 'wrap' }}>
         {ORDER.map((st) => <Pill key={st} label={`${ATTENDANCE_LABEL[st]}: ${arDigits(count(st))}`} tone={TONE[st]} />)}
       </Row>
-      <T dim size={12}>اضغط على الطالب لتغيير حالته: حاضر ← غائب ← متأخر ← مُجاز.</T>
+      <T dim size={12}>اضغط على اسم الطالب ليصبح غائباً (أو حاضراً مرة أخرى). «متأخر» و«مُجاز» من الزرين بجانبه. الباقون حاضرون تلقائياً.</T>
       <Card style={{ paddingVertical: 4 }}>
         {students.length === 0 ? <Empty icon="users" title="لا طلاب" /> : students.map((s, i) => {
           const st = (marks.get(s.id)?.status ?? 'present') as AttendanceStatus;
           const t = tone[TONE[st]];
-          return (
-            <PressScale key={s.id} onPress={() => setStatus(s.id, ORDER[(ORDER.indexOf(st) + 1) % ORDER.length])} scaleTo={0.98}
-              accessibilityLabel={`${s.name}: ${ATTENDANCE_LABEL[st]}`}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
-              <T dim size={12} weight="bold" style={{ width: 24, textAlign: 'center' }}>{arDigits(i + 1)}</T>
-              <T size={15} weight="medium" style={{ flex: 1 }} lines={1}>{s.name}</T>
-              <View style={{ minWidth: 72, height: 32, borderRadius: 16, backgroundColor: taken || st !== 'present' ? t.bg : c.bg, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }}>
-                <T size={13} weight="bold" color={taken || st !== 'present' ? t.ink : c.ink3} style={{ lineHeight: 20 }}>{ATTENDANCE_LABEL[st]}</T>
-              </View>
+          const mini = (k: AttendanceStatus, label: string) => (
+            <PressScale key={k} onPress={() => setStatus(s.id, st === k ? 'present' : k)} scaleTo={0.92} accessibilityLabel={`${s.name}: ${label}`}
+              style={{ height: 30, paddingHorizontal: 10, borderRadius: 15, borderWidth: 1, borderColor: st === k ? 'transparent' : c.line, backgroundColor: st === k ? tone[TONE[k]].bg : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+              <T size={12} weight="bold" color={st === k ? tone[TONE[k]].ink : c.ink3} style={{ lineHeight: 18 }}>{label}</T>
             </PressScale>
+          );
+          return (
+            <View key={s.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+              <PressScale onPress={() => setStatus(s.id, st === 'absent' ? 'present' : 'absent')} scaleTo={0.98} accessibilityLabel={`${s.name}: ${ATTENDANCE_LABEL[st]}`}
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
+                <T dim size={12} weight="bold" style={{ width: 22, textAlign: 'center' }}>{arDigits(i + 1)}</T>
+                <T size={15} weight="medium" style={{ flex: 1 }} lines={1} color={st === 'absent' ? t.ink : c.ink}>{s.name}</T>
+                <View style={{ minWidth: 58, height: 30, borderRadius: 15, backgroundColor: st === 'absent' ? t.bg : taken && st === 'present' ? tone.good.bg : c.bg, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 }}>
+                  <T size={12} weight="bold" color={st === 'absent' ? t.ink : taken && st === 'present' ? tone.good.ink : c.ink3} style={{ lineHeight: 18 }}>{st === 'absent' ? 'غائب' : 'حاضر'}</T>
+                </View>
+              </PressScale>
+              {mini('late', 'متأخر')}
+              {mini('excused', 'مُجاز')}
+            </View>
           );
         })}
       </Card>
@@ -122,6 +131,32 @@ export default function AttendanceScreen() {
           ) : null}
         </Row>
       ) : null}
+      <History sectionId={sectionId} current={date} onPick={setDate} />
     </Screen>
+  );
+}
+
+/** الأيام السابقة لهذه الشعبة: ملخص كل يوم، والضغط يفتحه للتعديل */
+function History({ sectionId, current, onPick }: { sectionId: string; current: string; onPick: (d: string) => void }) {
+  const { c } = useTheme();
+  const days = useQuery(() => attendanceDays(sectionId).slice(0, 30).map((d) => {
+    const rows = all('attendance').filter((a) => a.section_id === sectionId && a.date === d);
+    return { d, absent: rows.filter((a) => a.status === 'absent').length, late: rows.filter((a) => a.status === 'late').length };
+  }), [sectionId]);
+  if (!days.length) return null;
+  return (
+    <View style={{ gap: 8, marginTop: 8 }}>
+      <Row gap={8}><View style={{ width: 8, height: 8, backgroundColor: c.gold }} /><T weight="bold" size={16}>الأيام السابقة</T></Row>
+      <Card style={{ paddingVertical: 4 }}>
+        {days.map((x, i) => (
+          <PressScale key={x.d} onPress={() => onPick(x.d)} scaleTo={0.98}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, borderTopWidth: i ? 1 : 0, borderTopColor: c.line, opacity: x.d === current ? 0.5 : 1 }}>
+            <T weight="bold" size={14} style={{ flex: 1 }}>{formatDayDate(parseIsoDay(x.d))}</T>
+            {x.absent ? <Pill label={`غائب ${arDigits(x.absent)}`} tone="bad" small /> : <Pill label="الكل حاضر" tone="good" small />}
+            {x.late ? <Pill label={`متأخر ${arDigits(x.late)}`} tone="warn" small /> : null}
+          </PressScale>
+        ))}
+      </Card>
+    </View>
   );
 }

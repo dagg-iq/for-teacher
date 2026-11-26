@@ -98,9 +98,8 @@ function Sidebar({ active, onGo }: { active?: string; onGo: (name: string) => vo
       {TABS.map((t) => <SideItem key={t.name} icon={t.icon} label={t.label} focused={active === t.name} onPress={() => onGo(t.name)} />)}
       <View style={{ height: 1, backgroundColor: c.line, marginVertical: 12, marginHorizontal: 8 }} />
       <T size={11} weight="bold" dim style={{ paddingHorizontal: 12, paddingBottom: 4 }}>اختصارات</T>
-      <SideItem icon="mic" label="إدخال صوتي" onPress={() => router.push('/voice')} />
-      <SideItem icon="check-square" label="الحضور" onPress={() => router.push('/attendance')} />
-      <SideItem icon="plus" label="سجل جديد" onPress={() => router.push('/book/new')} />
+      <SideItem icon="check-square" label="الحضور والغياب" onPress={() => router.push('/attendance')} />
+      <SideItem icon="pie" label="التقارير" onPress={() => router.push('/reports')} />
       <View style={{ flex: 1 }} />
       <Pressable onPress={() => router.push('/settings')} accessibilityRole="button" accessibilityLabel="الإعدادات"
         style={(st) => { const hovered = (st as { hovered?: boolean }).hovered; return ({ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 16, borderWidth: 1, borderColor: c.line, backgroundColor: hovered ? c.soft : c.bg }); }}>

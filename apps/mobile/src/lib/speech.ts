@@ -73,12 +73,13 @@ export function useRecognizer(opts: { onFinal: (texts: string[]) => void; contex
       mod.ExpoSpeechRecognitionModule.start({
         lang: lang.current,
         interimResults: true,
-        continuous: true,
+        // جملة قصيرة لكل نتيجة: أدق من الاستماع المتواصل الذي قد يدمج درجتين في نتيجة واحدة
+        continuous: Platform.OS !== 'android',
         maxAlternatives: 5,
         contextualStrings: ctx.current.slice(0, 100),
         addsPunctuation: false,
         volumeChangeEventOptions: { enabled: true, intervalMillis: 120 },
-        androidIntentOptions: { EXTRA_LANGUAGE_MODEL: 'web_search', EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 1500 },
+        androidIntentOptions: { EXTRA_LANGUAGE_MODEL: 'web_search', EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 1100, EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 900 },
         iosTaskHint: 'dictation',
       } as never);
     } catch (e) {
@@ -112,7 +113,7 @@ export function useRecognizer(opts: { onFinal: (texts: string[]) => void; contex
       }),
       M.addListener('end', () => {
         setVolume(0);
-        if (wanted.current) setTimeout(() => { if (wanted.current) begin(); }, 250);
+        if (wanted.current) setTimeout(() => { if (wanted.current) begin(); }, 120);
         // بعد خطأ: تبقى الحالة «خطأ» (فتظهر خانة الكتابة ورسالة السبب) ولا تعود «جاهز»
         else if (!failed.current) setState('idle');
       }),

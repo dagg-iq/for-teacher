@@ -15,7 +15,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import * as XLSX from 'xlsx';
 import { all, get, getSettings, getTimetable } from '@/data/db';
-import { absencesOf, attendanceDays, gradesOf, sectionClass, sectionLabel, studentsOf } from '@/data/queries';
+import { absencesOf, attendanceDays, booksOfSection, sectionClass, sectionLabel, sectionReport, sheetOf, studentsOf } from '@/data/queries';
 
 // ------------------------------------------------------------------ الملفات
 function safeName(name: string) {
@@ -79,8 +79,7 @@ function headerInfo(sectionId: string) {
 
 // ------------------------------------------------------------------ سجل الدرجات
 function bookTable(book: Gradebook) {
-  const students = studentsOf(book.section_id);
-  const rows = buildSheet(book, students, gradesOf(book.id));
+  const rows = sheetOf(book);
   const cols = book.columns.filter((c) => !c.hidden);
   const decider = book.columns.find((c) => c.id === book.result.column_id) ?? null;
   const cell = (r: (typeof rows)[number], colId: string): string | number | null => {
@@ -98,7 +97,7 @@ export async function exportBookXlsx(bookId: string) {
   if (!book) throw new Error('السجل غير موجود');
   const h = headerInfo(book.section_id);
   const { rows, cols, decider, cell } = bookTable(book);
-  const head = ['ت', 'اسم الطالب', ...cols.map((c) => arDigits(`${c.name} (${c.max})`)), ...(decider ? ['التقدير', 'النتيجة', 'الترتيب'] : [])];
+  const head = ['ت', 'اسم الطالب', ...cols.map((c) => arDigits(`${c.name} (${c.max})`)), ...(decider ? ['النتيجة', 'الترتيب'] : [])];
   const width = head.length;
   const aoa: (string | number | null)[][] = [
     [h.school ? `${h.school}${h.governorate ? ` — ${h.governorate}` : ''}` : 'سجل الدرجات'],
@@ -108,18 +107,17 @@ export async function exportBookXlsx(bookId: string) {
     head,
     ...rows.map((r, i) => [
       i + 1, r.student.name, ...cols.map((c) => cell(r, c.id)),
-      ...(decider ? [r.verdict?.label ?? '', r.verdict ? (r.verdict.pass ? 'ناجح' : 'راسب') : '', r.rank ?? ''] : []),
+      ...(decider ? [r.verdict ? (r.verdict.pass ? 'ناجح' : 'راسب') : '', r.rank ?? ''] : []),
     ]),
   ];
   if (decider) {
-    const st = columnStats(rows.map((r) => r.values[decider.id]), decider.max, book.result);
+    const st = columnStats(rows.map((r) => r.values[decider.id]), decider.max, { pass: book.result.pass });
     aoa.push([], ['الإحصاء', `${decider.name}`]);
     aoa.push(['عدد الطلاب', st.total], ['أُدخلت درجاتهم', st.count], ['الناجحون', st.passCount], ['الراسبون', st.failCount],
       ['نسبة النجاح %', st.passRate ?? ''], ['المعدل', st.avg ?? ''], ['الأعلى', st.max ?? ''], ['الأدنى', st.min ?? '']);
-    for (const b of st.bands) aoa.push([b.label, b.count]);
   }
   const merges: XLSX.Range[] = [0, 1, 2].map((r) => ({ s: { r, c: 0 }, e: { r, c: width - 1 } }));
-  const data = workbook([{ name: book.title, rows: aoa, widths: [5, 30, ...cols.map(() => 13), 11, 9, 8], merges }]);
+  const data = workbook([{ name: book.title, rows: aoa, widths: [5, 30, ...cols.map(() => 13), 9, 8], merges }]);
   await saveAndShare(`${book.title} - ${h.section}.xlsx`, data, XLSX_MIME);
 }
 
@@ -225,7 +223,7 @@ export async function printBook(bookId: string, mode: 'print' | 'pdf' = 'print')
   const h = headerInfo(book.section_id);
   const { rows, cols, decider, cell } = bookTable(book);
   const landscape = cols.length > 5;
-  const head = `<tr><th>ت</th><th>اسم الطالب</th>${cols.map((c) => `<th>${esc(arDigits(c.name))}<br><small>${arDigits(c.max)}</small></th>`).join('')}${decider ? '<th>التقدير</th><th>النتيجة</th>' : ''}</tr>`;
+  const head = `<tr><th>ت</th><th>اسم الطالب</th>${cols.map((c) => `<th>${esc(arDigits(c.name))}<br><small>${arDigits(c.max)}</small></th>`).join('')}${decider ? '<th>النتيجة</th>' : ''}</tr>`;
   const body = rows.map((r, i) => {
     const tds = cols.map((c) => {
       const v = cell(r, c.id);
@@ -233,13 +231,13 @@ export async function printBook(bookId: string, mode: 'print' | 'pdf' = 'print')
       const fail = c.id === decider?.id && r.verdict && !r.verdict.pass;
       return `<td class="${mark ? 'mark' : fail ? 'fail' : ''}">${v == null ? '' : n(v)}</td>`;
     }).join('');
-    const res = decider ? `<td>${esc(r.verdict?.label ?? '')}</td><td class="${r.verdict && !r.verdict.pass ? 'fail' : ''}">${r.verdict ? (r.verdict.pass ? 'ناجح' : 'راسب') : ''}</td>` : '';
+    const res = decider ? `<td class="${r.verdict && !r.verdict.pass ? 'fail' : ''}">${r.verdict ? (r.verdict.pass ? 'ناجح' : 'راسب') : ''}</td>` : '';
     return `<tr><td>${arDigits(i + 1)}</td><td class="name">${esc(r.student.name)}</td>${tds}${res}</tr>`;
   }).join('');
   let stats = '';
   if (decider) {
-    const st = columnStats(rows.map((r) => r.values[decider.id]), decider.max, book.result);
-    stats = `<div class="stats"><span>عدد الطلاب: <b>${arDigits(st.total)}</b></span><span>الناجحون: <b>${arDigits(st.passCount)}</b></span><span>الراسبون: <b>${arDigits(st.failCount)}</b></span><span>نسبة النجاح: <b>${st.passRate == null ? '—' : formatPercent(st.passRate, 1)}</b></span><span>المعدل: <b>${formatScore(st.avg)}</b></span>${st.bands.map((b) => `<span>${esc(b.label)}: <b>${arDigits(b.count)}</b></span>`).join('')}</div>`;
+    const st = columnStats(rows.map((r) => r.values[decider.id]), decider.max, { pass: book.result.pass });
+    stats = `<div class="stats"><span>عدد الطلاب: <b>${arDigits(st.total)}</b></span><span>الناجحون: <b>${arDigits(st.passCount)}</b></span><span>الراسبون: <b>${arDigits(st.failCount)}</b></span><span>نسبة النجاح: <b>${st.passRate == null ? '—' : formatPercent(st.passRate, 1)}</b></span><span>المعدل: <b>${formatScore(st.avg)}</b></span></div>`;
   }
   const html = await renderPage(book.title, `${headBlock(h, book.title, h.section)}<table><thead>${head}</thead><tbody>${body}</tbody></table>${stats}${signBlock(h)}`, landscape);
   await outputHtml(html, `${book.title} - ${h.section}`, mode, landscape);
@@ -286,12 +284,13 @@ export async function printStudentReport(studentId: string, mode: 'print' | 'pdf
   const s = get('students', studentId);
   if (!s) throw new Error('الطالب غير موجود');
   const h = headerInfo(s.section_id);
-  const books = all('gradebooks').filter((b) => b.section_id === s.section_id && !b.archived);
+  const bs = booksOfSection(s.section_id);
+  const books = [...bs.sets.flatMap((x) => x.books), ...bs.loose];
   const parts = books.map((b) => {
     const { rows, cols, decider, cell } = bookTable(b);
     const r = rows.find((x) => x.student.id === s.id);
     if (!r) return '';
-    return `<h3 style="margin:14px 0 6px;font-size:12pt">${esc(b.title)}</h3><table><tr>${cols.map((c) => `<th>${esc(arDigits(c.name))}</th>`).join('')}${decider ? '<th>التقدير</th>' : ''}</tr><tr>${cols.map((c) => { const v = cell(r, c.id); return `<td>${v == null ? '—' : n(v)}</td>`; }).join('')}${decider ? `<td>${esc(r.verdict?.label ?? '—')}</td>` : ''}</tr></table>`;
+    return `<h3 style="margin:14px 0 6px;font-size:12pt">${esc(b.title)}</h3><table><tr>${cols.map((c) => `<th>${esc(arDigits(c.name))}</th>`).join('')}${decider ? '<th>النتيجة</th>' : ''}</tr><tr>${cols.map((c) => { const v = cell(r, c.id); return `<td>${v == null ? '—' : n(v)}</td>`; }).join('')}${decider ? `<td>${esc(r.verdict?.label ?? '—')}</td>` : ''}</tr></table>`;
   }).join('');
   const ab = absencesOf(s.id);
   const notes = all('student_notes').filter((x) => x.student_id === s.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
@@ -365,3 +364,46 @@ export function namesFromRows(rows: (string | number | null)[][]): string[] {
 }
 
 export { ATTENDANCE_LABEL };
+
+// ------------------------------------------------------------------ تقرير الشعبة
+/** تقرير شعبة كامل في Excel: الملخص، السجل الشامل (كل المراحل لكل طالب)، الراسبون، والغياب */
+export async function exportSectionReportXlsx(sectionId: string) {
+  const h = headerInfo(sectionId);
+  const rep = sectionReport(sectionId);
+  const title = `تقرير ${h.section}`;
+  const summary: (string | number | null)[][] = [
+    [h.school ? `${h.school}${h.governorate ? ` — ${h.governorate}` : ''}` : 'تقرير الشعبة'],
+    [`${title} — المادة: ${h.subject} — المدرس: ${h.teacher} — العام الدراسي: ${h.year}`],
+    [],
+    ['السجل', 'أُدخلت', 'الناجحون', 'الراسبون', 'نسبة النجاح %', 'المعدل', 'الأعلى', 'الأدنى', 'حرجة بانتظار القرار'],
+    ...rep.stages.map((s) => [s.book.title, s.stats?.count ?? 0, s.stats?.passCount ?? 0, s.stats?.failCount ?? 0, s.stats?.passRate ?? '', s.stats?.avg ?? '', s.stats?.max ?? '', s.stats?.min ?? '', s.critical || '']),
+  ];
+  const matrix: (string | number | null)[][] = [
+    ['ت', 'اسم الطالب', ...rep.stages.map((s) => s.book.title), 'الغيابات'],
+    ...rep.matrix.map((m, i) => [i + 1, m.student.name, ...m.values.map((v) => (v == null ? null : v)), m.absent]),
+  ];
+  const failing: (string | number | null)[][] = [['السجل', 'اسم الطالب', 'الدرجة']];
+  for (const s of rep.stages) for (const f of s.failing) failing.push([s.book.title, f.student.name, f.value]);
+  const absences: (string | number | null)[][] = [['اسم الطالب', 'غائب', 'متأخر', 'مُجاز'], ...rep.absences.map((a) => [a.student.name, a.absent, a.late, a.excused])];
+  const data = workbook([
+    { name: 'الملخص', rows: summary, widths: [30, 9, 10, 10, 13, 9, 8, 8, 18], merges: [0, 1].map((r) => ({ s: { r, c: 0 }, e: { r, c: 8 } })) },
+    { name: 'السجل الشامل', rows: matrix, widths: [5, 30, ...rep.stages.map(() => 14), 9] },
+    { name: 'الراسبون', rows: failing, widths: [30, 30, 9] },
+    { name: 'الغياب', rows: absences, widths: [30, 8, 8, 8] },
+  ]);
+  await saveAndShare(`${title}.xlsx`, data, XLSX_MIME);
+}
+
+/** تقرير الشعبة للطباعة / PDF */
+export async function printSectionReport(sectionId: string, mode: 'print' | 'pdf' = 'print') {
+  const h = headerInfo(sectionId);
+  const rep = sectionReport(sectionId);
+  const title = 'تقرير الشعبة';
+  const sum = `<table><thead><tr><th>السجل</th><th>أُدخلت</th><th>الناجحون</th><th>الراسبون</th><th>نسبة النجاح</th><th>المعدل</th><th>الأعلى</th><th>الأدنى</th></tr></thead><tbody>${rep.stages.map((s) => `<tr><td class="name">${esc(s.book.title)}</td><td>${arDigits(s.stats?.count ?? 0)}</td><td>${arDigits(s.stats?.passCount ?? 0)}</td><td class="${s.stats?.failCount ? 'fail' : ''}">${arDigits(s.stats?.failCount ?? 0)}</td><td>${s.stats?.passRate == null ? '—' : formatPercent(s.stats.passRate, 1)}</td><td>${formatScore(s.stats?.avg)}</td><td>${formatScore(s.stats?.max)}</td><td>${formatScore(s.stats?.min)}</td></tr>`).join('')}</tbody></table>`;
+  const short = (t: string) => t.replace(' — ', '<br>');
+  const mx = `<h3 style="margin:16px 0 6px;font-size:12pt">السجل الشامل</h3><table><thead><tr><th>ت</th><th>اسم الطالب</th>${rep.stages.map((s) => `<th>${short(esc(s.book.title))}</th>`).join('')}<th>الغياب</th></tr></thead><tbody>${rep.matrix.map((m, i) => `<tr><td>${arDigits(i + 1)}</td><td class="name">${esc(m.student.name)}</td>${m.values.map((v, j) => `<td class="${m.fails[j] ? 'fail' : ''}">${v == null ? '' : n(v)}</td>`).join('')}<td>${m.absent ? arDigits(m.absent) : ''}</td></tr>`).join('')}</tbody></table>`;
+  const fails = rep.stages.filter((s) => s.failing.length && s.book.role !== 'month');
+  const fl = fails.length ? `<h3 style="margin:16px 0 6px;font-size:12pt">الراسبون</h3>${fails.map((s) => `<p style="margin:4px 0"><b>${esc(s.book.title)} (${arDigits(s.failing.length)}):</b> ${s.failing.map((f) => `${esc(f.student.name)} (${n(f.value)})`).join('، ')}</p>`).join('')}` : '';
+  const html = await renderPage(title, `${headBlock(h, title, h.section)}${sum}${mx}${fl}${signBlock(h)}`, rep.stages.length > 5);
+  await outputHtml(html, `تقرير ${h.section}`, mode, rep.stages.length > 5);
+}

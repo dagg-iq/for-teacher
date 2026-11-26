@@ -332,14 +332,16 @@ function safeRefs(expr: string): string[] {
  * يحسب صف طالب كاملاً: يأخذ قيم أعمدة الإدخال ويُرجع كل الأعمدة (إدخال + محسوبة).
  * المعادلة الخاطئة تُرجع فارغاً بدل أن تكسر السجل.
  */
-export function evaluateRow(columns: GradeColumn[], inputs: Record<string, Val>): Record<string, Val> {
+export function evaluateRow(columns: GradeColumn[], inputs: Record<string, Val>, overrides: Record<string, Val> = {}): Record<string, Val> {
   const out: Record<string, Val> = {};
-  for (const c of columns) if (c.kind === 'input') out[c.id] = inputs[c.id] ?? null;
+  // الإدخال والمرتبط قيمهما جاهزة؛ والتعديل اليدوي (رفع درجة حرجة مثلاً) يحل محل القيمة
+  for (const c of columns) if (c.kind !== 'formula') out[c.id] = overrides[c.id] ?? inputs[c.id] ?? null;
   let order: string[];
   try { order = computeOrder(columns); } catch { order = []; }
   const byId = new Map(columns.map((c) => [c.id, c]));
   for (const id of order) {
     const col = byId.get(id)!;
+    if (overrides[id] != null) { out[id] = overrides[id]; continue; }
     try {
       out[id] = applyRounding(evaluate(col.formula ?? '', (r) => out[r] ?? null), col.round);
     } catch {

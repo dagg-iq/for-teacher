@@ -58,8 +58,6 @@ export default function Stats() {
         <Stat label="الأدنى" value={formatScore(st.min)} icon="down" tone="bad" />
       </View>
 
-      <SectionTitle title="التقديرات" />
-      <Card><Bars items={st.bands} total={st.count} /></Card>
 
       <SectionTitle title="توزيع الدرجات" />
       <Card style={{ gap: 8 }}>

@@ -58,7 +58,7 @@ export default function Home() {
             <Stat label="الشعب" value={d.sections} icon="grid" onPress={() => router.push('/classes')} />
           </View>
           <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-            <Stat label="سجلات الدرجات" value={d.books} icon="table" onPress={() => router.push('/grades')} />
+            <Stat label="درجات حرجة" value={d.critical} icon="info" tone={d.critical ? 'warn' : undefined} onPress={() => router.push('/reports')} />
             <Stat label="غياب اليوم" value={d.absentToday} icon="check-square" tone={d.absentToday ? 'warn' : undefined} onPress={() => router.push('/attendance')} />
           </View>
 
@@ -164,7 +164,7 @@ function NowCard({ now }: { now: Date }) {
       {sectionId ? (
         <Row style={{ marginTop: 10 }} gap={8}>
           <HeroBtn icon="check-square" label="الحضور" onPress={() => router.push(`/attendance?section=${sectionId}`)} />
-          <HeroBtn icon="mic" label="رصد بالصوت" onPress={() => router.push(`/voice?section=${sectionId}`)} />
+          <HeroBtn icon="chart" label="الدرجات" onPress={() => router.push({ pathname: '/grades', params: { section: sectionId! } })} />
           <HeroBtn icon="users" label="الطلاب" onPress={() => router.push(`/section/${sectionId}`)} />
         </Row>
       ) : null}
@@ -195,8 +195,8 @@ function HeroBtn({ icon, label, onPress }: { icon: IconName; label: string; onPr
 
 const ACTIONS: { icon: IconName; label: string; href: string }[] = [
   { icon: 'check-square', label: 'الحضور', href: '/attendance' },
-  { icon: 'plus', label: 'سجل جديد', href: '/book/new' },
-  { icon: 'mic', label: 'إدخال صوتي', href: '/voice' },
+  { icon: 'chart', label: 'الدرجات', href: '/grades' },
+  { icon: 'pie', label: 'التقارير', href: '/reports' },
   { icon: 'clipboard', label: 'التحضير', href: '/plans' },
   { icon: 'shuffle', label: 'القرعة', href: '/picker' },
   { icon: 'timer', label: 'مؤقت الحصة', href: '/timer' },

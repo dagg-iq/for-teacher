@@ -11,7 +11,8 @@ import { SITE_URL } from '@/lib/config';
 import { useTheme } from '@/lib/theme';
 
 const TOOLS: { icon: IconName; title: string; subtitle: string; href: string }[] = [
-  { icon: 'check-square', title: 'الحضور والغياب', subtitle: 'تسجيل يومي سريع وتقارير', href: '/attendance' },
+  { icon: 'pie', title: 'التقارير', subtitle: 'نتائج كل شعبة بالفصول والسعي، والراسبون، وExcel وPDF', href: '/reports' },
+  { icon: 'check-square', title: 'الحضور والغياب', subtitle: 'تسجيل يومي سريع وسجل الأيام', href: '/attendance' },
   { icon: 'clipboard', title: 'التحضير اليومي', subtitle: 'دفتر التحضير: الأهداف والوسائل والخطوات', href: '/plans' },
   { icon: 'flag', title: 'المهام والتقويم', subtitle: 'الامتحانات والاجتماعات والتذكيرات', href: '/tasks' },
   { icon: 'shuffle', title: 'القرعة والمجموعات', subtitle: 'اختيار طالب عشوائياً أو تقسيم الشعبة', href: '/picker' },

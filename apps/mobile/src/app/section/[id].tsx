@@ -15,12 +15,9 @@ import { fonts, useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
 import { normalizeArabic } from '@nahj/shared';
 
-type Tab = 'students' | 'books' | 'attendance';
-
 export default function SectionScreen() {
-  const { id, tab: initial } = useLocalSearchParams<{ id: string; tab?: Tab }>();
-  const { hue } = useTheme();
-  const [tab, setTab] = useState<Tab>(initial ?? 'students');
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { c, hue } = useTheme();
   const [menu, setMenu] = useState(false);
   const [edit, setEdit] = useState(false);
   const section = useQuery(() => get('sections', id), [id]);
@@ -36,15 +33,27 @@ export default function SectionScreen() {
   return (
     <Screen>
       <Header title={sectionLabel(id)} subtitle={`${countStudents(students.length)}${section.room ? ` · ${arDigits(section.room)}` : ''}${k.subject ? ` · ${k.subject}` : ''}`}
-        right={(
-          <>
-            <IconButton name="mic" label="إدخال صوتي" onPress={() => router.push(`/voice?section=${id}`)} />
-            <IconButton name="more" label="خيارات" onPress={() => setMenu(true)} />
-          </>
-        )} />
+        right={<IconButton name="more" label="خيارات" onPress={() => setMenu(true)} />} />
       <View style={{ height: 4, borderRadius: 2, backgroundColor: hue(k.hue), width: 48 }} />
-      <Segmented options={[{ key: 'students', label: 'الطلاب' }, { key: 'books', label: 'الدرجات' }, { key: 'attendance', label: 'الحضور' }]} value={tab} onChange={setTab} />
-      {tab === 'students' ? <StudentsTab sectionId={id} /> : tab === 'books' ? <BooksTab sectionId={id} /> : <AttendanceTab sectionId={id} />}
+      {/* كل ما يخص الشعبة من مكانه الوحيد: الحضور، الدرجات، التقرير */}
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        {([
+          { icon: 'check-square', label: 'الحضور', sub: 'تسجيل اليوم', go: () => router.push(`/attendance?section=${id}`) },
+          { icon: 'chart', label: 'الدرجات', sub: 'سجلات الشعبة', go: () => router.push({ pathname: '/grades', params: { section: id } }) },
+          { icon: 'pie', label: 'التقرير', sub: 'النتائج والراسبون', go: () => router.push(`/reports?section=${id}`) },
+        ] as const).map((a) => (
+          <PressScale key={a.label} onPress={a.go} scaleTo={0.96} accessibilityRole="button" accessibilityLabel={a.label}
+            style={{ flex: 1, backgroundColor: c.card, borderRadius: 20, borderWidth: 1, borderColor: c.line, paddingVertical: 14, alignItems: 'center', gap: 6 }}>
+            <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: c.soft, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={a.icon} size={21} color={c.accent} accent={c.gold} />
+            </View>
+            <T weight="bold" size={14}>{a.label}</T>
+            <T dim size={11}>{a.sub}</T>
+          </PressScale>
+        ))}
+      </View>
+      <Row gap={8}><View style={{ width: 8, height: 8, backgroundColor: c.gold }} /><T weight="bold" size={16}>الطلاب</T></Row>
+      <StudentsTab sectionId={id} />
 
       <Sheet visible={menu} onClose={() => setMenu(false)}>
         <SheetItem icon="upload" label="استيراد طلاب (لصق أو Excel)" onPress={() => { setMenu(false); router.push(`/section/import?id=${id}`); }} />
@@ -123,59 +132,6 @@ function StudentsTab({ sectionId }: { sectionId: string }) {
             ))}
           </Card>
         </>
-      )}
-    </>
-  );
-}
-
-function BooksTab({ sectionId }: { sectionId: string }) {
-  const { c } = useTheme();
-  const books = useQuery(() => gradebooksOf(sectionId).map((b) => ({ b, p: bookProgress(b) })), [sectionId]);
-  return (
-    <>
-      {books.length === 0 ? (
-        <Card><Empty icon="table" title="لا سجلات درجات" body="أنشئ سجلاً من قالب جاهز (السعي السنوي، شهري…) أو صمّم سجلك." action="سجل جديد" onAction={() => router.push(`/book/new?section=${sectionId}`)} /></Card>
-      ) : books.map(({ b, p }) => (
-        <Card key={b.id} onPress={() => router.push(`/book/${b.id}`)} style={{ gap: 8 }}>
-          <Row>
-            <View style={{ flex: 1 }}>
-              <T weight="bold" size={16}>{b.title}</T>
-              <T dim size={12}>{arDigits(b.columns.length)} عمود · أُدخل {arDigits(p.filled)} من {arDigits(p.total)}</T>
-            </View>
-            <Icon name="forward" size={18} color={c.ink3} />
-          </Row>
-          <View style={{ height: 6, borderRadius: 3, backgroundColor: c.line, overflow: 'hidden' }}>
-            <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${p.total ? (p.filled / p.total) * 100 : 0}%`, backgroundColor: c.accent }} />
-          </View>
-        </Card>
-      ))}
-      {books.length ? <Button title="سجل جديد" icon="plus" variant="secondary" onPress={() => router.push(`/book/new?section=${sectionId}`)} /> : null}
-    </>
-  );
-}
-
-function AttendanceTab({ sectionId }: { sectionId: string }) {
-  const { c } = useTheme();
-  const days = useQuery(() => attendanceDays(sectionId).slice(0, 20).map((d) => {
-    const rows = all('attendance').filter((a) => a.section_id === sectionId && a.date === d);
-    return { d, absent: rows.filter((a) => a.status === 'absent').length, late: rows.filter((a) => a.status === 'late').length, total: rows.length };
-  }), [sectionId]);
-  return (
-    <>
-      <Button title="تسجيل حضور اليوم" icon="check-square" onPress={() => router.push(`/attendance?section=${sectionId}`)} />
-      {days.length === 0 ? (
-        <Card><Empty icon="check-square" title="لم يُسجّل حضور بعد" body="سجّل الغياب بضغطة على اسم الطالب، والباقون حاضرون تلقائياً." /></Card>
-      ) : (
-        <Card style={{ paddingVertical: 4 }}>
-          {days.map((x, i) => (
-            <PressScale key={x.d} onPress={() => router.push(`/attendance?section=${sectionId}&date=${x.d}`)} scaleTo={0.98}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
-              <T weight="bold" size={15} style={{ flex: 1 }}>{formatDayDate(parseIsoDay(x.d))}</T>
-              {x.absent ? <Pill label={`غائب ${arDigits(x.absent)}`} tone="bad" small /> : <Pill label="الكل حاضر" tone="good" small />}
-              {x.late ? <Pill label={`متأخر ${arDigits(x.late)}`} tone="warn" small /> : null}
-            </PressScale>
-          ))}
-        </Card>
       )}
     </>
   );

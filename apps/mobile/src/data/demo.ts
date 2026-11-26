@@ -1,6 +1,7 @@
 /** بيانات تجريبية واقعية (لتجربة التطبيق ولقطات الموقع) */
-import { DEFAULT_TIMETABLE, gradeId, isoDay, schoolYear, sortArabic, TEMPLATES, uuid, type AttendanceStatus } from '@nahj/shared';
-import { insert, insertMany, setSettings, upsertMany } from './db';
+import { COMPONENT_PRESETS, DEFAULT_TIMETABLE, gradeId, isoDay, schoolYear, sortArabic, TEMPLATES, uuid, type AttendanceStatus } from '@nahj/shared';
+import { get, insert, insertMany, setSettings, upsertMany, where } from './db';
+import { createYearSet } from './grades';
 import { attendanceId } from './queries';
 
 const FIRST = ['أحمد', 'علي', 'حسين', 'محمد', 'مصطفى', 'عباس', 'حسن', 'زيد', 'يوسف', 'كرار', 'مرتضى', 'عبد الله', 'سجاد', 'أمير', 'حيدر', 'منتظر', 'باقر', 'جعفر', 'ياسر', 'عمر', 'إبراهيم', 'قاسم', 'سيف', 'مهدي', 'محمد رضا', 'أنور', 'فاضل', 'نور الدين'];
@@ -38,25 +39,27 @@ export function seedDemo() {
       if (!used.has(n)) { used.add(n); names.push(n); }
     }
     const students = insertMany('students', sortArabic(names).map((name, i) => ({ section_id: sec.id, name, number: i + 1, sort: i, parent_phone: r() > 0.5 ? `077${Math.floor(10000000 + r() * 89999999)}` : null })));
-    // سجل السعي السنوي ونصف الأعمدة مملوءة
-    const tpl = TEMPLATES.find((t) => t.key === 'saey')!.build();
-    const book = insert('gradebooks', { section_id: sec.id, title: 'سجل السعي السنوي', template: 'saey', columns: tpl.columns, result: tpl.result, year: schoolYear(), pinned: si === 0 });
-    const inputs = tpl.columns.filter((c) => c.kind === 'input').slice(0, 3);
+    // سجلات السنة: الفصل الأول ونصف السنة مدخلة (وفيها درجات حرجة لتجربة المراجعة)
+    const [firstId] = createYearSet([sec.id], { components: COMPONENT_PRESETS[si % 2 ? 1 : 0].items });
+    const first = get('gradebooks', firstId)!;
+    const books = ['الشهر الأول — الفصل الأول', 'الشهر الثاني — الفصل الأول', 'نصف السنة'];
     const grades: { id: string; data: { gradebook_id: string; student_id: string; column_id: string; value: number | null; mark: null | 'absent' } }[] = [];
-    for (const s of students) {
-      const base = 35 + r() * 60;
-      for (const col of inputs) {
-        const absent = r() < 0.02;
-        grades.push({
-          id: gradeId(book.id, s.id, col.id),
-          data: { gradebook_id: book.id, student_id: s.id, column_id: col.id, value: absent ? null : Math.max(0, Math.min(100, Math.round(base + (r() - 0.5) * 24))), mark: absent ? 'absent' : null },
-        });
+    const level = new Map(students.map((s) => [s.id, 0.3 + r() * 0.65]));
+    for (const title of books) {
+      const book = insertedBook(first.group_id!, title);
+      if (!book) continue;
+      for (const s of students) {
+        for (const col of book.columns.filter((x) => x.kind === 'input')) {
+          const absent = r() < 0.015;
+          const v = Math.max(0, Math.min(col.max, Math.round(col.max * (level.get(s.id)! + (r() - 0.5) * 0.18))));
+          grades.push({ id: gradeId(book.id, s.id, col.id), data: { gradebook_id: book.id, student_id: s.id, column_id: col.id, value: absent ? null : v, mark: absent ? 'absent' : null } });
+        }
       }
     }
     upsertMany('grades', grades);
     if (si === 0) {
-      const m = TEMPLATES.find((t) => t.key === 'monthly')!.build();
-      const quiz = insert('gradebooks', { section_id: sec.id, title: 'امتحان الفصل الأول — الحركة', template: 'monthly', columns: m.columns, result: m.result, year: schoolYear() });
+      const m = TEMPLATES.find((t) => t.key === 'single')!.build();
+      const quiz = insert('gradebooks', { section_id: sec.id, title: 'اختبار قصير — الحركة', template: 'single', columns: m.columns, result: m.result, year: schoolYear(), role: 'custom' });
       upsertMany('grades', students.map((s) => ({
         id: gradeId(quiz.id, s.id, m.columns[0].id),
         data: { gradebook_id: quiz.id, student_id: s.id, column_id: m.columns[0].id, value: Math.round(30 + r() * 70), mark: null },
@@ -96,6 +99,10 @@ export function seedDemo() {
     evaluation: 'سؤالان شفهيان وتمرين على السبورة', homework: 'أسئلة الفصل 1–4 صفحة 42',
   });
   return { classes: classes.length, sections: sections.length };
+}
+
+function insertedBook(group: string, title: string) {
+  return where('gradebooks', (b) => b.group_id === group && b.title === title)[0];
 }
 
 /** ينشئ معرفاً جديداً — لإعادة الاستخدام في الاختبارات */

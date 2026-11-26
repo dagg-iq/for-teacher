@@ -85,9 +85,11 @@ export function T({
 export const MAX_WIDTH = 720;
 
 export function Screen({
-  children, scroll = true, padded = true, onRefresh, refreshing, footer, style, edges = ['top'],
+  children, scroll = true, padded = true, onRefresh, refreshing, footer, style, edges = ['top'], wide = false,
 }: {
   children: ReactNode;
+  /** عمود أعرض (جداول الدرجات والتقارير على الحاسوب) */
+  wide?: boolean;
   scroll?: boolean;
   padded?: boolean;
   onRefresh?: () => void;
@@ -103,7 +105,7 @@ export function Screen({
     paddingBottom: edges.includes('bottom') ? insets.bottom + 16 : 24,
   };
   // الآيباد والأجهزة اللوحية: المحتوى في عمود مريح للقراءة بدل أن يمتد على كامل العرض
-  const inner = [padded ? { paddingHorizontal: 20 } : null, { width: '100%' as const, maxWidth: MAX_WIDTH, alignSelf: 'center' as const }];
+  const inner = [padded ? { paddingHorizontal: wide ? 28 : 20 } : null, { width: '100%' as const, maxWidth: wide ? 1400 : MAX_WIDTH, alignSelf: 'center' as const }];
   if (!scroll) {
     return (
       <KeyboardView style={[{ flex: 1, backgroundColor: c.bg }, pad, style]} bottomInset={insets.bottom}>

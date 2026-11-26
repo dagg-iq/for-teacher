@@ -94,8 +94,6 @@ export default function Settings() {
           </Row>
         </View>
         <Divider />
-        <ToggleRow title="قراءة الدرجة بصوت عالٍ" value={prefs.voiceSpeak} onChange={(v) => setSettings({ prefs: { ...prefs, voiceSpeak: v } })} />
-        <Divider />
         <ToggleRow title="الانتقال للطالب التالي تلقائياً" value={prefs.voiceAdvance} onChange={(v) => setSettings({ prefs: { ...prefs, voiceAdvance: v } })} />
       </Group>
 

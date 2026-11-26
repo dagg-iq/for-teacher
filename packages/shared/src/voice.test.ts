@@ -150,7 +150,10 @@ describe('number words', () => {
 describe('teens in Iraqi dialect', () => {
   it('reads 16 and 18 in many spellings', () => {
     for (const t of ['ثمنطعش', 'ثمنتعش', 'ثمن طعش', 'تمنطعش', 'ثمانية عشر', 'ثمانطعش', '18']) expect(parseSpokenNumber(t)).toBe(18);
-    for (const t of ['ستطعش', 'سطعش', 'ست طعش', 'ستة عشر', '16']) expect(parseSpokenNumber(t)).toBe(16);
+    for (const t of ['ستطعش', 'سطعش', 'ست طعش', 'ستة عشر', '16', 'ستاشر']) expect(parseSpokenNumber(t)).toBe(16);
+    for (const t of ['تمنتاشر', 'ثمنطاش', 'تمن تاشر']) expect(parseSpokenNumber(t)).toBe(18);
+    expect(parseSpokenNumber('خمستاشر')).toBe(15);
+    expect(parseSpokenNumber('حداشر')).toBe(11);
   });
 });
 

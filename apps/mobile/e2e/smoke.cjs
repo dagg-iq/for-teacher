@@ -25,7 +25,7 @@ const server = http.createServer((req, res) => {
 const ROUTES = (process.env.ROUTES || [
   '/', '/classes', '/grades', '/schedule', '/more',
   '/class/new', '/book/new', '/voice', '/attendance', '/plans', '/plans/edit', '/tasks', '/picker', '/timer',
-  '/account', '/settings', '/about', '/schedule/setup',
+  '/account', '/settings', '/about', '/schedule/setup', '/reports', '/book/year', '/licenses',
 ].join(',')).split(',');
 
 (async () => {

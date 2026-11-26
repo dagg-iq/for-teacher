@@ -33,11 +33,13 @@ export interface Prefs {
   studentOrder: 'alpha' | 'number';
   /** شكل الأرقام: إنكليزية (0123) أو عربية مشرقية (٠١٢٣) */
   digits: 'latn' | 'arab';
+  /** آخر شعبة فُتحت في الدرجات والتقارير */
+  lastSection?: string | null;
 }
 
 export const DEFAULT_PREFS: Prefs = {
   voiceConfirm: 3,
-  voiceSpeak: true,
+  voiceSpeak: false,
   voiceAdvance: true,
   classReminders: true,
   printHeader: true,

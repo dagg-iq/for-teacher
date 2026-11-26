@@ -28,7 +28,7 @@ export default function Classes() {
     <View style={{ flex: 1 }}>
       <Screen>
         <Header back={false} title="الصفوف" subtitle={classes.length ? `${countSections(classes.reduce((n, x) => n + x.sections.length, 0))} · ${countStudents(classes.reduce((n, x) => n + x.sections.reduce((m, s) => m + s.n, 0), 0))}` : undefined}
-          right={<IconButton name="check-square" label="الحضور" onPress={() => router.push('/attendance')} />} />
+          />
         {classes.length ? <SearchBar value={q} onChange={setQ} placeholder="ابحث عن طالب في كل الشعب" /> : null}
         {q.trim().length >= 2 ? (
           <Card style={{ paddingVertical: 4 }}>

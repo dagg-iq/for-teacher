@@ -1,87 +1,150 @@
-import { arDigits, formatScore , formatPercent } from '@nahj/shared';
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { arDigits, formatPercent, type Gradebook } from '@nahj/shared';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Icon } from '@/components/icon';
 import { Pill } from '@/components/kit';
 import { PressScale } from '@/components/motion';
-import { Card, Chip, Empty, Fab, Header, IconButton, Row, Screen, T } from '@/components/ui';
-import { useQuery } from '@/data/db';
-import { bookProgress, bookStats, classesSorted, gradebooksOf, sectionClass, sectionLabel } from '@/data/queries';
+import { Card, Chip, Empty, Fab, Header, Row, Screen, T } from '@/components/ui';
+import { get, setSettings, useQuery, useSettings } from '@/data/db';
+import { allSections, booksOfSection, bookProgress, bookStats, criticalCount, sectionClass, sectionLabel } from '@/data/queries';
+import { useWide } from '@/lib/hooks';
 import { useTheme } from '@/lib/theme';
 
+/** مراحل السنة لعناوين سجلات السنة */
+const STAGES: { title: string; from: number; to: number }[] = [
+  { title: 'الفصل الأول', from: 1, to: 3 },
+  { title: 'نصف السنة', from: 4, to: 4 },
+  { title: 'الفصل الثاني', from: 5, to: 7 },
+  { title: 'نهاية السنة', from: 8, to: 99 },
+];
+
+/** الدرجات: المكان الوحيد لكل السجلات — تختار الشعبة فتظهر سجلاتها بترتيب السنة */
 export default function Grades() {
+  const params = useLocalSearchParams<{ section?: string }>();
   const { c, hue } = useTheme();
-  const [filter, setFilter] = useState<string>('all');
+  const prefs = useSettings().prefs;
+  const sections = useQuery(() => allSections());
+  const [sel, setSel] = useState<string | null>(params.section ?? prefs.lastSection ?? null);
   const [archived, setArchived] = useState(false);
-  const classes = useQuery(() => classesSorted());
-  const books = useQuery(() => gradebooksOf()
-    .filter((b) => !!b.archived === archived)
-    .filter((b) => filter === 'all' || sectionClass(b.section_id)?.id === filter)
-    .map((b) => {
-      const st = bookStats(b);
-      return { b, p: bookProgress(b), rate: st?.stats.passRate ?? null, k: sectionClass(b.section_id) };
-    }), [filter, archived]);
+  useEffect(() => { if (params.section) setSel(params.section); }, [params.section]);
+  const current = sections.find((s) => s.id === sel) ?? sections[0];
+  const choose = (id: string) => { setSel(id); setSettings({ prefs: { ...prefs, lastSection: id } }); };
+  const data = useQuery(() => (current ? booksOfSection(current.id, archived) : null), [current?.id, archived]);
+  const k = current ? sectionClass(current.id) : undefined;
+  const wide = useWide();
 
   return (
     <View style={{ flex: 1 }}>
-      <Screen>
-        <Header back={false} title="الدرجات" subtitle="سجلات الدرجات، المعادلات، والإدخال الصوتي"
-          right={<IconButton name="formula" label="القوالب والمعادلات" onPress={() => router.push('/book/new')} />} />
+      <Screen wide={wide}>
+        <Header back={false} title="الدرجات" subtitle={current ? sectionLabel(current.id) : 'سجلات الدرجات لكل شعبة'} />
+        {!sections.length ? (
+          <Card><Empty icon="school" title="أضف صفوفك أولاً" body="سجلات الدرجات تُنشأ لكل شعبة." action="إضافة صف" onAction={() => router.push('/class/new')} /></Card>
+        ) : (
+          <>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {sections.map((s) => <Chip key={s.id} label={sectionLabel(s.id, true)} active={s.id === current?.id} onPress={() => choose(s.id)} />)}
+            </ScrollView>
 
-        <Card onPress={() => router.push('/voice')} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: c.soft, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="mic" size={22} color={c.accent} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <T weight="bold" size={16}>الإدخال الصوتي</T>
-            <T dim size={13}>أدخل درجات الشعبة بقول الاسم والدرجة</T>
-          </View>
-          <Icon name="forward" size={18} color={c.ink3} />
-        </Card>
+            {data && !data.sets.length && !data.loose.length ? (
+              archived ? <Card><Empty icon="table" title="لا سجلات مؤرشفة" /></Card> : (
+                <PressScale onPress={() => router.push(`/book/year?section=${current!.id}`)} scaleTo={0.98}
+                  style={{ backgroundColor: c.heroBg, borderRadius: 24, padding: 20, gap: 10 }}>
+                  <Row gap={12}>
+                    <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="calendar" size={24} color="#FFFFFF" accent={c.gold} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <T weight="bold" size={18} color={c.heroInk}>ابدأ سجلات السنة</T>
+                      <T size={13} color={c.heroInk2}>لـ{sectionLabel(current!.id)}</T>
+                    </View>
+                    <Icon name="forward" size={20} color={c.heroInk} />
+                  </Row>
+                  <T size={13} color={c.heroInk2} style={{ lineHeight: 22 }}>الأشهر الأربعة بحقولها (تحريري، شفهي…)، وسعي الفصلين، ونصف السنة، والسعي السنوي — محسوبة وحدها.</T>
+                </PressScale>
+              )
+            ) : null}
 
-        {classes.length > 1 || archived ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            <Chip label="الكل" active={filter === 'all'} onPress={() => setFilter('all')} />
-            {classes.map((k) => <Chip key={k.id} label={k.name} active={filter === k.id} onPress={() => setFilter(k.id)} />)}
-          </ScrollView>
-        ) : null}
-
-        {books.length === 0 ? (
-          <Card>
-            {archived ? <Empty icon="table" title="لا سجلات مؤرشفة" /> : classes.length === 0 ? (
-              <Empty icon="school" title="أضف صفوفك أولاً" body="سجل الدرجات يُنشأ لشعبة فيها طلاب." action="إضافة صف" onAction={() => router.push('/class/new')} />
-            ) : (
-              <Empty icon="table" title="لا سجلات درجات" body="ابدأ من قالب «السعي السنوي» أو «امتحان شهري» أو صمّم سجلك بمعادلاتك." action="سجل جديد" onAction={() => router.push('/book/new')} />
-            )}
-          </Card>
-        ) : books.map(({ b, p, rate, k }) => (
-          <Card key={b.id} onPress={() => router.push(`/book/${b.id}`)} style={{ gap: 10 }}>
-            <Row>
-              <View style={{ width: 6, alignSelf: 'stretch', borderRadius: 3, backgroundColor: hue(k?.hue) }} />
-              <View style={{ flex: 1 }}>
-                <Row gap={6}>
-                  {b.pinned ? <Icon name="pin" size={14} color={c.accent} /> : null}
-                  <T weight="bold" size={16} lines={1} style={{ flexShrink: 1 }}>{b.title}</T>
+            {data?.sets.map((set) => (
+              <View key={set.id} style={{ gap: 10 }}>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <Row gap={8}>
+                    <View style={{ width: 8, height: 8, backgroundColor: c.gold }} />
+                    <T weight="bold" size={16}>سجلات السنة {set.year ? arDigits(set.year) : ''}</T>
+                  </Row>
+                  <Chip small label="التقرير" onPress={() => router.push(`/reports?section=${current!.id}`)} />
                 </Row>
-                <T dim size={13}>{sectionLabel(b.section_id)}</T>
+                <View style={{ flexDirection: wide ? 'row' : 'column', flexWrap: 'wrap', gap: 12 }}>
+                {STAGES.map((st) => {
+                  const books = set.books.filter((b) => (b.ord ?? 0) >= st.from && (b.ord ?? 0) <= st.to);
+                  if (!books.length) return null;
+                  return (
+                    <Card key={st.title} style={{ paddingVertical: 4, ...(wide ? { flexBasis: '48%', flexGrow: 1 } : null) }}>
+                      <T dim size={12} weight="bold" style={{ paddingTop: 10, paddingBottom: 2 }}>{st.title}</T>
+                      {books.map((b, i) => <BookRow key={b.id} book={b} divider={i > 0} color={hue(k?.hue)} />)}
+                    </Card>
+                  );
+                })}
+                </View>
               </View>
-              {rate != null ? <Pill label={`نجاح ${formatPercent(rate)}`} tone={rate >= 50 ? 'good' : 'bad'} small /> : null}
+            ))}
+
+            {data?.loose.length ? (
+              <View style={{ gap: 10 }}>
+                <Row gap={8}>
+                  <View style={{ width: 8, height: 8, backgroundColor: c.gold }} />
+                  <T weight="bold" size={16}>سجلات أخرى</T>
+                </Row>
+                <Card style={{ paddingVertical: 4 }}>
+                  {data.loose.map((b, i) => <BookRow key={b.id} book={b} divider={i > 0} color={hue(k?.hue)} />)}
+                </Card>
+              </View>
+            ) : null}
+
+            <Row style={{ justifyContent: 'center' }}>
+              <Chip label={archived ? 'السجلات الحالية' : 'السجلات المؤرشفة'} small onPress={() => setArchived(!archived)} />
             </Row>
-            <View style={{ gap: 4 }}>
-              <View style={{ height: 6, borderRadius: 3, backgroundColor: c.line, overflow: 'hidden' }}>
-                <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${p.total ? (p.filled / p.total) * 100 : 0}%`, backgroundColor: hue(k?.hue) }} />
-              </View>
-              <T dim size={12}>{p.total ? `أُدخلت ${arDigits(p.filled)} درجة من ${arDigits(p.total)}` : 'لا طلاب في الشعبة بعد'}</T>
-            </View>
-          </Card>
-        ))}
-        <Row style={{ justifyContent: 'center' }}>
-          <Chip label={archived ? 'السجلات الحالية' : 'السجلات المؤرشفة'} small onPress={() => setArchived(!archived)} />
-        </Row>
+          </>
+        )}
         <View style={{ height: 70 }} />
       </Screen>
-      <Fab tabs title="سجل جديد" onPress={() => router.push('/book/new')} />
+      {current ? <Fab tabs title="سجل جديد" onPress={() => router.push(`/book/new?section=${current.id}`)} /> : null}
     </View>
+  );
+}
+
+function BookRow({ book, divider, color }: { book: Gradebook; divider: boolean; color: string }) {
+  const { c } = useTheme();
+  const info = useQuery(() => {
+    const p = bookProgress(book);
+    const st = bookStats(book);
+    return { p, rate: st && st.stats.count ? st.stats.passRate : null, critical: criticalCount(book) };
+  }, [book.id]);
+  const computed = info.p.computed;
+  const pct = info.p.total ? info.p.filled / info.p.total : 0;
+  const live = get('gradebooks', book.id);
+  return (
+    <PressScale onPress={() => router.push(`/book/${book.id}`)} scaleTo={0.98}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderTopWidth: divider ? 1 : 0, borderTopColor: c.line }}>
+      <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: computed ? c.accent : c.soft, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name={computed ? 'formula' : 'edit'} size={17} color={computed ? c.accentInk : c.accent} />
+      </View>
+      <View style={{ flex: 1, gap: 4 }}>
+        <Row gap={6}>
+          {live?.pinned ? <Icon name="pin" size={13} color={c.accent} /> : null}
+          <T weight="bold" size={15} lines={1} style={{ flexShrink: 1 }}>{book.group_id ? book.title.split(' — ')[0] : book.title}</T>
+        </Row>
+        {computed ? (
+          <T dim size={12}>{info.p.filled ? `محسوب لـ${arDigits(info.p.filled)} من ${arDigits(info.p.total)} طالب` : 'يُحسب عند إدخال درجات الأشهر'}</T>
+        ) : (
+          <View style={{ height: 5, borderRadius: 3, backgroundColor: c.line, overflow: 'hidden' }}>
+            <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${pct * 100}%`, backgroundColor: color }} />
+          </View>
+        )}
+      </View>
+      {info.critical ? <Pill small label={`حرجة ${arDigits(info.critical)}`} tone="warn" /> : null}
+      {info.rate != null ? <Pill small label={`نجاح ${formatPercent(info.rate)}`} tone={info.rate >= 50 ? 'good' : 'bad'} /> : null}
+      <Icon name="forward" size={16} color={c.ink3} />
+    </PressScale>
   );
 }

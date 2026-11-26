@@ -10,7 +10,7 @@ import { Pill } from '@/components/kit';
 import { Sheet, SheetItem } from '@/components/sheet';
 import { Button, Card, Chip, Empty, Field, Header, IconButton, Row, Screen, SectionTitle, T } from '@/components/ui';
 import { all, get, insert, remove, update, useQuery, useSettings } from '@/data/db';
-import { absencesOf, allSections, gradebooksOf, sectionLabel, sheetOf } from '@/data/queries';
+import { absencesOf, allSections, booksOfSection, sectionLabel, sheetOf } from '@/data/queries';
 import { Alert } from '@/lib/dialog';
 import { printStudentReport } from '@/lib/export';
 import { useTheme } from '@/lib/theme';
@@ -26,7 +26,7 @@ export default function StudentScreen() {
   const [noteKind, setNoteKind] = useState<NoteKind>('positive');
   const [note, setNote] = useState('');
   const s = useQuery(() => get('students', id), [id]);
-  const books = useQuery(() => (s ? gradebooksOf(s.section_id).map((b) => {
+  const books = useQuery(() => (s ? (() => { const x = booksOfSection(s.section_id); return [...x.sets.flatMap((y) => y.books), ...x.loose]; })().map((b) => {
     const row = sheetOf(b).find((r) => r.student.id === id);
     return { b, row };
   }) : []), [s?.section_id, id]);

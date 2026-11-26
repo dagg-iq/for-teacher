@@ -3,15 +3,16 @@ import {
 } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Icon } from '@/components/icon';
 import { Pill } from '@/components/kit';
 import { PressScale, tap } from '@/components/motion';
 import { Sheet, SheetItem } from '@/components/sheet';
 import { Button, Card, Chip, Empty, Field, Header, IconButton, Row, Screen, Segmented, T } from '@/components/ui';
 import { get, insert, remove, update, useQuery } from '@/data/db';
-import { setGrade } from '@/data/grades';
-import { allSections, sectionLabel, sheetOf } from '@/data/queries';
+import { setGrade, setOverride } from '@/data/grades';
+import { allSections, linkLabel, sectionLabel, sheetOf } from '@/data/queries';
+import { useWide } from '@/lib/hooks';
 import { Alert } from '@/lib/dialog';
 import { exportBookXlsx, printBook } from '@/lib/export';
 import { fonts, useTheme } from '@/lib/theme';
@@ -21,6 +22,7 @@ type Mode = 'entry' | 'table';
 
 export default function BookScreen() {
   const { id, focus } = useLocalSearchParams<{ id: string; focus?: string }>();
+  const { tone } = useTheme();
   const book = useQuery(() => get('gradebooks', id), [id]);
   const rows = useQuery(() => (book ? sheetOf(book) : []), [book]);
   const inputs = book?.columns.filter((c) => c.kind === 'input') ?? [];
@@ -44,48 +46,77 @@ export default function BookScreen() {
   }, [book, col]);
   const activeCol = inputs.find((c) => c.id === col) ?? inputs[0];
 
+  const wide = useWide();
+  const [review, setReview] = useState(false);
   if (!book) return <Screen><Header /><Empty title="السجل غير موجود" /></Screen>;
 
   const run = (fn: () => Promise<void>) => fn().catch((e) => toast(e instanceof Error ? e.message : 'تعذّر', { tone: 'bad', icon: 'info' }));
-  const del = () => Alert.alert('حذف السجل؟', `سيُحذف «${book.title}» وكل درجاته.`, [
+  const del = () => Alert.alert('حذف السجل؟', `سيُحذف «${book.title}» وكل درجاته.${book.group_id ? ' السجلات التي تحسب منه (السعي) ستفقد هذه الدرجات.' : ''}`, [
     { text: 'إلغاء', style: 'cancel' },
     { text: 'حذف', style: 'destructive', onPress: () => { remove('gradebooks', book.id); toast('حُذف السجل', { icon: 'trash' }); router.back(); } },
   ]);
+  const sources = [...new Map(book.columns.filter((x) => x.kind === 'link' && x.source).map((x) => [x.source!.book_id, get('gradebooks', x.source!.book_id)])).values()].filter(Boolean);
+  const critical = rows.reduce((n, r) => n + Object.keys(r.critical).length, 0);
+  const visible = book.columns.filter((x) => !x.hidden);
+  const showGrid = wide || mode === 'table' || !inputs.length;
 
   return (
-    <Screen padded={mode === 'entry'} style={mode === 'table' ? { paddingHorizontal: 0 } : undefined}>
-      <View style={{ paddingHorizontal: mode === 'table' ? 20 : 0, gap: 14 }}>
+    <Screen wide={wide} padded={!showGrid || wide} style={showGrid && !wide ? { paddingHorizontal: 0 } : undefined}>
+      <View style={{ paddingHorizontal: showGrid && !wide ? 20 : 0, gap: 12 }}>
         <Header title={book.title} subtitle={sectionLabel(book.section_id)}
           right={(
             <>
-              <IconButton name="mic" label="إدخال صوتي" filled onPress={() => router.push(`/voice?book=${book.id}${activeCol ? `&column=${activeCol.id}` : ''}`)} />
+              {inputs.length ? <IconButton name="mic" label="إدخال صوتي" filled onPress={() => router.push(`/voice?book=${book.id}${activeCol ? `&column=${activeCol.id}` : ''}`)} /> : null}
               <IconButton name="more" label="خيارات" onPress={() => setMenu(true)} />
             </>
           )} />
+        {sources.length ? (
+          <Row gap={6} style={{ flexWrap: 'wrap' }}>
+            <T dim size={13}>يُحسب من:</T>
+            {sources.map((b) => <Chip key={b!.id} small label={b!.title} onPress={() => router.push(`/book/${b!.id}`)} />)}
+          </Row>
+        ) : null}
+        {critical ? (
+          <PressScale onPress={() => setReview(true)} scaleTo={0.98}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, backgroundColor: tone.warn.bg }}>
+            <Icon name="info" size={20} color={tone.warn.ink} />
+            <View style={{ flex: 1 }}>
+              <T weight="bold" size={14} color={tone.warn.ink}>{arDigits(critical)} درجة حرجة قريبة من النجاح</T>
+              <T size={12} color={tone.warn.ink}>راجعها وقرر رفعها إلى درجة النجاح — لا يتغير شيء بدون موافقتك.</T>
+            </View>
+            <T weight="bold" size={13} color={tone.warn.ink}>مراجعة</T>
+          </PressScale>
+        ) : rows.some((r) => Object.keys(r.overridden).length) ? (
+          <Chip small label="الدرجات المرفوعة" onPress={() => setReview(true)} />
+        ) : null}
         <Row gap={8}>
-          <Button title="الأعمدة والمعادلات" icon="formula" small variant="secondary" style={{ flex: 1 }} onPress={() => router.push(`/book/columns?id=${book.id}`)} />
-          <Button title="الإحصاء" icon="pie" small variant="secondary" style={{ flex: 1 }} onPress={() => router.push(`/book/stats?id=${book.id}`)} />
+          <Button title="الحقول والمعادلات" icon="formula" small variant="secondary" style={wide ? undefined : { flex: 1 }} onPress={() => router.push(`/book/columns?id=${book.id}`)} />
+          <Button title="الإحصاء" icon="pie" small variant="secondary" style={wide ? undefined : { flex: 1 }} onPress={() => router.push(`/book/stats?id=${book.id}`)} />
         </Row>
-        <Segmented options={[{ key: 'entry', label: 'إدخال سريع' }, { key: 'table', label: 'الجدول' }]} value={mode} onChange={setMode} />
+        {!wide && inputs.length ? <Segmented options={[{ key: 'entry', label: 'إدخال سريع' }, { key: 'table', label: 'الجدول' }]} value={mode} onChange={setMode} /> : null}
       </View>
 
       {rows.length === 0 ? (
         <Card><Empty icon="users" title="لا طلاب في الشعبة" body="أضف الطلاب أولاً ثم ارجع لإدخال الدرجات." action="إضافة طلاب" onAction={() => router.push(`/section/import?id=${book.section_id}`)} /></Card>
-      ) : mode === 'entry' ? (
-        inputs.length ? (
-          <EntryList bookId={book.id} columns={inputs} active={activeCol!} onColumn={(c) => setCol(c)} rows={rows} decider={book.columns.find((c) => c.id === book.result.column_id) ?? null} focusStudent={focusStudent} />
-        ) : <Card><Empty icon="formula" title="لا أعمدة إدخال" body="أضف عموداً من «الأعمدة والمعادلات»." /></Card>
+      ) : wide ? (
+        <Grid bookId={book.id} rows={rows} columns={visible} deciderId={book.result.column_id} onReview={() => setReview(true)} />
+      ) : mode === 'entry' && inputs.length ? (
+        <EntryList bookId={book.id} columns={inputs} active={activeCol!} onColumn={(c) => setCol(c)} rows={rows} decider={book.columns.find((c) => c.id === book.result.column_id) ?? null} focusStudent={focusStudent} />
       ) : (
-        <Table rows={rows} columns={book.columns.filter((c) => !c.hidden)} deciderId={book.result.column_id} highlight={focus ?? null}
-          onCell={(studentId, columnId) => { setCol(columnId); setFocusStudent(studentId); setMode('entry'); }} />
+        <Table rows={rows} columns={visible} deciderId={book.result.column_id} highlight={focus ?? null}
+          onCell={(studentId, columnId) => {
+            const colDef = book.columns.find((x) => x.id === columnId);
+            if (colDef?.kind !== 'input') { setReview(true); return; }
+            setCol(columnId); setFocusStudent(studentId); setMode('entry');
+          }} />
       )}
 
       <Sheet visible={menu} onClose={() => setMenu(false)}>
         <SheetItem icon="excel" label="تصدير Excel" onPress={() => { setMenu(false); run(() => exportBookXlsx(book.id)); }} />
-        <SheetItem icon="upload" label="استيراد درجات من Excel" onPress={() => { setMenu(false); router.push(`/book/import?id=${book.id}`); }} />
+        {inputs.length ? <SheetItem icon="upload" label="استيراد درجات من Excel" onPress={() => { setMenu(false); router.push(`/book/import?id=${book.id}`); }} /> : null}
         <SheetItem icon="print" label="طباعة" onPress={() => { setMenu(false); run(() => printBook(book.id, 'print')); }} />
         <SheetItem icon="share" label="مشاركة PDF" onPress={() => { setMenu(false); run(() => printBook(book.id, 'pdf')); }} />
-        <SheetItem icon="copy" label="نسخ السجل لشعبة أخرى" onPress={() => { setMenu(false); setCopy(true); }} />
+        {!book.group_id ? <SheetItem icon="copy" label="نسخ السجل لشعبة أخرى" onPress={() => { setMenu(false); setCopy(true); }} /> : null}
         <SheetItem icon="edit" label="إعادة التسمية" onPress={() => { setMenu(false); setRename(true); }} />
         <SheetItem icon="pin" label={book.pinned ? 'إلغاء التثبيت' : 'تثبيت في الأعلى'} onPress={() => { setMenu(false); update('gradebooks', book.id, { pinned: !book.pinned }); }} />
         <SheetItem icon="lock" label={book.archived ? 'إرجاع من الأرشيف' : 'أرشفة'} onPress={() => { setMenu(false); update('gradebooks', book.id, { archived: !book.archived }); toast(book.archived ? 'أُرجع السجل' : 'أُرشف السجل'); }} />
@@ -93,7 +124,172 @@ export default function BookScreen() {
       </Sheet>
       <RenameSheet visible={rename} onClose={() => setRename(false)} id={book.id} />
       <CopySheet visible={copy} onClose={() => setCopy(false)} id={book.id} />
+      {review ? <CriticalSheet bookId={book.id} rows={rows} columns={book.columns} onClose={() => setReview(false)} /> : null}
     </Screen>
+  );
+}
+
+/** مراجعة الدرجات الحرجة: يختار المدرس من يرفعها إلى درجة النجاح، ويمكنه التراجع */
+function CriticalSheet({ bookId, rows, columns, onClose }: { bookId: string; rows: SheetRow[]; columns: GradeColumn[]; onClose: () => void }) {
+  const { c, tone } = useTheme();
+  const boosted = columns.filter((x) => x.kind !== 'input');
+  const pending = rows.flatMap((r) => boosted.filter((x) => r.critical[x.id]).map((x) => ({ r, x, key: `${r.student.id}|${x.id}` })));
+  const done = rows.flatMap((r) => boosted.filter((x) => r.overridden[x.id]).map((x) => ({ r, x, key: `${r.student.id}|${x.id}` })));
+  const [picked, setPicked] = useState<string[]>(() => pending.map((p) => p.key));
+  const apply = () => {
+    const items = pending.filter((p) => picked.includes(p.key));
+    if (!items.length) return;
+    Alert.alert('رفع الدرجات المحددة؟', `ستُرفع ${arDigits(items.length)} درجة إلى درجة النجاح، وتتغير بها النتائج والسعي المحسوب منها. يمكنك التراجع لاحقاً من هنا.`, [
+      { text: 'إلغاء', style: 'cancel' },
+      { text: 'رفع', onPress: () => { for (const p of items) setOverride(bookId, p.r.student.id, p.x.id, p.x.boost!.to); toast('رُفعت الدرجات', { icon: 'check' }); onClose(); } },
+    ]);
+  };
+  return (
+    <Sheet visible onClose={onClose}>
+      <ScrollView style={{ maxHeight: 620 }} contentContainerStyle={{ gap: 12, paddingBottom: 8 }}>
+        <T display size={22}>الدرجات الحرجة</T>
+        {pending.length ? (
+          <>
+            <T dim size={13}>درجات قريبة من النجاح. اختر من تريد رفعها — تظهر بعدها بعلامة ذهبية، وتبقى الدرجة الأصلية محفوظة.</T>
+            <View style={{ borderRadius: 18, borderWidth: 1, borderColor: c.line, overflow: 'hidden' }}>
+              {pending.map((p, i) => {
+                const on = picked.includes(p.key);
+                return (
+                  <PressScale key={p.key} onPress={() => setPicked((x) => (on ? x.filter((k) => k !== p.key) : [...x, p.key]))} scaleTo={0.98}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderTopWidth: i ? 1 : 0, borderTopColor: c.line, backgroundColor: on ? c.soft : c.card }}>
+                    <View style={{ width: 22, height: 22, borderRadius: 7, borderWidth: on ? 0 : 1.5, borderColor: c.ink3, backgroundColor: on ? c.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                      {on ? <Icon name="check" size={14} color={c.accentInk} strokeWidth={2.6} /> : null}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <T weight="bold" size={14} lines={1}>{p.r.student.name}</T>
+                      <T dim size={12}>{arDigits(p.x.name)}</T>
+                    </View>
+                    <T weight="bold" size={16} color={tone.warn.ink}>{formatScore(p.r.values[p.x.id])}</T>
+                    <Icon name="back" size={14} color={c.ink3} />
+                    <T weight="bold" size={16} color={tone.good.ink}>{formatScore(p.x.boost!.to)}</T>
+                  </PressScale>
+                );
+              })}
+            </View>
+            <Button title={`رفع المحدد (${arDigits(picked.length)})`} icon="check" disabled={!picked.length} onPress={apply} />
+          </>
+        ) : <T dim size={13}>لا درجات حرجة تنتظر قرارك.</T>}
+        {done.length ? (
+          <>
+            <T weight="bold" size={15} style={{ marginTop: 6 }}>درجات رُفعت</T>
+            <View style={{ borderRadius: 18, borderWidth: 1, borderColor: c.line, overflow: 'hidden' }}>
+              {done.map((p, i) => (
+                <View key={p.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+                  <View style={{ flex: 1 }}>
+                    <T weight="bold" size={14} lines={1}>{p.r.student.name}</T>
+                    <T dim size={12}>{arDigits(p.x.name)}: {formatScore(p.r.raw[p.x.id])} ← {formatScore(p.r.values[p.x.id])}</T>
+                  </View>
+                  <Button title="تراجع" small variant="secondary" onPress={() => setOverride(bookId, p.r.student.id, p.x.id, null)} />
+                </View>
+              ))}
+            </View>
+          </>
+        ) : null}
+      </ScrollView>
+    </Sheet>
+  );
+}
+
+/** جدول الحاسوب: كل الحقول في جدول واحد قابل للكتابة مباشرة (Enter للأسفل، Tab للتالي) */
+function Grid({ bookId, rows, columns, deciderId, onReview }: {
+  bookId: string; rows: SheetRow[]; columns: GradeColumn[]; deciderId: string | null; onReview: () => void;
+}) {
+  const { c, tone } = useTheme();
+  const refs = useRef<Record<string, TextInput | null>>({});
+  const inputs = columns.filter((x) => x.kind === 'input');
+  const NAME_W = 260;
+  const COL_W = 108;
+  const H = 48;
+  const move = (ri: number, colId: string, d: number) => refs.current[`${ri + d}:${colId}`]?.focus();
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{ flexGrow: 1 }}>
+      <View style={{ flexGrow: 1, borderRadius: 18, borderWidth: 1, borderColor: c.line, backgroundColor: c.card, overflow: 'hidden' }}>
+        <View style={{ flexDirection: 'row', backgroundColor: c.soft, borderBottomWidth: 1, borderBottomColor: c.line }}>
+          <View style={{ width: 44, justifyContent: 'center', alignItems: 'center' }}><T size={12} weight="bold" color={c.softInk}>ت</T></View>
+          <View style={{ flexGrow: 1, flexBasis: NAME_W, minWidth: NAME_W, justifyContent: 'center', paddingHorizontal: 10, paddingVertical: 10 }}><T weight="bold" size={13} color={c.softInk}>اسم الطالب</T></View>
+          {columns.map((x) => (
+            <View key={x.id} style={{ width: COL_W, alignItems: 'center', justifyContent: 'center', paddingVertical: 8, paddingHorizontal: 4, borderStartWidth: 1, borderStartColor: c.line, backgroundColor: x.kind === 'input' ? 'transparent' : c.accent + '14' }}>
+              <Row gap={4}>
+                {x.kind !== 'input' ? <Icon name={x.kind === 'link' ? 'link' : 'formula'} size={11} color={c.accent} /> : null}
+                <T size={12} weight="bold" color={c.softInk} lines={2} center>{arDigits(x.name)}</T>
+              </Row>
+              <T size={11} dim>من {arDigits(x.max)}</T>
+            </View>
+          ))}
+        </View>
+        {rows.map((r, ri) => (
+          <View key={r.student.id} style={{ flexDirection: 'row', height: H, borderTopWidth: ri ? 1 : 0, borderTopColor: c.line, backgroundColor: ri % 2 ? c.bg : c.card }}>
+            <View style={{ width: 44, justifyContent: 'center', alignItems: 'center' }}><T dim size={12} weight="bold">{arDigits(ri + 1)}</T></View>
+            <View style={{ flexGrow: 1, flexBasis: NAME_W, minWidth: NAME_W, justifyContent: 'center', paddingHorizontal: 10 }}><T size={14} weight="medium" lines={1}>{r.student.name}</T></View>
+            {columns.map((x) => {
+              const v = r.values[x.id];
+              const m = r.marks[x.id];
+              if (x.kind === 'input') {
+                const ci = inputs.findIndex((y) => y.id === x.id);
+                return (
+                  <View key={x.id} style={{ width: COL_W, borderStartWidth: 1, borderStartColor: c.line, padding: 5 }}>
+                    <GridCell bookId={bookId} studentId={r.student.id} col={x} value={v} mark={m ?? null}
+                      inputRef={(el) => { refs.current[`${ri}:${x.id}`] = el; }}
+                      onDown={() => move(ri, x.id, 1)} onUp={() => move(ri, x.id, -1)}
+                      onNextCol={() => { const nx = inputs[ci + 1]; if (nx) refs.current[`${ri}:${nx.id}`]?.focus(); else refs.current[`${ri + 1}:${inputs[0].id}`]?.focus(); }} />
+                  </View>
+                );
+              }
+              const crit = r.critical[x.id];
+              const fail = x.id === deciderId && r.verdict && !r.verdict.pass;
+              return (
+                <Pressable key={x.id} onPress={crit || r.overridden[x.id] ? onReview : undefined}
+                  style={{ width: COL_W, borderStartWidth: 1, borderStartColor: c.line, alignItems: 'center', justifyContent: 'center', backgroundColor: crit ? tone.warn.bg : fail ? tone.bad.bg : x.id === deciderId ? c.accent + '10' : 'transparent' }}>
+                  <T size={16} weight={x.kind === 'link' ? 'medium' : 'bold'} color={crit ? tone.warn.ink : fail ? tone.bad.ink : x.kind === 'link' ? c.ink : c.accent}>{formatScore(v)}</T>
+                  {r.overridden[x.id] ? <View style={{ position: 'absolute', top: 6, left: 8, width: 7, height: 7, backgroundColor: c.gold }} /> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
+function GridCell({ bookId, studentId, col, value, mark, inputRef, onDown, onUp, onNextCol }: {
+  bookId: string; studentId: string; col: GradeColumn; value: number | null; mark: string | null;
+  inputRef: (el: TextInput | null) => void; onDown: () => void; onUp: () => void; onNextCol: () => void;
+}) {
+  const { c, tone } = useTheme();
+  const shown = mark === 'absent' && value == null ? 'غ' : value == null ? '' : arDigits(value);
+  const [text, setText] = useState(shown);
+  const [bad, setBad] = useState(false);
+  useEffect(() => { setText(shown); }, [shown]);
+  const commit = () => {
+    const s = text.trim();
+    if (s === shown) return true;
+    if (!s) { setGrade(bookId, studentId, col.id, null, null); setBad(false); return true; }
+    if (s === 'غ' || s === 'غائب') { setGrade(bookId, studentId, col.id, null, 'absent'); setBad(false); return true; }
+    const n = parseNumber(s);
+    if (n == null || n < 0 || n > col.max) { setBad(true); toast(n != null && n > col.max ? `الدرجة أكبر من العظمى (${arDigits(col.max)})` : 'اكتب رقماً أو «غ» للغائب', { tone: 'bad', icon: 'info' }); return false; }
+    setBad(false);
+    setGrade(bookId, studentId, col.id, n, null);
+    return true;
+  };
+  return (
+    <TextInput ref={inputRef} value={text} onChangeText={(t) => { setText(t); setBad(false); }} onBlur={commit}
+      onSubmitEditing={() => { if (commit()) onDown(); }} blurOnSubmit={false} selectTextOnFocus keyboardType="decimal-pad"
+      onKeyPress={Platform.OS === 'web' ? (e) => {
+        const k = (e.nativeEvent as { key?: string }).key;
+        if (k === 'ArrowDown') { if (commit()) onDown(); } else if (k === 'ArrowUp') { if (commit()) onUp(); }
+      } : undefined}
+      accessibilityLabel={`${col.name}`}
+      style={{
+        flex: 1, borderRadius: 10, borderWidth: bad ? 2 : 1, borderColor: bad ? tone.bad.ink : 'transparent',
+        backgroundColor: mark === 'absent' ? tone.warn.bg : value != null ? c.soft : c.field, textAlign: 'center',
+        fontFamily: fonts.bold, fontSize: 16, color: mark === 'absent' ? tone.warn.ink : c.ink, paddingVertical: 0,
+      }} />
   );
 }
 
@@ -225,7 +421,7 @@ function Table({ rows, columns, deciderId, highlight, onCell }: {
             {columns.map((col) => (
               <View key={col.id} style={{ width: COL_W, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}>
                 <Row gap={3}>
-                  {col.kind === 'formula' ? <Icon name="formula" size={11} color={c.accent} /> : null}
+                  {col.kind !== 'input' ? <Icon name={col.kind === 'link' ? 'link' : 'formula'} size={11} color={c.accent} /> : null}
                   <T size={11} weight="bold" color={c.softInk} lines={2} center>{arDigits(col.name)}</T>
                 </Row>
                 <T size={10} dim>{arDigits(col.max)}</T>
@@ -241,16 +437,16 @@ function Table({ rows, columns, deciderId, highlight, onCell }: {
                 const fail = isDecider && r.verdict && !r.verdict.pass;
                 const content = (
                   <>
-                    <T size={15} weight={col.kind === 'formula' ? 'bold' : 'medium'} color={fail ? tone.bad.ink : m === 'absent' && !v ? tone.warn.ink : col.kind === 'formula' ? c.accent : c.ink}>
+                    <T size={15} weight={col.kind !== 'input' ? 'bold' : 'medium'} color={r.critical[col.id] ? tone.warn.ink : fail ? tone.bad.ink : m === 'absent' && !v ? tone.warn.ink : col.kind === 'formula' ? c.accent : c.ink}>
                       {m === 'absent' && !v ? 'غ' : m === 'exempt' ? 'مع' : formatScore(v)}
                     </T>
-                    {isDecider && r.verdict ? <T size={9} color={tone[r.verdict.tone].ink} style={{ marginTop: -4 }}>{r.verdict.label}</T> : null}
+                    {r.overridden[col.id] ? <View style={{ position: 'absolute', top: 6, left: 6, width: 6, height: 6, backgroundColor: c.gold }} /> : null}
                   </>
                 );
-                return col.kind === 'input' ? (
-                  <PressScale key={col.id} onPress={() => onCell(r.student.id, col.id)} scaleTo={0.92} style={{ width: COL_W, alignItems: 'center', justifyContent: 'center' }}>{content}</PressScale>
-                ) : (
-                  <View key={col.id} style={{ width: COL_W, alignItems: 'center', justifyContent: 'center', backgroundColor: isDecider ? (fail ? tone.bad.bg : 'transparent') : 'transparent' }}>{content}</View>
+                const crit = r.critical[col.id];
+                return (
+                  <PressScale key={col.id} onPress={() => onCell(r.student.id, col.id)} scaleTo={0.92} disabled={col.kind !== 'input' && !crit && !r.overridden[col.id]}
+                    style={{ width: COL_W, alignItems: 'center', justifyContent: 'center', backgroundColor: crit ? tone.warn.bg : isDecider && fail ? tone.bad.bg : 'transparent' }}>{content}</PressScale>
                 );
               })}
             </View>

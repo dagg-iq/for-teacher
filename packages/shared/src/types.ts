@@ -48,11 +48,11 @@ export interface Student extends Base {
   sort: number;
 }
 
-/** عمود في سجل الدرجات: إدخال يدوي أو معادلة */
+/** عمود في سجل الدرجات: إدخال يدوي، أو معادلة، أو «مرتبط» يأخذ قيمته من عمود في سجل آخر */
 export interface GradeColumn {
   id: string;
   name: string;
-  kind: 'input' | 'formula';
+  kind: 'input' | 'formula' | 'link';
   /** الدرجة العظمى */
   max: number;
   /** معادلة بمراجع {id} — للأعمدة المحسوبة فقط */
@@ -61,7 +61,26 @@ export interface GradeColumn {
   round?: 'none' | 'int' | '1dp';
   /** يُخفى من الطباعة والتصدير */
   hidden?: boolean;
+  /** للعمود المرتبط: السجل والعمود اللذان تؤخذ منهما الدرجة (مثل «المجموع» في سجل الشهر الأول) */
+  source?: { book_id: string; column_id: string } | null;
+  /**
+   * الدرجات الحرجة: إن وقعت الدرجة المحسوبة في [from، to) يُنبَّه المدرس ويمكنه رفعها إلى to
+   * (مثلاً ٤٧–٤٩ ← ٥٠). لا تُغيَّر إلا بعد موافقته.
+   */
+  boost?: { from: number; to: number } | null;
 }
+
+/** دور السجل ضمن سجلات السنة (للترتيب والتقارير) */
+export type BookRole = 'month' | 'term' | 'mid' | 'annual' | 'final' | 'custom';
+
+export const BOOK_ROLE_LABEL: Record<BookRole, string> = {
+  month: 'امتحان شهري',
+  term: 'سعي فصل',
+  mid: 'نصف السنة',
+  annual: 'السعي السنوي',
+  final: 'نهائي',
+  custom: 'سجل مخصص',
+};
 
 /** تقدير حسب النسبة المئوية من الدرجة العظمى */
 export interface Band {
@@ -93,6 +112,11 @@ export interface Gradebook extends Base {
   archived?: boolean;
   /** يُثبَّت في أعلى القائمة */
   pinned?: boolean;
+  /** معرّف «سجلات السنة» التي يتبعها السجل (تُنشأ معاً وترتبط ببعضها) */
+  group_id?: string | null;
+  role?: BookRole | null;
+  /** الترتيب داخل المجموعة */
+  ord?: number | null;
 }
 
 export type GradeMark = 'absent' | 'exempt' | 'cheat';

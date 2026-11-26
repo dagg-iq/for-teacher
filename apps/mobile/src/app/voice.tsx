@@ -1,5 +1,5 @@
 import {
-  arDigits, chooseHeard, formatScore, isAmbiguous, isConfident, MARK_LABEL, NUMBER_HINTS, numberToArabicWords, parseCommand,
+  arDigits, chooseHeard, formatScore, isAmbiguous, isConfident, MARK_LABEL, NUMBER_HINTS, ORDERED_HINTS, parseCommand,
   type GradeColumn, type GradeMark, type NameCandidate, type Student,
 } from '@nahj/shared';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -18,7 +18,7 @@ import { Button, Card, Chip, Empty, Header, IconButton, Row, Screen, Segmented, 
 import { get, setSettings, useQuery, useSettings } from '@/data/db';
 import { getGrade, setGrade } from '@/data/grades';
 import { allSections, gradebooksOf, sectionLabel, studentsOf } from '@/data/queries';
-import { say, speechAvailable, useRecognizer } from '@/lib/speech';
+import { speechAvailable, useRecognizer } from '@/lib/speech';
 import { fonts, useTheme } from '@/lib/theme';
 
 type Mode = 'names' | 'ordered';
@@ -48,7 +48,7 @@ export default function Voice() {
   const [sectionId, setSectionId] = useState<string | null>(presetBook?.section_id ?? params.section ?? null);
   const [bookId, setBookId] = useState<string | null>(presetBook?.id ?? null);
   const [columnId, setColumnId] = useState<string | null>(params.column ?? null);
-  const [mode, setMode] = useState<Mode>('names');
+  const [mode, setMode] = useState<Mode>('ordered');
   const [started, setStarted] = useState(false);
 
   const book = useQuery(() => (bookId ? get('gradebooks', bookId) : undefined), [bookId]);
@@ -109,11 +109,11 @@ function Setup({ sectionId, bookId, columnId, mode, onSection, onBook, onColumn,
           ) : null}
           {columnId ? (
             <Step n={4} title="طريقة القراءة">
-              <Segmented options={[{ key: 'names', label: 'الاسم + الدرجة' }, { key: 'ordered', label: 'بالترتيب' }]} value={mode} onChange={onMode} />
+              <Segmented options={[{ key: 'ordered', label: 'بالترتيب (الأدق)' }, { key: 'names', label: 'الاسم + الدرجة' }]} value={mode} onChange={onMode} />
               <T dim size={13}>
                 {mode === 'names'
-                  ? 'قل اسم الطالب ثم درجته بأي ترتيب: «أحمد علي خمسة وثمانين». يكفي الاسم الأول إن لم يتكرر.'
-                  : 'يعرض لك الطلاب واحداً واحداً بترتيب القائمة، وتقول الدرجة فقط. «التالي» للتخطي، «غائب» للغياب.'}
+                  ? 'قل اسم الطالب ثم درجته: «أحمد علي خمسة وثمانين». يكفي الاسم الأول إن لم يتكرر.'
+                  : 'يظهر الطلاب واحداً واحداً بترتيب القائمة، وتقول الدرجة فقط — الأرقام وحدها أدق في التعرّف. «التالي» للتخطي، «غائب» للغياب.'}
               </T>
             </Step>
           ) : null}
@@ -177,14 +177,13 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
   const progress = useSharedValue(0);
 
   // الأسماء أولاً ثم كلمات الأعداد العامية: المحرك يفضّلها عند التعرّف
-  const hints = useMemo(() => [...students.map((s) => s.name).slice(0, 100 - NUMBER_HINTS.length), ...NUMBER_HINTS], [students]);
+  const hints = useMemo(() => (mode === 'ordered' ? ORDERED_HINTS : [...students.map((s) => s.name).slice(0, 100 - NUMBER_HINTS.length), ...NUMBER_HINTS]), [students, mode]);
   const rec = useRecognizer({ onFinal: (t) => handleHeard(t), contextual: hints });
   const alts = useRef<number[]>([]);
 
   const warn = (n: Notice, speak?: string) => {
     setNotice(n);
     if (n?.tone === 'bad') tap('medium');
-    if (speak && prefs.voiceSpeak) say(speak);
   };
 
   // ------------------------------------------------ التثبيت
@@ -195,10 +194,6 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
     setHistory((h) => [{ key: ++keySeq.current, student: p.student, value: p.value, mark: p.mark, prev: p.prev }, ...h].slice(0, 50));
     setPending(null);
     tap('success');
-    if (prefs.voiceSpeak) {
-      const first = p.student.name.split(' ')[0];
-      say(p.mark ? `${first} ${MARK_LABEL[p.mark]}` : `${first} ${numberToArabicWords(p.value ?? 0)}`);
-    }
     if (mode === 'ordered' && prefs.voiceAdvance) {
       const idx = students.findIndex((s) => s.id === p.student.id);
       setCurrent(nextEmpty(idx));
@@ -482,7 +477,6 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
             {[0, 2, 3, 5].map((s) => <Chip key={s} label={s ? `${arDigits(s)} ث` : 'يدوي'} active={prefs.voiceConfirm === s} onPress={() => setSettings({ prefs: { ...prefs, voiceConfirm: s } })} />)}
           </Row>
           <T dim size={12}>تُكتب الدرجة تلقائياً بعد انتهاء المؤقت، ويمكنك إلغاؤها قبل ذلك بقول «لا». «يدوي» = بعد «نعم» فقط.</T>
-          <ToggleRow title="قراءة الدرجة بصوت عالٍ" subtitle="يقول اسم الطالب ودرجته بعد كتابتها" value={prefs.voiceSpeak} onChange={(v) => setSettings({ prefs: { ...prefs, voiceSpeak: v } })} />
           <ToggleRow title="الانتقال للطالب التالي تلقائياً" subtitle="في وضع «بالترتيب»" value={prefs.voiceAdvance} onChange={(v) => setSettings({ prefs: { ...prefs, voiceAdvance: v } })} />
           <ToggleRow title="خانة الكتابة" subtitle="اكتب الأوامر بدل قولها (مثلاً في مكان صاخب)" value={kb} onChange={setKb} />
         </View>
