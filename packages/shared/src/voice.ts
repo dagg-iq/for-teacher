@@ -13,6 +13,8 @@ const DIACRITICS = /[ً-ٰٟۖ-ۭـ]/g;
 
 export function normalizeArabic(input: string): string {
   return input
+    // فاصلة عشرية بين رقمين: «80,5» = ٨٠٫٥
+    .replace(/([0-9٠-٩])[,،]([0-9٠-٩])/g, '$1.$2')
     .replace(DIACRITICS, '')
     .replace(/[إأآٱ]/g, 'ا')
     .replace(/ى/g, 'ي')
@@ -36,14 +38,14 @@ function stripAl(w: string) {
 // ------------------------------------------------------------------ الأعداد
 const UNITS: Record<string, number> = {
   صفر: 0, زيرو: 0,
-  واحد: 1, واحده: 1, وحده: 1, احد: 1,
-  اثنين: 2, اثنان: 2, اثنتين: 2, ثنين: 2, تنين: 2, اتنين: 2, اثنا: 2, اثني: 2,
+  واحد: 1, واحده: 1, وحده: 1, احد: 1, احدي: 1,
+  اثنين: 2, اثنان: 2, اثنتين: 2, ثنين: 2, تنين: 2, اتنين: 2, اثنا: 2, اثني: 2, اثنتا: 2, اثنتي: 2,
   ثلاثه: 3, ثلاث: 3, تلاثه: 3, تلاث: 3,
   اربعه: 4, اربع: 4,
   خمسه: 5, خمس: 5,
   سته: 6, ست: 6,
   سبعه: 7, سبع: 7,
-  ثمانيه: 8, ثماني: 8, ثمان: 8, ثمنيه: 8, ثمنه: 8, تمنيه: 8, تمانيه: 8,
+  ثمانيه: 8, ثماني: 8, ثمان: 8, ثمنيه: 8, ثمنه: 8, تمنيه: 8, تمانيه: 8, ثمن: 8, تمن: 8,
   تسعه: 9, تسع: 9,
   عشره: 10, عشر: 10,
 };
@@ -327,6 +329,7 @@ export type VoiceCommand =
   | { type: 'select'; candidates: NameCandidate[]; nameText: string }
   | { type: 'value'; value: number }
   | { type: 'absent' }
+  | { type: 'exempt' }
   | { type: 'undo' }
   | { type: 'next' }
   | { type: 'previous' }
@@ -373,11 +376,32 @@ export function parseCommand(text: string, students: Student[], opts: { ordered?
     }
   }
 
-  const hasAbsent = ABSENT_WORDS.some((a) => (` ${norm} `).includes(` ${a} `));
+  // «مو غايب» / «ما غاب» = حاضر (نفي)، فلا تُسجّل غياباً
+  const negated = /(^| )(مو|ما|مش|ليس|موش) (غايب|غايبه|غاب|غابت|غياب)( |$)/.test(norm);
+  const hasAbsent = !negated && ABSENT_WORDS.some((a) => (` ${norm} `).includes(` ${a} `));
   const hasExempt = EXEMPT_WORDS.some((a) => (` ${norm} `).includes(` ${a} `));
   const num = findNumber(ws);
 
-  // رقم تسلسل الطالب: «رقم ٥ تسعين» ← الطالب رقم ٥
+  // رقم الطالب في القائمة بدل اسمه: «رقم ٥ تسعين» ← الطالب الخامس، درجته ٩٠
+  const ri = ws.indexOf('رقم');
+  if (ri >= 0) {
+    // «رقم خمسة تسعين»: الكلمة الأولى وحدها رقم الطالب (لا ٩٥) ما لم تُربط بواو أو «عشر»
+    const after = ws.slice(ri + 1);
+    const single = after.length > 1 && after[1] !== 'و' && after[1] !== 'عشر' && after[1] !== 'عشره' && wordValue(after[0]) && wordValue(after[1]);
+    const n1 = single ? { value: wordValue(after[0])!.v, start: 0, end: 0 } : findNumber(after);
+    if (n1 && n1.start === 0 && Number.isInteger(n1.value)) {
+      const st = students[n1.value - 1];
+      const rest = ws.slice(ri + 1 + n1.end + 1);
+      const nameText = `رقم ${n1.value}`;
+      if (!st) return { type: 'unknown', text: `لا يوجد طالب برقم ${n1.value}` };
+      const candidates = [{ student: st, score: 1 }];
+      if (hasAbsent || hasExempt) return { type: 'mark', mark: hasAbsent ? 'absent' : 'exempt', candidates, nameText };
+      const n2 = findNumber(rest);
+      if (n2) return { type: 'grade', value: n2.value, candidates, nameText };
+      return { type: 'select', candidates, nameText };
+    }
+  }
+
   const nameTokens = ws.filter((w, i) => {
     if (num && i >= num.start && i <= num.end) return false;
     if (FILLER.has(w)) return false;
@@ -391,7 +415,7 @@ export function parseCommand(text: string, students: Student[], opts: { ordered?
   const candidates = nameText ? matchStudents(nameText, students) : [];
 
   if (hasAbsent || hasExempt) {
-    if (!nameText) return { type: 'absent' };
+    if (!nameText) return hasAbsent ? { type: 'absent' } : { type: 'exempt' };
     return { type: 'mark', mark: hasAbsent ? 'absent' : 'exempt', candidates, nameText };
   }
   if (num) {
@@ -492,4 +516,30 @@ export function numberToArabicWords(n: number): string {
   else if (Math.abs(frac - 0.25) < 1e-9) s += ' وربع';
   else if (frac > 1e-9) s = String(n);
   return s;
+}
+
+// ------------------------------------------------------------------ تنظيف نص التعرّف داخل الجهاز (Whisper)
+/** عبارات يخترعها Whisper عند الصمت أو الضوضاء — تُهمل */
+const HALLUCINATIONS = [/ترجمة/, /اشترك/, /القناة/, /شكرا للمشاهدة/, /موسيقى/, /نانسي/];
+
+export function cleanTranscript(text: string): string {
+  // الفاصلة بين رقمين عشرية (٨٠٫٥)، وغيرها من علامات الترقيم تُحذف
+  const t = text.replace(/(\d)[,،](\d)/g, '$1.$2').replace(/[.،,!?؟؛:"'«»()[\]…-]+(?!\d)/g, ' ').replace(/\s+/g, ' ').trim();
+  // لا حروف ولا أرقام (\W في JavaScript يعدّ الحروف العربية «غير كلمة»، فنفحص بخصائص Unicode)
+  if (!t || !/[\p{L}\p{N}]/u.test(t)) return '';
+  if (HALLUCINATIONS.some((r) => r.test(t))) return '';
+  // تكرار لا ينتهي («كيكيكيكي…»): كلمة طويلة جداً أو نص طويل لجملة درجة
+  const words = t.split(' ');
+  if (words.some((w) => w.length > 24) || t.length > 120) return '';
+  // عبارة تتكرر ٣ مرات فأكثر («يجب أن يجب أن يجب أن…») = هلوسة النموذج
+  for (let n = 1; n <= 3; n++) {
+    const seen = new Map<string, number>();
+    for (let i = 0; i + n <= words.length; i++) {
+      const k = words.slice(i, i + n).join(' ');
+      const c = (seen.get(k) ?? 0) + 1;
+      seen.set(k, c);
+      if (c >= 4 || (n > 1 && c >= 3)) return '';
+    }
+  }
+  return t;
 }

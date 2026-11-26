@@ -1,5 +1,5 @@
-import { buildYearSet, gradeId, schoolYear, uuid, type GradeMark, type YearPlan } from '@nahj/shared';
-import { get, insertMany, upsert } from './db';
+import { buildYearSet, defaultBoost, gradeId, schoolYear, uuid, type Gradebook, type GradeMark, type YearPlan } from '@nahj/shared';
+import { get, insertMany, updateMany, upsert } from './db';
 
 /** يكتب درجة طالب في عمود (value = null يمسحها) */
 export function setGrade(bookId: string, studentId: string, columnId: string, value: number | null, mark: GradeMark | null = null) {
@@ -23,6 +23,25 @@ export function createYearSet(sectionIds: string[], plan: YearPlan): string[] {
     first.push(specs[0].id);
   }
   return first;
+}
+
+/**
+ * يطبّق قواعد الدرجات على سجلات موجودة: حد النجاح، ونطاق الدرجات الحرجة في الأعمدة المحسوبة التي فيها تنبيه
+ * (below = ٠ يلغي التنبيه). الدرجات نفسها لا تتغير — فقط الحكم (ناجح/راسب) والتنبيه.
+ */
+export function applyGradeRules(books: Gradebook[], rules: { pass: number; below: number }) {
+  updateMany('gradebooks', books.map((b) => ({
+    id: b.id,
+    patch: {
+      result: { ...b.result, pass: rules.pass },
+      columns: b.columns.map((c) => {
+        // التنبيه في السعي والأعمدة التي كان فيها تنبيه (لا نضيفه لأعمدة الإدخال)
+        const eligible = c.kind === 'formula' && (!!c.boost || (b.group_id && b.role !== 'month' && b.role !== 'mid' && c.id === b.result.column_id));
+        if (!eligible) return c;
+        return { ...c, boost: rules.below > 0 ? defaultBoost(c.max, rules.pass, rules.below) : null };
+      }),
+    },
+  })));
 }
 
 /** يرفع (أو يعيد) درجات حرجة: تعديل يدوي على عمود محسوب، أو حذفه للعودة إلى الحساب */

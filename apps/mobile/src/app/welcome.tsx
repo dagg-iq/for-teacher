@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, LogoMark, Wordmark, type IconName } from '@/components/icon';
 import { enter, PressScale } from '@/components/motion';
 import { Button, Chip, Field, Row, Segmented, T } from '@/components/ui';
-import { setSettings, useSettings } from '@/data/db';
+import { setSettings, useSettings, getSettings } from '@/data/db';
 import { seedDemo } from '@/data/demo';
 import { isConfigured } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
@@ -76,11 +76,13 @@ function ProfileForm({ onBack }: { onBack: () => void }) {
 
   const ok = name.trim().length >= 2;
   const save = (demo: boolean) => {
-    const profile: TeacherProfile = { name: name.trim(), gender, subject: subject.trim(), school: school.trim(), governorate: gov, year: schoolYear() };
+    const profile: TeacherProfile = { name: name.trim(), gender, subject: subject.trim(), school: school.trim(), governorate: gov, };
     if (demo) {
       seedDemo();
-      setSettings({ profile: { ...profile, name: profile.name || 'محمد حازم' } });
-      toast('أُضيفت بيانات تجريبية — يمكنك حذفها من الإعدادات', { icon: 'sparkle' });
+      // ما كتبه المدرس يبقى، والفارغ يُكمَل من ملف البيانات التجريبية (حتى لا تظهر الطباعة بلا مدرسة ولا مادة)
+      const demoProfile = getSettings().profile;
+      setSettings({ profile: { ...profile, name: profile.name || demoProfile?.name || 'محمد حازم', subject: profile.subject || demoProfile?.subject || '', school: profile.school || demoProfile?.school || '' } });
+      toast('أُضيفت بيانات تجريبية للتجربة — لمسحها لاحقاً: الإعدادات ← مسح كل البيانات', { icon: 'sparkle' });
     } else {
       setSettings({ profile });
     }

@@ -1,4 +1,4 @@
-import { arDigits, columnStats, formatScore , formatPercent } from '@nahj/shared';
+import { arDigits, columnStats, formatScore , formatPercent, countStudents} from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -46,7 +46,7 @@ export default function Stats() {
             <Pill label={`ناجح ${arDigits(st.passCount)}`} tone="good" />
             <Pill label={`راسب ${arDigits(st.failCount)}`} tone="bad" />
           </Row>
-          <T dim size={13}>من {arDigits(st.count)} طالباً أُدخلت درجاتهم{missing.length ? ` · ينقص ${arDigits(missing.length)}` : ''}</T>
+          <T dim size={13}>أُدخلت درجات {countStudents(st.count)}{missing.length ? ` · ينقص ${arDigits(missing.length)}` : ''}</T>
         </View>
       </Card>
       <View style={{ flexDirection: 'row', gap: 10 }}>

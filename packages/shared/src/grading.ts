@@ -83,6 +83,8 @@ export interface YearPlan {
   boostBelow?: number;
   /** إضافة الامتحان النهائي والنتيجة النهائية = (السعي + النهائي) ÷ ٢ */
   withFinal?: boolean;
+  /** تقريب السعي (الافتراضي: لأقرب عدد صحيح) */
+  round?: 'none' | 'int' | '1dp';
 }
 
 export interface BookSpec {
@@ -105,6 +107,7 @@ export interface BookSpec {
 export function buildYearSet(plan: YearPlan): BookSpec[] {
   const pass = plan.pass ?? 50;
   const below = plan.boostBelow ?? 3;
+  const round = plan.round ?? 'int';
   const specs: BookSpec[] = [];
   let ord = 0;
   const add = (title: string, role: BookRole, b: { columns: GradeColumn[]; result: ResultRule }) => {
@@ -120,7 +123,7 @@ export function buildYearSet(plan: YearPlan): BookSpec[] {
     const max = Math.max(a.total.max, b.total.max);
     const la = linkCol('الشهر الأول', a.total.max, a.spec.id, a.total.id);
     const lb = linkCol('الشهر الثاني', b.total.max, b.spec.id, b.total.id);
-    const t = formulaCol(title, max, `(${ref(la)} + ${ref(lb)}) / 2`, 'int', below ? { boost: defaultBoost(max, pass, below) } : {});
+    const t = formulaCol(title, max, `(${ref(la)} + ${ref(lb)}) / 2`, round, below ? { boost: defaultBoost(max, pass, below) } : {});
     const columns = [la, lb, t];
     return { spec: add(title, 'term', { columns, result: { column_id: t.id, pass, bands: [] } }), total: t };
   };
@@ -138,13 +141,13 @@ export function buildYearSet(plan: YearPlan): BookSpec[] {
   const a = linkCol('سعي الفصل الأول', t1.total.max, t1.spec.id, t1.total.id);
   const b = linkCol('نصف السنة', mid.total.max, mid.spec.id, mid.total.id);
   const c = linkCol('سعي الفصل الثاني', t2.total.max, t2.spec.id, t2.total.id);
-  const annual = formulaCol('السعي السنوي', max, `(${ref(a)} + ${ref(b)} + ${ref(c)}) / 3`, 'int', below ? { boost: defaultBoost(max, pass, below) } : {});
+  const annual = formulaCol('السعي السنوي', max, `(${ref(a)} + ${ref(b)} + ${ref(c)}) / 3`, round, below ? { boost: defaultBoost(max, pass, below) } : {});
   const annualSpec = add('السعي السنوي', 'annual', { columns: [a, b, c, annual], result: { column_id: annual.id, pass, bands: [] } });
 
   if (plan.withFinal) {
     const ls = linkCol('السعي السنوي', annual.max, annualSpec.id, annual.id);
     const fin = col('الامتحان النهائي', max);
-    const total = formulaCol('الدرجة النهائية', max, `(${ref(ls)} + ${ref(fin)}) / 2`, 'int', below ? { boost: defaultBoost(max, pass, below) } : {});
+    const total = formulaCol('الدرجة النهائية', max, `(${ref(ls)} + ${ref(fin)}) / 2`, round, below ? { boost: defaultBoost(max, pass, below) } : {});
     add('النتيجة النهائية', 'final', { columns: [ls, fin, total], result: { column_id: total.id, pass, bands: [] } });
   }
   return specs;
@@ -256,9 +259,20 @@ export function buildSheet(book: Pick<Gradebook, 'id' | 'columns' | 'result'>, s
     }
     // الغائب يُحسب صفراً في المعادلات إلا إذا أُعطي درجة؛ المعفى لا يدخل الحساب
     for (const c of book.columns) if (marks[c.id] === 'exempt') inputs[c.id] = null;
-    const hasOverride = Object.keys(overrides).length > 0;
-    const values = evaluateRow(book.columns, inputs, overrides);
-    const raw = hasOverride ? evaluateRow(book.columns, inputs) : values;
+    let hasOverride = Object.keys(overrides).length > 0;
+    let raw = hasOverride ? evaluateRow(book.columns, inputs) : null;
+    if (raw) {
+      // رفع الدرجة الحرجة قرار على قيمة محددة: إن تغيّرت الدرجة المحسوبة (صُحّح شهر مثلاً) وخرجت من النطاق الحرج
+      // يسقط الرفع وتظهر الدرجة الصحيحة — لا تبقى ٥٠ مكان ٦٤
+      for (const c of book.columns) {
+        if (!(c.id in overrides) || !c.boost) continue;
+        const v = raw[c.id];
+        if (v == null || v + 1e-9 < c.boost.from || v >= c.boost.to - 1e-9) delete overrides[c.id];
+      }
+      hasOverride = Object.keys(overrides).length > 0;
+    }
+    const values = evaluateRow(book.columns, inputs, hasOverride ? overrides : undefined);
+    if (!raw || !hasOverride) raw = values;
     const overridden: Record<string, true> = {};
     for (const k of Object.keys(overrides)) overridden[k] = true;
     const critical: Record<string, true> = {};

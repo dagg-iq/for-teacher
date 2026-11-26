@@ -38,6 +38,9 @@ export function arabicError(e: unknown): string {
   if (m.includes('email not confirmed')) return 'أكّد بريدك أولاً من الرسالة التي وصلتك.';
   if (m.includes('network') || m.includes('fetch')) return 'تعذّر الاتصال. تأكد من الإنترنت.';
   if (m.includes('rate limit')) return 'محاولات كثيرة. انتظر قليلاً ثم أعد المحاولة.';
+  if (m.includes('not authorized') && m.includes('email')) return 'تعذّر إرسال البريد إلى هذا العنوان حالياً.';
+  if (m.includes('bucket not found')) return 'التخزين السحابي غير مهيّأ بعد على الخادم.';
+  if (m.includes('signups not allowed') || m.includes('signup is disabled')) return 'إنشاء الحسابات متوقف مؤقتاً.';
   if (m.includes('invalid email') || m.includes('unable to validate email')) return 'البريد الإلكتروني غير صحيح.';
   return e instanceof Error ? e.message : 'حدث خطأ غير متوقع';
 }

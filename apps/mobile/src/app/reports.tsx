@@ -6,9 +6,9 @@ import { Icon } from '@/components/icon';
 import { Pill, Ring } from '@/components/kit';
 import { PressScale } from '@/components/motion';
 import { Button, Card, Chip, Empty, Header, Row, Screen, T } from '@/components/ui';
-import { setSettings, useQuery, useSettings } from '@/data/db';
+import { getLocal, setLocal, useQuery, useSettings } from '@/data/db';
 import { allSections, sectionLabel, sectionReport } from '@/data/queries';
-import { exportSectionReportXlsx, printSectionReport } from '@/lib/export';
+import { exportSectionReportXlsx } from '@/lib/export';
 import { useWide } from '@/lib/hooks';
 import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
@@ -18,18 +18,21 @@ export default function Reports() {
   const params = useLocalSearchParams<{ section?: string }>();
   const { c, tone } = useTheme();
   const wide = useWide();
-  const prefs = useSettings().prefs;
   const sections = useQuery(() => allSections());
-  const [sel, setSel] = useState<string | null>(params.section ?? prefs.lastSection ?? null);
+  const [sel, setSel] = useState<string | null>(params.section ?? getLocal('lastSection'));
   const current = sections.find((s) => s.id === sel) ?? sections[0];
   const rep = useQuery(() => (current ? sectionReport(current.id) : null), [current?.id]);
-  const choose = (id: string) => { setSel(id); setSettings({ prefs: { ...prefs, lastSection: id } }); };
+  const choose = (id: string) => { setSel(id); setLocal('lastSection', id); };
   const run = (fn: () => Promise<void>) => fn().catch((e) => toast(e instanceof Error ? e.message : 'تعذّر', { tone: 'bad', icon: 'info' }));
 
-  // البطاقة الرئيسية: آخر سجل محسوب فيه درجات (السعي السنوي ثم الفصل الثاني ثم الأول…)
-  const RANK = { final: 5, annual: 4, term: 3, mid: 2, month: 1, custom: 0 } as const;
-  const headline = rep?.stages.filter((s) => s.stats?.count)
-    .sort((a, b) => (RANK[a.book.role ?? 'custom'] - RANK[b.book.role ?? 'custom']) || ((a.book.ord ?? 0) - (b.book.ord ?? 0))).at(-1);
+  // البطاقة الرئيسية: آخر مرحلة في السنة فيها درجات كافية (بترتيب السنة: الأشهر، السعي، النصف… السنوي)
+  const minFilled = useSettings().prefs.rateMinFilled ?? 50;
+  const alertAt = useSettings().prefs.absenceAlert ?? 5;
+  const enough = (st: { count: number; total: number } | null | undefined) => !!st && st.count > 0 && (st.count / Math.max(1, st.total)) * 100 + 1e-9 >= minFilled;
+  const inSet = rep?.stages.filter((s) => s.book.group_id && enough(s.stats)) ?? [];
+  const headline = (inSet.length ? inSet : rep?.stages.filter((s) => enough(s.stats)) ?? []).sort((a, b) => (a.book.ord ?? 0) - (b.book.ord ?? 0)).at(-1);
+  const [allAbs, setAllAbs] = useState(false);
+  const empty = !rep || (!rep.stages.length && !rep.absences.length);
   const pending = rep?.stages.filter((s) => s.critical) ?? [];
 
   return (
@@ -43,8 +46,8 @@ export default function Reports() {
             {sections.map((s) => <Chip key={s.id} label={sectionLabel(s.id, true)} active={s.id === current.id} onPress={() => choose(s.id)} />)}
           </ScrollView>
           <Row gap={8}>
-            <Button title="Excel" icon="excel" small variant="secondary" style={{ flex: 1 }} onPress={() => run(() => exportSectionReportXlsx(current.id))} />
-            <Button title="طباعة / PDF" icon="print" small style={{ flex: 1 }} onPress={() => run(() => printSectionReport(current.id, 'print'))} />
+            <Button title="Excel" icon="excel" small variant="secondary" style={{ flex: 1 }} disabled={empty} onPress={() => run(() => exportSectionReportXlsx(current.id))} />
+            <Button title="طباعة / PDF" icon="print" small style={{ flex: 1 }} disabled={empty} onPress={() => router.push(`/print?kind=report&id=${current.id}`)} />
           </Row>
 
           {!rep.stages.length ? (
@@ -59,6 +62,7 @@ export default function Reports() {
                   </Ring>
                   <View style={{ flex: 1, gap: 6 }}>
                     <T weight="bold" size={16}>{headline.book.title}</T>
+                    <T dim size={12}>أُدخلت درجات {arDigits(headline.stats.count)} من {arDigits(headline.stats.total)}</T>
                     <Row gap={6} style={{ flexWrap: 'wrap' }}>
                       <Pill label={`ناجح ${arDigits(headline.stats.passCount)}`} tone="good" small />
                       <Pill label={`راسب ${arDigits(headline.stats.failCount)}`} tone="bad" small />
@@ -97,8 +101,8 @@ export default function Reports() {
                     {wide ? (
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <T weight="bold" size={14} style={{ flex: 2.4 }} lines={1}>{s.book.title}</T>
-                        {[arDigits(s.stats?.count ?? 0), arDigits(s.stats?.passCount ?? 0), arDigits(s.stats?.failCount ?? 0),
-                          s.stats?.passRate == null ? '—' : formatPercent(s.stats.passRate), formatScore(s.stats?.avg), formatScore(s.stats?.max), formatScore(s.stats?.min)].map((v, j) => (
+                        {[s.stats?.count ? `${arDigits(s.stats.count)}/${arDigits(s.stats.total)}` : '—', s.stats?.count ? arDigits(s.stats.passCount) : '—', s.stats?.count ? arDigits(s.stats.failCount) : '—',
+                          !s.stats?.count ? '—' : formatPercent(s.stats.passRate, 1), formatScore(s.stats?.avg), formatScore(s.stats?.max), formatScore(s.stats?.min)].map((v, j) => (
                           <T key={j} size={14} weight={j === 3 ? 'bold' : 'medium'} color={j === 2 && s.stats?.failCount ? tone.bad.ink : c.ink} style={{ flex: 1, textAlign: 'center' }}>{v}</T>
                         ))}
                       </View>
@@ -106,7 +110,7 @@ export default function Reports() {
                       <>
                         <Row style={{ justifyContent: 'space-between' }}>
                           <T weight="bold" size={15} lines={1} style={{ flex: 1 }}>{s.book.title}</T>
-                          {s.stats?.count ? <Pill small label={`نجاح ${formatPercent(s.stats.passRate ?? 0)}`} tone={(s.stats.passRate ?? 0) >= 50 ? 'good' : 'bad'} /> : <T dim size={12}>لا درجات بعد</T>}
+                          {enough(s.stats) ? <Pill small label={`نجاح ${formatPercent(s.stats!.passRate ?? 0, 1)}`} tone={(s.stats!.passRate ?? 0) >= 50 ? 'good' : 'bad'} /> : <T dim size={12}>{s.stats?.count ? `أُدخل ${arDigits(s.stats.count)} من ${arDigits(s.stats.total)}` : 'لا درجات بعد'}</T>}
                         </Row>
                         {s.stats?.count ? (
                           <T dim size={12}>ناجح {arDigits(s.stats.passCount)} · راسب {arDigits(s.stats.failCount)} · المعدل {formatScore(s.stats.avg)} · الأعلى {formatScore(s.stats.max)} · الأدنى {formatScore(s.stats.min)}</T>
@@ -123,14 +127,19 @@ export default function Reports() {
                 <>
                   <Row gap={8}><View style={{ width: 8, height: 8, backgroundColor: c.gold }} /><T weight="bold" size={16}>الغياب</T></Row>
                   <Card style={{ paddingVertical: 4 }}>
-                    {rep.absences.slice(0, 15).map((a, i) => (
+                    {(allAbs ? rep.absences : rep.absences.slice(0, 15)).map((a, i) => (
                       <PressScale key={a.student.id} onPress={() => router.push(`/student/${a.student.id}`)} scaleTo={0.99}
                         style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
                         <T size={14} weight="medium" style={{ flex: 1 }} lines={1}>{a.student.name}</T>
-                        {a.absent ? <Pill small label={`غائب ${arDigits(a.absent)}`} tone={a.absent >= 5 ? 'bad' : 'warn'} /> : null}
+                        {a.absent ? <Pill small label={`غائب ${arDigits(a.absent)}`} tone={a.count >= alertAt ? 'bad' : 'warn'} /> : null}
                         {a.late ? <Pill small label={`متأخر ${arDigits(a.late)}`} tone="neutral" /> : null}
                       </PressScale>
                     ))}
+                    {rep.absences.length > 15 ? (
+                      <PressScale onPress={() => setAllAbs(!allAbs)} style={{ paddingVertical: 12, alignItems: 'center', borderTopWidth: 1, borderTopColor: c.line }}>
+                        <T weight="bold" size={13} color={c.accent}>{allAbs ? 'عرض أقل' : `عرض الكل (${arDigits(rep.absences.length)})`}</T>
+                      </PressScale>
+                    ) : null}
                   </Card>
                 </>
               ) : null}

@@ -18,12 +18,14 @@ export default function Timer() {
   const [left, setLeft] = useState(5 * 60);
   const [running, setRunning] = useState(false);
   const endAt = useRef(0);
+  // التنبيه بالدقيقة الأخيرة مرة واحدة فقط (المؤقت يتحقق ٤ مرات في الثانية)
+  const warned = useRef(false);
   useEffect(() => {
     if (!running) return;
     const t = setInterval(() => {
       const l = Math.max(0, Math.round((endAt.current - Date.now()) / 1000));
       setLeft(l);
-      if (l === 60 && total > 120) say('بقيت دقيقة واحدة');
+      if (l <= 60 && l > 55 && total > 120 && !warned.current) { warned.current = true; say('بقيت دقيقة واحدة'); }
       if (l <= 0) { setRunning(false); tap('success'); say('انتهى الوقت'); }
     }, 250);
     return () => clearInterval(t);
@@ -34,6 +36,7 @@ export default function Timer() {
     const l = left > 0 ? left : total;
     setLeft(l);
     endAt.current = Date.now() + l * 1000;
+    warned.current = l <= 60;
     setRunning(true);
     tap('medium');
   };

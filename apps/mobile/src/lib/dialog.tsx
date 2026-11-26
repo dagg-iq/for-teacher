@@ -40,7 +40,17 @@ function DialogView({ d }: { d: DialogState }) {
   const { c, dark } = useTheme();
   // زر الرجوع يغلق النافذة (كزر الإلغاء إن وُجد)
   useEffect(() => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web') {
+      // الحاسوب: Esc = إلغاء، Enter = الزر الرئيسي (إن كان زراً واحداً غير الإلغاء)
+      const key = (e: KeyboardEvent) => {
+        const cancel = d.buttons.find((b) => b.style === 'cancel');
+        const main = d.buttons.filter((b) => b.style !== 'cancel');
+        if (e.key === 'Escape') { dismiss(d.id); cancel?.onPress?.(); }
+        else if (e.key === 'Enter' && main.length === 1 && main[0].style !== 'destructive') { dismiss(d.id); main[0].onPress?.(); }
+      };
+      window.addEventListener('keydown', key);
+      return () => window.removeEventListener('keydown', key);
+    }
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       const cancel = d.buttons.find((b) => b.style === 'cancel');
       dismiss(d.id);

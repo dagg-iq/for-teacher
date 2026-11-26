@@ -1,8 +1,8 @@
 import {
-  arDigits, countPeriods, DAY_NAMES, DAY_SHORT, formatClock, nowState, periodName, toMinutes, WEEK_ORDER, weeklyLoad, type Slot,
+  arDigits, breaksBetween, countPeriods, DAY_NAMES, DAY_SHORT, formatClock, nowState, periodName, toMinutes, WEEK_ORDER, weeklyLoad, type Slot,
 } from '@nahj/shared';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Icon } from '@/components/icon';
 import { Pill } from '@/components/kit';
@@ -11,7 +11,6 @@ import { Sheet } from '@/components/sheet';
 import { Button, Card, Chip, Empty, Field, Header, IconButton, Row, Screen, Segmented, T } from '@/components/ui';
 import { all, getTimetable, insert, remove, update, useQuery, useSettings } from '@/data/db';
 import { allSections, sectionClass, sectionLabel } from '@/data/queries';
-import { printTimetable } from '@/lib/export';
 import { useNow } from '@/lib/hooks';
 import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
@@ -25,8 +24,9 @@ export default function Schedule() {
   const [day, setDay] = useState(() => (cfg.days.includes(now.getDay()) ? now.getDay() : days[0] ?? 0));
   const [view, setView] = useState<'day' | 'week'>('day');
   const [edit, setEdit] = useState<{ day: number; period: number } | null>(null);
-  const slots = useQuery(() => all('slots'));
-  const load = useQuery(() => weeklyLoad(all('slots')));
+  // حصص في أيام أو أرقام حصص لم تعد ضمن الدوام لا تُحسب (تبقى محفوظة وتعود إن أعيدت)
+  const slots = useQuery(() => all('slots').filter((s) => cfg.days.includes(s.day) && s.period < cfg.periods.length), [cfg]);
+  const load = useMemo(() => weeklyLoad(slots), [slots]);
   const total = slots.filter((s) => s.section_id || s.label).length;
 
   if (!settings.timetable) {
@@ -41,6 +41,7 @@ export default function Schedule() {
   }
 
   const st = nowState(cfg, slots, now);
+  const brk = breaksBetween(cfg.periods, cfg.plan?.gap ?? 5);
   const slotAt = (d: number, p: number) => slots.find((s) => s.day === d && s.period === p);
 
   return (
@@ -48,7 +49,7 @@ export default function Schedule() {
       <Header back={false} title="الجدول" subtitle={`${countPeriods(total)} في الأسبوع`}
         right={(
           <>
-            <IconButton name="print" label="طباعة الجدول" onPress={() => printTimetable().catch((e) => toast(String(e.message ?? e), { tone: 'bad' }))} />
+            <IconButton name="print" label="طباعة الجدول" onPress={() => router.push('/print?kind=timetable')} />
             <IconButton name="settings" label="أوقات الدوام" onPress={() => router.push('/schedule/setup')} />
           </>
         )} />
@@ -67,8 +68,17 @@ export default function Schedule() {
               const k = s?.section_id ? sectionClass(s.section_id) : undefined;
               const live = day === now.getDay() && st.kind === 'in' && st.period === i;
               const past = day === now.getDay() && toMinutes(p.end) <= now.getHours() * 60 + now.getMinutes();
+              const br = brk.find((b) => b.after === i);
               return (
-                <PressScale key={i} onPress={() => setEdit({ day, period: i })} scaleTo={0.98} accessibilityLabel={`الحصة ${periodName(i)}`}
+                <View key={i} style={{ gap: 10 }}>
+                {br ? (
+                  <Row style={{ justifyContent: 'center', gap: 8, paddingVertical: 2 }}>
+                    <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
+                    <T size={12} weight="bold" dim>الفرصة {periodName(brk.indexOf(br))} · {formatClock(br.start)}–{formatClock(br.end)}</T>
+                    <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
+                  </Row>
+                ) : null}
+                <PressScale onPress={() => setEdit({ day, period: i })} scaleTo={0.98} accessibilityLabel={`الحصة ${periodName(i)}`}
                   style={{
                     flexDirection: 'row', alignItems: 'stretch', gap: 12, backgroundColor: live ? c.heroBg : c.card, borderRadius: 22,
                     borderWidth: live ? 0 : 1, borderColor: c.line, padding: 14, opacity: past && !live ? 0.6 : 1,
@@ -91,6 +101,7 @@ export default function Schedule() {
                   </View>
                   {live ? <View style={{ alignSelf: 'center' }}><Pill small label="الآن" tone="info" /></View> : null}
                 </PressScale>
+                </View>
               );
             })}
           </View>
@@ -163,10 +174,15 @@ function SlotEditor({ day, period, slot, onClose }: { day: number; period: numbe
   const [section, setSection] = useState<string | null>(slot?.section_id ?? null);
   const [label, setLabel] = useState(slot?.label ?? '');
   const [room, setRoom] = useState(slot?.room ?? '');
+  const pickSection = (id: string | null) => {
+    setSection(id);
+    if (!slot && id && !room.trim()) setRoom(sections.find((s) => s.id === id)?.room ?? '');
+  };
   const cfg = getTimetable();
   const p = cfg.periods[period];
   const save = () => {
-    const data = { day, period, section_id: section, label: section ? null : label.trim() || null, room: room.trim() || (section ? sections.find((s) => s.id === section)?.room ?? null : null) };
+    // القاعة: ما كتبه المدرس (ويمكن مسحها)، وتُقترح قاعة الشعبة فقط لحصة جديدة
+    const data = { day, period, section_id: section, label: section ? null : label.trim() || null, room: room.trim() || null };
     if (!data.section_id && !data.label) { if (slot) remove('slots', slot.id); onClose(); return; }
     if (slot) update('slots', slot.id, data);
     else insert('slots', data);
@@ -180,7 +196,7 @@ function SlotEditor({ day, period, slot, onClose }: { day: number; period: numbe
         <T weight="bold" size={14}>الشعبة</T>
         {sections.length ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {sections.map((s) => <Chip key={s.id} label={sectionLabel(s.id, true)} active={section === s.id} onPress={() => setSection(section === s.id ? null : s.id)} />)}
+            {sections.map((s) => <Chip key={s.id} label={sectionLabel(s.id, true)} active={section === s.id} onPress={() => pickSection(section === s.id ? null : s.id)} />)}
           </View>
         ) : <T dim size={13}>أضف صفوفك أولاً من تبويب الصفوف.</T>}
         {!section ? <Field label="أو عنوان آخر" value={label} onChangeText={setLabel} placeholder="مثال: إشراف، ريادة، نشاط" /> : null}
@@ -189,7 +205,6 @@ function SlotEditor({ day, period, slot, onClose }: { day: number; period: numbe
           {slot ? <Button title="إفراغ" variant="danger" small onPress={() => { remove('slots', slot.id); onClose(); }} /> : null}
           <Button title="حفظ" icon="check" style={{ flex: 1 }} onPress={save} />
         </Row>
-        <View style={{ height: 1, backgroundColor: c.line }} />
       </View>
     </Sheet>
   );

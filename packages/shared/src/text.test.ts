@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { setDigitStyle } from './format';
 setDigitStyle('arab');
-import { countStudents, iraqiPhone, parseNameList, toCsv } from './text';
+import { countStudents, iraqiPhone, parseNameList, sortArabic, toCsv } from './text';
 import { chunk, mergeRemote, purgeable } from './sync';
 
 describe('name lists', () => {
@@ -70,5 +70,8 @@ describe('digit style', () => {
     setDigitStyle('arab');
     expect(arDigits(78.5)).toBe('٧٨٫٥');
     expect(formatPercent(78)).toBe('٧٨٪');
+  });
+  it('sorts Arabic names like the school register (hamza-insensitive)', () => {
+    expect(sortArabic(['باقر علي', 'احمد كريم', 'آمنة', 'أحمد علي', 'إبراهيم خليل', 'زينب'])).toEqual(['إبراهيم خليل', 'أحمد علي', 'احمد كريم', 'آمنة', 'باقر علي', 'زينب']);
   });
 });

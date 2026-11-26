@@ -157,7 +157,7 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
     }, { ahmad, book, book2 });
     await page.goto(base + `/book/${term1.id}`, { waitUntil: 'networkidle' });
     await wait(1200);
-    ok((await page.getByText(/درجة حرجة قريبة من النجاح/).count()) > 0, 'سعي الفصل: يُحسب من الشهرين وينبّه بالدرجة الحرجة (٤٨)');
+    ok((await page.getByText(/حرجة قريبة من النجاح/).count()) > 0, 'سعي الفصل: يُحسب من الشهرين وينبّه بالدرجة الحرجة (٤٨)');
     await page.getByText('مراجعة', { exact: true }).click();
     await wait(500);
     await page.getByText(/^رفع المحدد/).click();
@@ -205,16 +205,38 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
     const flat = rows.flat().map(String);
     ok(flat.includes('أحمد علي حسين') && flat.includes('55') && wb.Workbook?.Views?.[0]?.RTL && !flat.includes('التقدير'), 'تصدير Excel: الأسماء والدرجات، من اليمين لليسار، وبلا تقدير');
     ok(flat.some((x) => /نسبة النجاح/.test(x)), 'تصدير Excel: فيه الإحصاء');
-    // الطباعة: تفتح نافذة فيها الجدول والترويسة
+    // الطباعة: استوديو بمعاينة A4 مقسّمة صفحات، وخيارات تُطبّق على المعاينة
     await page.getByLabel('خيارات').click();
     await wait(400);
-    const [popup] = await Promise.all([page.waitForEvent('popup'), page.getByText('طباعة', { exact: true }).click()]);
-    await popup.waitForLoadState();
-    const html = await popup.content();
-    ok(/وزارة التربية/.test(html) && /أحمد علي حسين/.test(html) && /@font-face/.test(html), 'الطباعة: ترويسة رسمية وأسماء وخط مضمّن');
-    await popup.setViewportSize({ width: 1123, height: 794 });
-    await popup.screenshot({ path: `${shots}/flow-print.png` });
-    await popup.close();
+    await page.getByText('طباعة / PDF', { exact: true }).click();
+    await page.waitForURL(/\/print/);
+    const preview = async () => {
+      if (!(await page.locator('iframe').count())) { await page.getByText('المعاينة', { exact: true }).click(); await wait(300); }
+      await page.waitForFunction(() => { const f = document.querySelector('iframe'); return !!f?.contentDocument?.body?.classList.contains('ready'); }, null, { timeout: 20000 });
+      return page.evaluate(() => document.querySelector('iframe').contentDocument.documentElement.outerHTML);
+    };
+    let html = await preview();
+    const pages = (html.match(/class="page"/g) || []).length;
+    ok(/وزارة التربية/.test(html) && /أحمد علي حسين/.test(html) && /@font-face/.test(html) && pages >= 1, `الطباعة: معاينة A4 (${pages} صفحة) بترويسة رسمية وأسماء وخط مضمّن`);
+    ok(/أُعدّ بتطبيق نَهج/.test(html) && /صفحة <i class="pn">1<\/i> من/.test(html), 'الطباعة: علامة نَهج وأرقام الصفحات');
+    await page.getByText('التنسيق', { exact: true }).click();
+    await wait(300);
+    await page.getByText('علامة نَهج', { exact: true }).click();
+    await page.getByText('عصري', { exact: true }).click();
+    await wait(900);
+    html = await preview();
+    ok(!/أُعدّ بتطبيق نَهج/.test(html) && /#0B6E5E/.test(html), 'الطباعة: إخفاء علامة نَهج وتغيير القالب يظهران في المعاينة');
+    const pp = await page.evaluate(() => JSON.parse(localStorage.getItem('nahj.settings')).prefs.print);
+    ok(pp?.brand === false && pp?.theme === 'modern', 'الطباعة: التنسيق محفوظ');
+    await page.getByText('الأقسام', { exact: true }).click();
+    await wait(300);
+    await page.getByLabel('تحريك الإحصاء للأعلى').click();
+    await wait(900);
+    html = await preview();
+    ok(html.indexOf('الإحصاء —') > -1 && html.indexOf('الإحصاء —') < html.indexOf('<table class="t"'), 'الطباعة: ترتيب الأقسام (الإحصاء قبل الجدول)');
+    await page.getByText('المعاينة', { exact: true }).click();
+    await wait(500);
+    await page.screenshot({ path: `${shots}/flow-print.png` });
   }
 
   // ٥د) تقرير الشعبة: Excel بأوراق الملخص والسجل الشامل، وطباعة
@@ -227,10 +249,11 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
     const XLSX = require('xlsx');
     const wb = XLSX.read(require('fs').readFileSync(await dl.path()));
     ok(['الملخص', 'السجل الشامل', 'الراسبون', 'الغياب'].every((n) => wb.SheetNames.includes(n)), 'التقرير Excel: الملخص والسجل الشامل والراسبون والغياب');
-    const [popup] = await Promise.all([page.waitForEvent('popup'), page.getByText('طباعة / PDF', { exact: true }).click()]);
-    await popup.waitForLoadState();
-    ok(/تقرير الشعبة/.test(await popup.content()), 'التقرير: طباعة PDF');
-    await popup.close();
+    await page.getByText('طباعة / PDF', { exact: true }).click();
+    await page.waitForURL(/\/print/);
+    await page.waitForFunction(() => { const f = document.querySelector('iframe'); return !!f?.contentDocument?.body?.classList.contains('ready'); }, null, { timeout: 20000 });
+    const rh = await page.evaluate(() => document.querySelector('iframe').contentDocument.documentElement.outerHTML);
+    ok(/تقرير الشعبة/.test(rh) && /السجل الشامل/.test(rh), 'التقرير: معاينة الطباعة');
   }
 
   // ٦) الحضور
@@ -240,14 +263,56 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   await wait(400);
   const att = await db('attendance');
   ok(att.length === 5 && att.filter((a) => a.status === 'absent').length === 1, 'الحضور: غائب واحد والباقون حاضرون');
+  ok((await page.getByText(/\d{2}\/\d{2}\/\d{4}/).count()) > 0 && (await page.getByText(/تشرين|كانون/).count()) === 0, 'الحضور: التاريخ رقمي بلا أسماء أشهر');
+  await page.getByLabel(/أحمد علي حسين: متأخر/).click();
+  await wait(300);
+  await page.getByText('سجل الغياب', { exact: true }).click();
+  await wait(600);
+  ok((await page.getByText(/زيد خالد/).count()) > 0 && (await page.getByText(/غائب 1|غائب ١/).count()) > 0 && (await page.getByText(/أحمد علي حسين/).count()) > 0, 'سجل الغياب: الغائب والمتأخر بالأسماء');
 
-  // ٧) الجدول
+  // ٦ب) ترقيم الطلاب: الطالب الجديد يأخذ مكانه الأبجدي ورقمه = مكانه، والرقم نفسه في الحضور
+  await page.goto(base + `/section/${sec.id}`, { waitUntil: 'networkidle' });
+  await wait(800);
+  await page.getByPlaceholder('اسم طالب جديد (أو الصق قائمة)').fill('إبراهيم كريم');
+  await page.keyboard.press('Enter');
+  await wait(600);
+  const rowsText = await page.evaluate(() => document.body.innerText);
+  ok(/1\s*\n?\s*إبراهيم كريم/.test(rowsText), 'الطلاب: «إبراهيم» الجديد رقمه ١ (مكانه الأبجدي) لا ٦');
+  await page.goto(base + `/attendance?section=${sec.id}`, { waitUntil: 'networkidle' });
+  await wait(800);
+  const attText = await page.evaluate(() => document.body.innerText);
+  ok(/1\s*\n?\s*إبراهيم كريم/.test(attText), 'الحضور: نفس الرقم (١)');
+
+  // ٧) الجدول: فرصة ثانية، والحفظ يبقى عند إعادة الفتح
   await page.goto(base + '/schedule/setup', { waitUntil: 'networkidle' });
   await wait(800);
+  await page.getByText('+ إضافة فرصة', { exact: true }).click();
+  await wait(300);
+  await page.getByLabel('زيادة').nth(3).click(); // الاستراحة بين الحصص ٥ ← ٦
+  await wait(300);
   await click('حفظ');
   await wait(800);
   const s2 = await page.evaluate(() => JSON.parse(localStorage.getItem('nahj.settings') || '{}'));
-  ok(s2.timetable?.periods?.length === 6, 'أُعدّ الجدول بستة حصص');
+  ok(s2.timetable?.periods?.length === 6 && s2.timetable?.plan?.breaks?.length === 2 && s2.timetable?.plan?.gap === 6, 'أوقات الدوام: فرصتان واستراحة ٦ دقائق محفوظة');
+  await page.goto(base + '/schedule/setup', { waitUntil: 'networkidle' });
+  await wait(800);
+  ok((await page.getByText('الفرصة الثانية', { exact: true }).count()) > 0, 'أوقات الدوام: الفرصة الثانية تبقى بعد إعادة الفتح');
+  await page.goto(base + '/schedule', { waitUntil: 'networkidle' });
+  await wait(800);
+  ok((await page.getByText(/الفرصة الأولى ·/).count()) > 0, 'الجدول: الفرص ظاهرة بين الحصص');
+
+  // ٨) الإعدادات: كل قسم في صفحته، ودرجة النجاح تُطبّق على السجلات
+  await page.goto(base + '/settings/grades', { waitUntil: 'networkidle' });
+  await wait(800);
+  await page.getByLabel('زيادة').first().click();
+  await wait(200);
+  await click('تطبيق النجاح والحرجة على السجلات الحالية');
+  await click('تطبيق');
+  await wait(500);
+  const bks = await db('gradebooks');
+  ok(bks.length && bks.every((b) => b.result.pass === 51), 'إعدادات الدرجات: حد النجاح ٥١ طُبّق على كل السجلات');
+  const s3 = await page.evaluate(() => JSON.parse(localStorage.getItem('nahj.settings') || '{}'));
+  ok(s3.prefs.passMark === 51, 'إعدادات الدرجات محفوظة');
 
   ok(errors.length === 0, `بلا أخطاء JavaScript ${errors.length ? errors.join(' | ') : ''}`);
   await browser.close();

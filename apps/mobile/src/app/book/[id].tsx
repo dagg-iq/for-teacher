@@ -1,6 +1,5 @@
 import {
-  arDigits, cloneColumns, formatScore, MARK_LABEL, parseNumber, type GradeColumn, type SheetRow,
-} from '@nahj/shared';
+  arDigits, cloneColumns, formatScore, MARK_LABEL, parseNumber, type GradeColumn, type SheetRow, countGrades } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
@@ -9,12 +8,12 @@ import { Pill } from '@/components/kit';
 import { PressScale, tap } from '@/components/motion';
 import { Sheet, SheetItem } from '@/components/sheet';
 import { Button, Card, Chip, Empty, Field, Header, IconButton, Row, Screen, Segmented, T } from '@/components/ui';
-import { get, insert, remove, update, useQuery } from '@/data/db';
+import { all, get, insert, remove, update, useQuery } from '@/data/db';
 import { setGrade, setOverride } from '@/data/grades';
 import { allSections, linkLabel, sectionLabel, sheetOf } from '@/data/queries';
 import { useWide } from '@/lib/hooks';
 import { Alert } from '@/lib/dialog';
-import { exportBookXlsx, printBook } from '@/lib/export';
+import { exportBookXlsx } from '@/lib/export';
 import { fonts, useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
 
@@ -51,9 +50,11 @@ export default function BookScreen() {
   if (!book) return <Screen><Header /><Empty title="السجل غير موجود" /></Screen>;
 
   const run = (fn: () => Promise<void>) => fn().catch((e) => toast(e instanceof Error ? e.message : 'تعذّر', { tone: 'bad', icon: 'info' }));
-  const del = () => Alert.alert('حذف السجل؟', `سيُحذف «${book.title}» وكل درجاته.${book.group_id ? ' السجلات التي تحسب منه (السعي) ستفقد هذه الدرجات.' : ''}`, [
+  // السجلات التي تأخذ منه درجاتها (السعي…) تُذكر بأسمائها قبل الحذف
+  const dependents = all('gradebooks').filter((b) => b.id !== book.id && b.columns.some((x) => x.kind === 'link' && x.source?.book_id === book.id));
+  const del = () => Alert.alert('حذف السجل؟', `سيُحذف «${book.title}» وكل درجاته.${dependents.length ? `\n\nتحذير: ${dependents.map((d) => `«${d.title}»`).join('، ')} ${dependents.length > 1 ? 'تحسب' : 'يحسب'} منه، وستصبح ${dependents.length > 1 ? 'نتائجها' : 'نتيجته'} فارغة. للإخفاء بدل الحذف استعمل «أرشفة».` : ''}`, [
     { text: 'إلغاء', style: 'cancel' },
-    { text: 'حذف', style: 'destructive', onPress: () => { remove('gradebooks', book.id); toast('حُذف السجل', { icon: 'trash' }); router.back(); } },
+    { text: 'حذف', style: 'destructive', onPress: () => { remove('gradebooks', book.id); toast('حُذف السجل', { icon: 'trash' }); if (router.canGoBack()) router.back(); else router.replace('/grades'); } },
   ]);
   const sources = [...new Map(book.columns.filter((x) => x.kind === 'link' && x.source).map((x) => [x.source!.book_id, get('gradebooks', x.source!.book_id)])).values()].filter(Boolean);
   const critical = rows.reduce((n, r) => n + Object.keys(r.critical).length, 0);
@@ -67,7 +68,7 @@ export default function BookScreen() {
           right={(
             <>
               {inputs.length ? <IconButton name="mic" label="إدخال صوتي" filled onPress={() => router.push(`/voice?book=${book.id}${activeCol ? `&column=${activeCol.id}` : ''}`)} /> : null}
-              <IconButton name="more" label="خيارات" onPress={() => setMenu(true)} />
+              <IconButton name="more-v" label="خيارات" onPress={() => setMenu(true)} />
             </>
           )} />
         {sources.length ? (
@@ -81,7 +82,7 @@ export default function BookScreen() {
             style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, backgroundColor: tone.warn.bg }}>
             <Icon name="info" size={20} color={tone.warn.ink} />
             <View style={{ flex: 1 }}>
-              <T weight="bold" size={14} color={tone.warn.ink}>{arDigits(critical)} درجة حرجة قريبة من النجاح</T>
+              <T weight="bold" size={14} color={tone.warn.ink}>{countGrades(critical)} حرجة قريبة من النجاح</T>
               <T size={12} color={tone.warn.ink}>راجعها وقرر رفعها إلى درجة النجاح — لا يتغير شيء بدون موافقتك.</T>
             </View>
             <T weight="bold" size={13} color={tone.warn.ink}>مراجعة</T>
@@ -114,8 +115,7 @@ export default function BookScreen() {
       <Sheet visible={menu} onClose={() => setMenu(false)}>
         <SheetItem icon="excel" label="تصدير Excel" onPress={() => { setMenu(false); run(() => exportBookXlsx(book.id)); }} />
         {inputs.length ? <SheetItem icon="upload" label="استيراد درجات من Excel" onPress={() => { setMenu(false); router.push(`/book/import?id=${book.id}`); }} /> : null}
-        <SheetItem icon="print" label="طباعة" onPress={() => { setMenu(false); run(() => printBook(book.id, 'print')); }} />
-        <SheetItem icon="share" label="مشاركة PDF" onPress={() => { setMenu(false); run(() => printBook(book.id, 'pdf')); }} />
+        <SheetItem icon="print" label="طباعة / PDF" onPress={() => { setMenu(false); router.push(`/print?kind=book&id=${book.id}`); }} />
         {!book.group_id ? <SheetItem icon="copy" label="نسخ السجل لشعبة أخرى" onPress={() => { setMenu(false); setCopy(true); }} /> : null}
         <SheetItem icon="edit" label="إعادة التسمية" onPress={() => { setMenu(false); setRename(true); }} />
         <SheetItem icon="pin" label={book.pinned ? 'إلغاء التثبيت' : 'تثبيت في الأعلى'} onPress={() => { setMenu(false); update('gradebooks', book.id, { pinned: !book.pinned }); }} />
@@ -262,7 +262,8 @@ function GridCell({ bookId, studentId, col, value, mark, inputRef, onDown, onUp,
   inputRef: (el: TextInput | null) => void; onDown: () => void; onUp: () => void; onNextCol: () => void;
 }) {
   const { c, tone } = useTheme();
-  const shown = mark === 'absent' && value == null ? 'غ' : value == null ? '' : arDigits(value);
+  // الغائب يُحسب صفراً في المعادلات، لكنه يُعرض «غ» لا «0»
+  const shown = mark === 'absent' && (value == null || value === 0) ? 'غ' : mark === 'exempt' ? 'م' : mark === 'cheat' ? 'غش' : value == null ? '' : arDigits(value);
   const [text, setText] = useState(shown);
   const [bad, setBad] = useState(false);
   useEffect(() => { setText(shown); }, [shown]);
@@ -271,14 +272,19 @@ function GridCell({ bookId, studentId, col, value, mark, inputRef, onDown, onUp,
     if (s === shown) return true;
     if (!s) { setGrade(bookId, studentId, col.id, null, null); setBad(false); return true; }
     if (s === 'غ' || s === 'غائب') { setGrade(bookId, studentId, col.id, null, 'absent'); setBad(false); return true; }
+    // «م» معفى (لا يدخل الحساب)، «غش» يُحسب صفراً
+    if (s === 'م' || s === 'معفى' || s === 'معفي') { setGrade(bookId, studentId, col.id, null, 'exempt'); setBad(false); return true; }
+    if (s === 'غش') { setGrade(bookId, studentId, col.id, 0, 'cheat'); setBad(false); return true; }
     const n = parseNumber(s);
-    if (n == null || n < 0 || n > col.max) { setBad(true); toast(n != null && n > col.max ? `الدرجة أكبر من العظمى (${arDigits(col.max)})` : 'اكتب رقماً أو «غ» للغائب', { tone: 'bad', icon: 'info' }); return false; }
+    if (n == null || n < 0 || n > col.max) { setBad(true); toast(n != null && n > col.max ? `الدرجة أكبر من العظمى (${arDigits(col.max)})` : 'اكتب رقماً، أو «غ» للغائب، «م» للمعفى، «غش»', { tone: 'bad', icon: 'info' }); return false; }
     setBad(false);
     setGrade(bookId, studentId, col.id, n, null);
     return true;
   };
   return (
-    <TextInput ref={inputRef} value={text} onChangeText={(t) => { setText(t); setBad(false); }} onBlur={commit}
+    <TextInput ref={inputRef} value={text} onChangeText={(t) => { setText(t); setBad(false); }}
+      // قيمة غير صالحة عند مغادرة الخانة: تعود الخانة للدرجة المحفوظة (لا تبقى قيمة ظاهرة غير محفوظة)
+      onBlur={() => { if (!commit()) { setText(shown); setBad(false); } }}
       onSubmitEditing={() => { if (commit()) onDown(); }} blurOnSubmit={false} selectTextOnFocus keyboardType="decimal-pad"
       onKeyPress={Platform.OS === 'web' ? (e) => {
         const k = (e.nativeEvent as { key?: string }).key;
@@ -314,7 +320,7 @@ function EntryList({ bookId, columns, active, onColumn, rows, decider, focusStud
       </ScrollView>
       <Row style={{ justifyContent: 'space-between' }}>
         <T size={13} weight="bold" style={{ flexShrink: 1 }} lines={1}>{active.name} <T dim size={13}>· من {arDigits(active.max)} · أُدخل {arDigits(filled)} من {arDigits(rows.length)}</T></T>
-        <T dim size={12}>«غ» = غائب</T>
+        <T dim size={12}>«غ» غائب · «م» معفى · «غش»</T>
       </Row>
       <Card style={{ paddingVertical: 4 }}>
         {rows.map((r, i) => (
@@ -333,8 +339,9 @@ function EntryRow({ row, index, col, bookId, decider, inputRef, onNext, divider,
   inputRef: (el: TextInput | null) => void; onNext: () => void; divider: boolean; lineColor: string;
 }) {
   const { c, tone } = useTheme();
-  const v = row.values[col.id];
   const mark = row.marks[col.id] ?? null;
+  // الغائب يُعرض «غائب» لا «0»
+  const v = (mark === 'absent' || mark === 'cheat') && !row.values[col.id] ? null : row.values[col.id];
   const [text, setText] = useState(v == null ? '' : arDigits(v));
   const [bad, setBad] = useState(false);
   useEffect(() => { setText(v == null ? '' : arDigits(v)); }, [v]);
@@ -346,8 +353,11 @@ function EntryRow({ row, index, col, bookId, decider, inputRef, onNext, divider,
       setBad(false);
       return true;
     }
+    if (s === 'غ' || s === 'غائب') { setGrade(bookId, row.student.id, col.id, null, 'absent'); setBad(false); return true; }
+    if (s === 'م' || s === 'معفى' || s === 'معفي') { setGrade(bookId, row.student.id, col.id, null, 'exempt'); setBad(false); return true; }
+    if (s === 'غش') { setGrade(bookId, row.student.id, col.id, 0, 'cheat'); setBad(false); return true; }
     const n = parseNumber(s);
-    if (n == null || n < 0) { setBad(true); toast('اكتب رقماً صحيحاً', { tone: 'bad', icon: 'info' }); return false; }
+    if (n == null || n < 0) { setBad(true); toast('اكتب رقماً، أو «غ» للغائب، «م» للمعفى، «غش»', { tone: 'bad', icon: 'info' }); return false; }
     if (n > col.max) { setBad(true); tap('medium'); toast(`الدرجة أكبر من العظمى (${arDigits(col.max)})`, { tone: 'bad', icon: 'info' }); return false; }
     setBad(false);
     if (n !== v || mark) setGrade(bookId, row.student.id, col.id, n, null);
@@ -377,7 +387,7 @@ function EntryRow({ row, index, col, bookId, decider, inputRef, onNext, divider,
         ref={inputRef}
         value={mark === 'absent' && !text ? '' : text}
         onChangeText={(t) => { setText(t); setBad(false); }}
-        onBlur={() => commit(text)}
+        onBlur={() => { if (!commit(text)) { setText(v == null ? '' : arDigits(v)); setBad(false); } }}
         onSubmitEditing={() => { if (commit(text)) onNext(); }}
         blurOnSubmit={false}
         returnKeyType="next"

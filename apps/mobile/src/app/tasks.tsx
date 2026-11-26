@@ -1,6 +1,6 @@
 import { arDigits, formatDayDate, formatTime, relativeDays, TASK_KIND_LABEL, type Task, type TaskKind } from '@nahj/shared';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Icon, type IconName } from '@/components/icon';
 import { Pill, ToggleRow } from '@/components/kit';
 import { PressScale, tap } from '@/components/motion';
@@ -10,7 +10,9 @@ import { Button, Card, Chip, Empty, Fab, Field, Header, IconButton, Row, Screen,
 import { all, insert, remove, update, useQuery } from '@/data/db';
 import { allSections, sectionLabel } from '@/data/queries';
 import { ensurePermission } from '@/lib/notify';
+import { Alert } from '@/lib/dialog';
 import { useTheme } from '@/lib/theme';
+import { toast } from '@/lib/toast';
 
 const KIND_ICON: Record<TaskKind, IconName> = { task: 'flag', exam: 'quiz', event: 'star', meeting: 'users', holiday: 'sun' };
 const REMIND: { v: number | null; label: string }[] = [
@@ -70,15 +72,20 @@ function TaskEditor({ task, onClose }: { task: Task | null; onClose: () => void 
   const [kind, setKind] = useState<TaskKind>(task?.kind ?? 'task');
   const [hasDue, setHasDue] = useState(task ? !!task.due : true);
   const [due, setDue] = useState(() => { if (task?.due) return new Date(task.due); const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(8, 0, 0, 0); return d; });
-  const [remind, setRemind] = useState<number | null>(task?.remind ?? 1440);
+  // الافتراضي: تذكير قبل ساعتين (تذكير «قبل يوم» لموعد الغد الساعة ٨ يكون قد فات)
+  const [remind, setRemind] = useState<number | null>(task?.remind ?? 120);
   const [section, setSection] = useState<string | null>(task?.section_id ?? null);
   const sections = allSections();
   const save = async () => {
     const data = { title: title.trim(), note: note.trim() || null, kind, due: hasDue ? due.toISOString() : null, remind: hasDue ? remind : null, section_id: section };
     if (task) update('tasks', task.id, data);
     else insert('tasks', { ...data, done: false });
-    if (hasDue && remind != null) await ensurePermission(true).catch(() => false);
     onClose();
+    if (hasDue && remind != null) {
+      const at = due.getTime() - remind * 60000;
+      if (at <= Date.now()) toast('وقت التذكير قد فات — اختر تذكيراً أقرب للموعد', { tone: 'bad', icon: 'bell-off' });
+      else if (!(await ensurePermission(true).catch(() => false))) toast(Platform.OS === 'web' ? 'التذكير يعمل على تطبيق الهاتف' : 'اسمح بالإشعارات ليصلك التذكير', { icon: 'bell-off' });
+    }
   };
   return (
     <Sheet visible onClose={onClose}>
@@ -93,10 +100,15 @@ function TaskEditor({ task, onClose }: { task: Task | null; onClose: () => void 
         {hasDue ? (
           <>
             <WhenPicker value={due} onChange={setDue} />
+            <T weight="bold" size={14}>التذكير</T>
             <Row gap={6} style={{ flexWrap: 'wrap' }}>
               {REMIND.map((r) => <Chip key={String(r.v)} small label={r.label} active={remind === r.v} onPress={() => setRemind(r.v)} />)}
             </Row>
+            {remind != null && due.getTime() - remind * 60000 <= Date.now() ? <T size={12} color="#B3261E">وقت هذا التذكير قد فات.</T> : null}
           </>
+        ) : null}
+        {sections.length ? (
+          <T weight="bold" size={14}>الشعبة (اختياري)</T>
         ) : null}
         {sections.length ? (
           <Row gap={6} style={{ flexWrap: 'wrap' }}>
@@ -104,7 +116,7 @@ function TaskEditor({ task, onClose }: { task: Task | null; onClose: () => void 
           </Row>
         ) : null}
         <Row gap={8}>
-          {task ? <Button title="حذف" variant="danger" small onPress={() => { remove('tasks', task.id); onClose(); }} /> : null}
+          {task ? <Button title="حذف" variant="danger" small onPress={() => Alert.alert('حذف المهمة؟', task.title, [{ text: 'إلغاء', style: 'cancel' }, { text: 'حذف', style: 'destructive', onPress: () => { remove('tasks', task.id); onClose(); toast('حُذفت', { icon: 'trash' }); } }])} /> : null}
           <Button title="حفظ" icon="check" style={{ flex: 1 }} disabled={!title.trim()} onPress={save} />
         </Row>
         {hasDue ? <Pill small label={`${formatDayDate(due)} · ${formatTime(due)}`} tone="info" /> : null}

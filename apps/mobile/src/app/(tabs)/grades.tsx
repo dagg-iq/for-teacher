@@ -1,13 +1,13 @@
-import { arDigits, formatPercent, type Gradebook } from '@nahj/shared';
+import { arDigits, formatPercent, formatYear, type Gradebook } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Icon } from '@/components/icon';
 import { Pill } from '@/components/kit';
 import { PressScale } from '@/components/motion';
-import { Card, Chip, Empty, Fab, Header, Row, Screen, T } from '@/components/ui';
-import { get, setSettings, useQuery, useSettings } from '@/data/db';
-import { allSections, booksOfSection, bookProgress, bookStats, criticalCount, sectionClass, sectionLabel } from '@/data/queries';
+import { Card, Chip, Empty, Fab, Header, IconButton, Row, Screen, T } from '@/components/ui';
+import { get, getLocal, setLocal, useQuery, useSettings } from '@/data/db';
+import { allSections, booksOfSection, bookProgress, criticalCount, resultStats, sectionClass, sectionLabel } from '@/data/queries';
 import { useWide } from '@/lib/hooks';
 import { useTheme } from '@/lib/theme';
 
@@ -23,13 +23,12 @@ const STAGES: { title: string; from: number; to: number }[] = [
 export default function Grades() {
   const params = useLocalSearchParams<{ section?: string }>();
   const { c, hue } = useTheme();
-  const prefs = useSettings().prefs;
   const sections = useQuery(() => allSections());
-  const [sel, setSel] = useState<string | null>(params.section ?? prefs.lastSection ?? null);
+  const [sel, setSel] = useState<string | null>(params.section ?? getLocal('lastSection'));
   const [archived, setArchived] = useState(false);
   useEffect(() => { if (params.section) setSel(params.section); }, [params.section]);
   const current = sections.find((s) => s.id === sel) ?? sections[0];
-  const choose = (id: string) => { setSel(id); setSettings({ prefs: { ...prefs, lastSection: id } }); };
+  const choose = (id: string) => { setSel(id); setLocal('lastSection', id); };
   const data = useQuery(() => (current ? booksOfSection(current.id, archived) : null), [current?.id, archived]);
   const k = current ? sectionClass(current.id) : undefined;
   const wide = useWide();
@@ -37,7 +36,13 @@ export default function Grades() {
   return (
     <View style={{ flex: 1 }}>
       <Screen wide={wide}>
-        <Header back={false} title="الدرجات" subtitle={current ? sectionLabel(current.id) : 'سجلات الدرجات لكل شعبة'} />
+        <Header back={false} title="الدرجات" subtitle={current ? sectionLabel(current.id) : 'سجلات الدرجات لكل شعبة'}
+          right={(
+            <>
+              {current ? <IconButton name="mic" label="الإدخال الصوتي" onPress={() => router.push(`/voice?section=${current.id}`)} /> : null}
+              <IconButton name="settings" label="إعدادات الدرجات" onPress={() => router.push('/settings/grades')} />
+            </>
+          )} />
         {!sections.length ? (
           <Card><Empty icon="school" title="أضف صفوفك أولاً" body="سجلات الدرجات تُنشأ لكل شعبة." action="إضافة صف" onAction={() => router.push('/class/new')} /></Card>
         ) : (
@@ -56,7 +61,7 @@ export default function Grades() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <T weight="bold" size={18} color={c.heroInk}>ابدأ سجلات السنة</T>
-                      <T size={13} color={c.heroInk2}>لـ{sectionLabel(current!.id)}</T>
+                      <T size={13} color={c.heroInk2}>{sectionLabel(current!.id)}</T>
                     </View>
                     <Icon name="forward" size={20} color={c.heroInk} />
                   </Row>
@@ -70,7 +75,7 @@ export default function Grades() {
                 <Row style={{ justifyContent: 'space-between' }}>
                   <Row gap={8}>
                     <View style={{ width: 8, height: 8, backgroundColor: c.gold }} />
-                    <T weight="bold" size={16}>سجلات السنة {set.year ? arDigits(set.year) : ''}</T>
+                    <T weight="bold" size={16}>سجلات السنة {set.year ? formatYear(set.year) : ''}</T>
                   </Row>
                   <Chip small label="التقرير" onPress={() => router.push(`/reports?section=${current!.id}`)} />
                 </Row>
@@ -113,12 +118,20 @@ export default function Grades() {
   );
 }
 
+/** ما ينتظره السجل المحسوب قبل أن يظهر فيه شيء */
+const WAITING: Record<string, string> = {
+  term: 'يُحسب عند إدخال الشهرين',
+  annual: 'يُحسب من سعي الفصلين ونصف السنة',
+  final: 'يُحسب من السعي والامتحان النهائي',
+};
+
 function BookRow({ book, divider, color }: { book: Gradebook; divider: boolean; color: string }) {
   const { c } = useTheme();
+  const alerts = useSettings().prefs.criticalAlerts;
   const info = useQuery(() => {
     const p = bookProgress(book);
-    const st = bookStats(book);
-    return { p, rate: st && st.stats.count ? st.stats.passRate : null, critical: criticalCount(book) };
+    const st = resultStats(book);
+    return { p, rate: st?.shown ? st.stats.passRate : null, critical: criticalCount(book) };
   }, [book.id]);
   const computed = info.p.computed;
   const pct = info.p.total ? info.p.filled / info.p.total : 0;
@@ -135,14 +148,17 @@ function BookRow({ book, divider, color }: { book: Gradebook; divider: boolean; 
           <T weight="bold" size={15} lines={1} style={{ flexShrink: 1 }}>{book.group_id ? book.title.split(' — ')[0] : book.title}</T>
         </Row>
         {computed ? (
-          <T dim size={12}>{info.p.filled ? `محسوب لـ${arDigits(info.p.filled)} من ${arDigits(info.p.total)} طالب` : 'يُحسب عند إدخال درجات الأشهر'}</T>
+          <T dim size={12}>{info.p.filled ? `حُسب ${arDigits(info.p.filled)} من ${arDigits(info.p.total)}` : WAITING[book.role ?? 'custom'] ?? 'يُحسب عند اكتمال مصادره'}</T>
         ) : (
-          <View style={{ height: 5, borderRadius: 3, backgroundColor: c.line, overflow: 'hidden' }}>
-            <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${pct * 100}%`, backgroundColor: color }} />
-          </View>
+          <Row gap={8}>
+            <View style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: c.line, overflow: 'hidden' }}>
+              <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${pct * 100}%`, backgroundColor: color }} />
+            </View>
+            <T dim size={11}>{arDigits(info.p.filled)}/{arDigits(info.p.total)}</T>
+          </Row>
         )}
       </View>
-      {info.critical ? <Pill small label={`حرجة ${arDigits(info.critical)}`} tone="warn" /> : null}
+      {alerts && info.critical ? <Pill small label={`حرجة ${arDigits(info.critical)}`} tone="warn" /> : null}
       {info.rate != null ? <Pill small label={`نجاح ${formatPercent(info.rate)}`} tone={info.rate >= 50 ? 'good' : 'bad'} /> : null}
       <Icon name="forward" size={16} color={c.ink3} />
     </PressScale>

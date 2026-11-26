@@ -20,7 +20,7 @@ export function ComponentsEditor({ value, onChange }: { value: Component[]; onCh
           <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
             <TextInput value={x.name} onChangeText={(t) => set(i, { name: t })} placeholder="اسم الحقل (مثل التحريري)" placeholderTextColor={c.ink3}
               accessibilityLabel={`اسم الحقل ${i + 1}`}
-              style={{ flex: 1, height: 42, fontFamily: fonts.medium, fontSize: 15, color: c.ink, textAlign: 'right' }} />
+              style={{ flex: 1, minWidth: 0, height: 42, fontFamily: fonts.medium, fontSize: 15, color: c.ink, textAlign: 'right' }} />
             <T dim size={12}>من</T>
             <TextInput value={x.max ? arDigits(x.max) : ''} onChangeText={(t) => set(i, { max: parseNumber(t) ?? 0 })} keyboardType="decimal-pad" selectTextOnFocus
               accessibilityLabel={`عظمى ${x.name || 'الحقل'}`}

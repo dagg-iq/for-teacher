@@ -1,11 +1,10 @@
 import {
-  arDigits, chooseHeard, formatScore, isAmbiguous, isConfident, MARK_LABEL, NUMBER_HINTS, ORDERED_HINTS, parseCommand,
-  type GradeColumn, type GradeMark, type NameCandidate, type Student,
-} from '@nahj/shared';
+  arDigits, chooseHeard, formatPercent, formatScore, isAmbiguous, isConfident, MARK_LABEL, NUMBER_HINTS, ORDERED_HINTS, parseCommand,
+  type GradeColumn, type GradeMark, type NameCandidate, type Student, countStudents } from '@nahj/shared';
 import { useKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ScrollView, TextInput, View } from 'react-native';
+import { Platform, ScrollView, TextInput, View } from 'react-native';
 import Animated, {
   cancelAnimation, Easing, FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming,
 } from 'react-native-reanimated';
@@ -15,10 +14,12 @@ import { Pill, ToggleRow } from '@/components/kit';
 import { PressScale, tap } from '@/components/motion';
 import { Sheet } from '@/components/sheet';
 import { Button, Card, Chip, Empty, Header, IconButton, Row, Screen, Segmented, T } from '@/components/ui';
-import { get, setSettings, useQuery, useSettings } from '@/data/db';
+import { get, setPrefs, useQuery, useSettings } from '@/data/db';
 import { getGrade, setGrade } from '@/data/grades';
 import { allSections, gradebooksOf, sectionLabel, studentsOf } from '@/data/queries';
-import { speechAvailable, useRecognizer } from '@/lib/speech';
+import { pickEngine, speechAvailable, useRecognizer } from '@/lib/speech';
+import { IS_DESKTOP } from '@/lib/config';
+import { WHISPER_MODELS } from '@/lib/whisper';
 import { fonts, useTheme } from '@/lib/theme';
 
 type Mode = 'names' | 'ordered';
@@ -47,7 +48,7 @@ export default function Voice() {
   const presetBook = params.book ? get('gradebooks', params.book) : undefined;
   const [sectionId, setSectionId] = useState<string | null>(presetBook?.section_id ?? params.section ?? null);
   const [bookId, setBookId] = useState<string | null>(presetBook?.id ?? null);
-  const [columnId, setColumnId] = useState<string | null>(params.column ?? null);
+  const [columnId, setColumnId] = useState<string | null>(params.column ?? presetBook?.columns.find((c) => c.kind === 'input')?.id ?? null);
   const [mode, setMode] = useState<Mode>('ordered');
   const [started, setStarted] = useState(false);
 
@@ -73,7 +74,9 @@ function Setup({ sectionId, bookId, columnId, mode, onSection, onBook, onColumn,
 }) {
   const { c } = useTheme();
   const sections = useQuery(() => allSections());
-  const books = useQuery(() => (sectionId ? gradebooksOf(sectionId).filter((b) => !b.archived) : []), [sectionId]);
+  // السجلات التي فيها أعمدة إدخال فقط (السعي محسوب لا يُدخل)، بترتيب السنة
+  const books = useQuery(() => (sectionId ? gradebooksOf(sectionId).filter((b) => !b.archived && b.columns.some((x) => x.kind === 'input'))
+    .sort((a, b) => (a.group_id && b.group_id ? (a.ord ?? 0) - (b.ord ?? 0) : 0)) : []), [sectionId]);
   const book = books.find((b) => b.id === bookId);
   const inputs = book?.columns.filter((x) => x.kind === 'input') ?? [];
   const n = sectionId ? studentsOf(sectionId).length : 0;
@@ -93,7 +96,7 @@ function Setup({ sectionId, bookId, columnId, mode, onSection, onBook, onColumn,
             <Step n={2} title="السجل">
               {books.length ? (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {books.map((b) => <Chip key={b.id} label={b.title} active={b.id === bookId} onPress={() => onBook(b.id)} />)}
+                  {books.map((b) => <Chip key={b.id} label={books.filter((x) => x.title === b.title).length > 1 && b.year ? `${b.title} (${b.year})` : b.title} active={b.id === bookId} onPress={() => onBook(b.id)} />)}
                 </View>
               ) : (
                 <Button title="أنشئ سجلاً لهذه الشعبة" icon="plus" small variant="secondary" onPress={() => router.push(`/book/new?section=${sectionId}`)} />
@@ -117,15 +120,41 @@ function Setup({ sectionId, bookId, columnId, mode, onSection, onBook, onColumn,
               </T>
             </Step>
           ) : null}
+          <EngineNote />
           <Card tone="soft" style={{ gap: 6 }}>
             <T weight="bold" size={14} color={c.softInk}>أوامر تفهمها</T>
-            <T size={13} color={c.softInk}>«نعم» تثبيت فوري · «لا» إلغاء · «تراجع» حذف آخر درجة · «غائب» · «التالي» · «السابق» · «توقف»</T>
+            <T size={13} color={c.softInk}>«نعم» تثبيت فوري · «لا» إلغاء · «تراجع» حذف آخر درجة · «غائب» · «معفى» · «التالي» · «السابق» · «توقف» · «رقم {arDigits(5)} تسعين» للطالب الخامس</T>
           </Card>
-          <Button title={!columnId ? 'ابدأ' : n ? `ابدأ (${arDigits(n)} طالب)` : 'لا طلاب في الشعبة'} icon="mic" disabled={!columnId || !n} onPress={onStart} />
+          <Button title={!columnId ? 'ابدأ' : n ? `ابدأ (${countStudents(n)})` : 'لا طلاب في الشعبة'} icon="mic" disabled={!columnId || !n} onPress={onStart} />
         </>
       )}
     </Screen>
   );
+}
+
+/** حالة محرك الكلام على هذا الجهاز: يُعرف قبل الضغط على الميكروفون لا بعده */
+function EngineNote() {
+  const { tone } = useTheme();
+  const prefs = useSettings().prefs;
+  const engine = pickEngine(prefs.voiceEngine ?? 'auto');
+  const ok = speechAvailable(prefs.voiceEngine ?? 'auto');
+  if (!ok) {
+    return (
+      <Card style={{ gap: 4, backgroundColor: tone.warn.bg, borderWidth: 0 }}>
+        <T weight="bold" size={14} color={tone.warn.ink}>التعرّف على الكلام غير متاح هنا</T>
+        <T size={13} color={tone.warn.ink}>{Platform.OS === 'web' ? 'هذا المتصفح لا يدعم الميكروفون. استعمل Chrome أو Edge أو تطبيق الحاسوب، أو اكتب الأوامر في الجلسة.' : 'ثبّت تطبيق Google (أو «خدمات الكلام من Google») وفعّل الكتابة بالصوت، ثم أعد المحاولة. ويمكنك كتابة الأوامر في الجلسة.'}</T>
+      </Card>
+    );
+  }
+  if (engine === 'whisper') {
+    return (
+      <Card style={{ gap: 4 }}>
+        <T weight="bold" size={14}>التعرّف داخل الجهاز</T>
+        <T dim size={13}>{`أول استعمال ينزّل نموذج الكلام (${WHISPER_MODELS[prefs.whisperQuality ?? 'base'].size}) مرة واحدة، ثم يعمل بلا إنترنت. تكلّم بجملة قصيرة ثم توقف لحظة.`}</T>
+      </Card>
+    );
+  }
+  return null;
 }
 
 function Step({ n, title, children }: { n: number; title: string; children: ReactNode }) {
@@ -178,10 +207,13 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
 
   // الأسماء أولاً ثم كلمات الأعداد العامية: المحرك يفضّلها عند التعرّف
   const hints = useMemo(() => (mode === 'ordered' ? ORDERED_HINTS : [...students.map((s) => s.name).slice(0, 100 - NUMBER_HINTS.length), ...NUMBER_HINTS]), [students, mode]);
-  const rec = useRecognizer({ onFinal: (t) => handleHeard(t), contextual: hints });
+  const rec = useRecognizer({
+    onFinal: (t) => handleHeard(t), contextual: hints, pref: prefs.voiceEngine ?? 'auto', quality: prefs.whisperQuality ?? 'base',
+    onNotice: (text) => setNotice({ tone: 'info', text }),
+  });
   const alts = useRef<number[]>([]);
 
-  const warn = (n: Notice, speak?: string) => {
+  const warn = (n: Notice, _speak?: string) => {
     setNotice(n);
     if (n?.tone === 'bad') tap('medium');
   };
@@ -193,6 +225,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
     setGrade(bookId, p.student.id, column.id, p.value, p.mark);
     setHistory((h) => [{ key: ++keySeq.current, student: p.student, value: p.value, mark: p.mark, prev: p.prev }, ...h].slice(0, 50));
     setPending(null);
+    setNotice(null);
     tap('success');
     if (mode === 'ordered' && prefs.voiceAdvance) {
       const idx = students.findIndex((s) => s.id === p.student.id);
@@ -222,7 +255,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
     return Math.min(from + 1, students.length - 1);
   };
 
-  const propose = (student: Student, value: number | null, mark: GradeMark | null) => {
+  const propose = (student: Student, value: number | null, mark: GradeMark | null, ask = false) => {
     const altValues = value != null ? alts.current.filter((v) => v !== value && v <= column.max) : [];
     alts.current = [];
     settle();
@@ -235,9 +268,10 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
     const g = getGrade(bookId, student.id, column.id);
     const prev = g && (g.value != null || g.mark) ? { value: g.value, mark: g.mark ?? null } : null;
     const p: Pending = { student, value, mark, prev, alts: altValues };
-    setNotice(prev ? { tone: 'warn', text: `لديه درجة سابقة (${prev.mark ? MARK_LABEL[prev.mark] : formatScore(prev.value)}) — ستُستبدل.` } : null);
+    setNotice(ask ? { tone: 'warn', text: `هل تقصد ${student.name}؟ قل «نعم» أو اضغط «تثبيت».` }
+      : prev ? { tone: 'warn', text: `لديه درجة سابقة (${prev.mark ? MARK_LABEL[prev.mark] : formatScore(prev.value)}) — ستُستبدل.` } : null);
     setCurrent(students.findIndex((s) => s.id === student.id));
-    const secs = prefs.voiceConfirm;
+    const secs = ask ? 0 : prefs.voiceConfirm;
     if (secs <= 0) { setPending(p); return; }
     setPending(p);
     progress.value = 0;
@@ -304,9 +338,12 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
       case 'skip': settle(); chosen.current = null; setCurrent((i) => nextEmpty(i)); return;
       case 'previous': settle(); chosen.current = null; setCurrent((i) => Math.max(0, i - 1)); return;
       case 'absent':
-        if (cur && (mode === 'ordered' || chosen.current === cur.id)) propose(cur, null, 'absent');
-        else warn({ tone: 'warn', text: 'قل اسم الطالب الغائب.' });
+      case 'exempt': {
+        const mk = cmd.type === 'absent' ? 'absent' : 'exempt';
+        if (cur && (mode === 'ordered' || chosen.current === cur.id)) propose(cur, null, mk);
+        else warn({ tone: 'warn', text: mk === 'absent' ? 'قل اسم الطالب الغائب.' : 'قل اسم الطالب المعفى.' });
         return;
+      }
       case 'value':
         if (cur && (mode === 'ordered' || chosen.current === cur.id)) propose(cur, cmd.value, null);
         else warn({ tone: 'warn', text: `سمعت ${arDigits(cmd.value)} — لمن؟ قل الاسم مع الدرجة.` }, 'لمن الدرجة؟');
@@ -315,7 +352,8 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
       case 'mark': {
         const value = cmd.type === 'grade' ? cmd.value : null;
         const mark = cmd.type === 'mark' ? cmd.mark : null;
-        if (isConfident(cmd.candidates)) { propose(cmd.candidates[0].student, value, mark); return; }
+        // اسم قريب لا مطابق (حسن/حسين): يُعرض وينتظر «نعم» بدل أن يُكتب تلقائياً بعد المؤقت
+        if (isConfident(cmd.candidates)) { propose(cmd.candidates[0].student, value, mark, cmd.candidates[0].score < 0.86); return; }
         if (cmd.candidates.length) {
           setChoices({ list: cmd.candidates.slice(0, 4), value, mark });
           warn({ tone: 'warn', text: isAmbiguous(cmd.candidates) ? `أكثر من طالب باسم «${cmd.nameText}» — اختر أو قل الاسم الثاني.` : `هل تقصد ${cmd.candidates[0].student.name}؟` }, isAmbiguous(cmd.candidates) ? 'أي واحد؟' : undefined);
@@ -398,7 +436,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
       </ScrollView>
 
       {/* اللوحة السفلية: الطالب الحالي، التأكيد، التنبيهات، الميكروفون */}
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: insets.bottom + 14, paddingTop: 14, paddingHorizontal: 16, backgroundColor: c.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, borderTopWidth: 1, borderColor: c.line, gap: 10 }}>
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: insets.bottom + 14, paddingTop: 14, paddingHorizontal: 16, backgroundColor: c.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: c.line, gap: 10, maxWidth: 720, width: '100%', alignSelf: 'center' }}>
         {pending ? (
           <Animated.View entering={FadeIn.duration(120)} style={{ backgroundColor: c.heroBg, borderRadius: 20, padding: 14, gap: 10, overflow: 'hidden' }}>
             <Row>
@@ -453,15 +491,26 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
         ) : null}
 
         <Row gap={12}>
-          <IconButton name="refresh" label="تراجع" onPress={undo} size={48} />
+          <IconButton name="reply" label="تراجع عن آخر درجة" onPress={undo} size={48} />
           <View style={{ flex: 1, alignItems: 'center', gap: 4 }}>
-            <T size={13} dim lines={1} center>{rec.partial || (heard ? `«${heard}»` : listening ? 'أستمع…' : rec.error ?? 'اضغط الميكروفون وتكلّم')}</T>
+            <T size={13} dim lines={2} center>{rec.state === 'loading'
+              ? (rec.progress != null ? `تنزيل نموذج الكلام ${formatPercent(rec.progress * 100)} — مرة واحدة فقط` : 'تجهيز التعرّف على الكلام…')
+              : rec.partial || (listening ? (heard ? `«${heard}»` : 'أستمع…') : heard ? `«${heard}»` : 'اضغط الميكروفون وتكلّم')}</T>
           </View>
           <MicButton active={listening} volume={rec.volume} onPress={() => (listening ? rec.stop() : rec.start())} />
         </Row>
-        {!speechAvailable() || rec.state === 'error' || kb ? (
+        {rec.state === 'error' && rec.error ? (
+          <View style={{ backgroundColor: tone.bad.bg, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, gap: 8 }}>
+            <T size={13} weight="medium" color={tone.bad.ink}>{rec.error}</T>
+            <Row gap={8}>
+              <Button title="حاول مرة أخرى" icon="refresh" small variant="secondary" onPress={() => rec.start()} />
+              {Platform.OS === 'web' && rec.engine !== 'whisper' ? <Button title="التعرّف داخل الجهاز" small variant="ghost" onPress={() => setPrefs({ voiceEngine: 'device' })} /> : null}
+            </Row>
+          </View>
+        ) : null}
+        {!rec.available || rec.state === 'error' || kb || IS_DESKTOP ? (
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            <TextInput value={typed} onChangeText={setTyped} placeholder={`أو اكتب: أحمد علي ${arDigits(85)}`} placeholderTextColor={c.ink3}
+            <TextInput value={typed} onChangeText={setTyped} placeholder={mode === 'ordered' ? `أو اكتب الدرجة: ${arDigits(85)} (أو «غايب»)` : `أو اكتب: أحمد علي ${arDigits(85)}`} placeholderTextColor={c.ink3}
               onSubmitEditing={() => { if (typed.trim()) { handleHeard([typed.trim()]); setTyped(''); } }} returnKeyType="send" blurOnSubmit={false}
               style={{ flex: 1, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, backgroundColor: c.bg, paddingHorizontal: 16, fontFamily: fonts.regular, fontSize: 15, color: c.ink, textAlign: 'right' }} />
             <IconButton name="send" label="إرسال" filled onPress={() => { if (typed.trim()) { handleHeard([typed.trim()]); setTyped(''); } }} />
@@ -474,11 +523,22 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
         <View style={{ gap: 6, marginTop: 8 }}>
           <T weight="bold" size={14}>مؤقت التأكيد</T>
           <Row gap={8} style={{ flexWrap: 'wrap' }}>
-            {[0, 2, 3, 5].map((s) => <Chip key={s} label={s ? `${arDigits(s)} ث` : 'يدوي'} active={prefs.voiceConfirm === s} onPress={() => setSettings({ prefs: { ...prefs, voiceConfirm: s } })} />)}
+            {[0, 2, 3, 5].map((s) => <Chip key={s} label={s ? `${arDigits(s)} ث` : 'يدوي'} active={prefs.voiceConfirm === s} onPress={() => setPrefs({ voiceConfirm: s })} />)}
           </Row>
           <T dim size={12}>تُكتب الدرجة تلقائياً بعد انتهاء المؤقت، ويمكنك إلغاؤها قبل ذلك بقول «لا». «يدوي» = بعد «نعم» فقط.</T>
-          <ToggleRow title="الانتقال للطالب التالي تلقائياً" subtitle="في وضع «بالترتيب»" value={prefs.voiceAdvance} onChange={(v) => setSettings({ prefs: { ...prefs, voiceAdvance: v } })} />
-          <ToggleRow title="خانة الكتابة" subtitle="اكتب الأوامر بدل قولها (مثلاً في مكان صاخب)" value={kb} onChange={setKb} />
+          <ToggleRow title="الانتقال للطالب التالي تلقائياً" subtitle="في وضع «بالترتيب»" value={prefs.voiceAdvance} onChange={(v) => setPrefs({ voiceAdvance: v })} />
+          {!IS_DESKTOP ? <ToggleRow title="خانة الكتابة" subtitle="اكتب الأوامر بدل قولها (مثلاً في مكان صاخب)" value={kb} onChange={setKb} /> : null}
+          {Platform.OS === 'web' ? (
+            <View style={{ gap: 8, marginTop: 6 }}>
+              <T weight="bold" size={14}>محرك التعرّف</T>
+              <Segmented options={[{ key: 'auto', label: 'تلقائي' }, { key: 'google', label: 'المتصفح (Google)' }, { key: 'device', label: 'داخل الجهاز' }]}
+                value={prefs.voiceEngine ?? 'auto'} onChange={(v) => { rec.stop(); setPrefs({ voiceEngine: v }); }} />
+              <T dim size={12}>«داخل الجهاز» يعمل بلا إنترنت بعد تنزيل النموذج مرة واحدة، وهو المستعمل على تطبيق الحاسوب.</T>
+              <T weight="bold" size={14}>دقة التعرّف داخل الجهاز</T>
+              <Segmented options={(Object.keys(WHISPER_MODELS) as ('base' | 'small')[]).map((k) => ({ key: k, label: `${WHISPER_MODELS[k].label} (${WHISPER_MODELS[k].size})` }))}
+                value={prefs.whisperQuality ?? 'base'} onChange={(v) => { rec.stop(); setPrefs({ whisperQuality: v }); }} />
+            </View>
+          ) : null}
         </View>
       </Sheet>
     </View>

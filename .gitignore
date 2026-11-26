@@ -17,3 +17,4 @@ ios/
 supabase/.temp/
 supabase/.branches/
 hosting/
+apps/mobile/public/vendor/

@@ -23,8 +23,12 @@
    - `PUSH_SECRET` (أي نص سري طويل — لإرسال الإعلانات)
 4. أضف **متغيراً** (Variables) باسم `SUPABASE_PROJECT_REF` = رمز المشروع (الجزء الأول من الرابط).
 5. Actions ← **Deploy Supabase** ← Run workflow (يطبّق الجداول والصلاحيات ويرفع الدوال).
-6. Authentication ← URL Configuration: أضف `nahj://auth-callback` في Redirect URLs.
-7. (اختياري) تسجيل Google: Authentication ← Providers ← Google، وأدخل Client ID/Secret من Google Cloud Console (OAuth، نوع Web، Redirect = `https://<ref>.supabase.co/auth/v1/callback`).
+   ويضبط تلقائياً إعدادات الدخول: بلا رسالة تأكيد بالبريد، روابط الرجوع (`nahj://auth-callback` والموقع)، وحاوية التخزين `backups` للنسخ السحابية.
+6. (اختياري) تسجيل الدخول بـ Google: في Google Cloud Console أنشئ OAuth Client (نوع Web، Authorized redirect URI = `https://<ref>.supabase.co/auth/v1/callback`)،
+   ثم أضف السرين `GOOGLE_CLIENT_ID` و `GOOGLE_CLIENT_SECRET` وأعد **Deploy Supabase** و **Build APK** — يظهر الزر في التطبيق تلقائياً.
+7. (اختياري) «نسيت كلمة السر»: بريد Supabase المجاني لا يصل إلا لأعضاء فريق المشروع. لتفعيله أضف خادم بريد SMTP
+   (مثلاً Gmail بكلمة سر تطبيق: `smtp.gmail.com`، أو Resend/Brevo): الأسرار `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` `SMTP_SENDER`،
+   ثم أعد **Deploy Supabase** و **Build APK** — يظهر الزر تلقائياً.
 8. أعد تشغيل **Build APK** لتأخذ النسخة الجديدة مفاتيح Supabase.
 
 ## ٣) Firebase (الإشعارات + الموقع) — ١٠ دقائق
@@ -58,10 +62,14 @@
 - غير موقّعة بشهادة تجارية بعد، فيظهر تحذير SmartScreen أول مرة: «مزيد من المعلومات» ← «تشغيل على أي حال».
   للتخلص منه لاحقاً: شهادة توقيع كود (Code Signing) وأضفها أسراراً لـ electron-builder (`CSC_LINK`، `CSC_KEY_PASSWORD`).
 - بياناتها محفوظة على الحاسوب، وتتزامن مع الهاتف بعد إعداد Supabase وتسجيل الدخول بنفس الحساب.
-- الإدخال الصوتي على الحاسوب يعمل بالكتابة (التعرّف الصوتي متاح على الهاتف).
+- الإدخال الصوتي على الحاسوب يعمل **بالتعرّف داخل الجهاز** (Whisper): أول استعمال ينزّل النموذج (~٨٠ م.ب، أو ~٢٥٠ م.ب لـ«دقة أعلى») من Hugging Face مرة واحدة، ثم يعمل بلا إنترنت.
+  اسمح لتطبيقات سطح المكتب بالميكروفون في ويندوز: الإعدادات ← الخصوصية ← الميكروفون. وتبقى خانة الكتابة متاحة دائماً.
 
 ## ٤-د) قاعدة بيانات Oracle (بدل Supabase للبيانات)
 التفاصيل وما أحتاجه منك في `docs/ORACLE.md`. باختصار: معلومات الاتصال بـ Oracle، ومكان تشغيل خادم نَهج، ثم متغيرا GitHub `SYNC_BACKEND=rest` و `API_URL`.
+
+> **مهم (تشرين الثاني ٢٠٢٦):** أُضيفت مكتبة أصلية (`react-native-webview` لمعاينة الطباعة) ورُفع `RUNTIME_VERSION` إلى `2` —
+> يلزم **APK جديد** (Actions ← Build APK). النسخ القديمة لن تستلم تحديثات OTA الجديدة.
 
 ## ٥) تجربة على الهاتف (أشياء لا تُختبر إلا على جهاز حقيقي)
 - [ ] تثبيت apk-16 (أو أحدث) على هاتفك — الأيقونة الكوفية الجديدة، الأيقونة المتكيفة، وشاشة البداية.
@@ -69,7 +77,10 @@
 - [ ] الإدخال الصوتي: الميكروفون، فهم الأسماء والأرقام بلهجتك، مؤقت التأكيد، القراءة الصوتية.
   (يحتاج تطبيق Google على الهاتف، ويُفضّل تنزيل العربية للتعرّف بلا إنترنت من إعدادات Google ← الصوت).
 - [ ] تذكير الحصص (اضبط حصة بعد ١٠ دقائق والتذكير ٥).
-- [ ] تصدير Excel وفتحه في Excel/WPS، والطباعة PDF ومشاركتها على واتساب.
+- [ ] تصدير Excel وفتحه في Excel/WPS.
+- [ ] استوديو الطباعة: المعاينة على الهاتف (WebView)، «طباعة» و«PDF» ومشاركته على واتساب، وتغيير القالب والخط والأقسام.
+- [ ] الإدخال الصوتي على أندرويد ١٣+: استماع متواصل بلا صفير بين الطلاب.
+- [ ] الإدخال الصوتي على الحاسوب: تنزيل النموذج أول مرة ثم التعرّف على «خمسة وسبعين» و«أحمد علي تسعين».
 - [ ] استيراد أسماء من ملف Excel.
 - [ ] تسجيل الدخول والمزامنة بين هاتفين (بعد خطوة ٢).
 
@@ -89,5 +100,7 @@
 | FIREBASE_SERVICE_ACCOUNT / FCM_SERVICE_ACCOUNT | Firebase ← Service accounts | للموقع والإشعارات |
 | RELEASES_TOKEN | GitHub ← Developer settings | لتحديث APK من داخل التطبيق |
 | EXPO_TOKEN + متغير EAS_PROJECT_ID | expo.dev | للتحديث الفوري بلا تنزيل (OTA) |
+| GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | Google Cloud ← OAuth | اختياري: الدخول بـ Google |
+| SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / SMTP_SENDER | مزوّد بريد | اختياري: «نسيت كلمة السر» |
 
 </div>

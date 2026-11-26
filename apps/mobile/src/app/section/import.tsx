@@ -4,8 +4,8 @@ import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Pill, ToggleRow } from '@/components/kit';
 import { Button, Card, Field, Header, Row, Screen, T } from '@/components/ui';
-import { insertMany } from '@/data/db';
-import { sectionLabel, studentsOf } from '@/data/queries';
+import { insertMany, useSettings } from '@/data/db';
+import { nextSeq, sectionLabel, studentsOf } from '@/data/queries';
 import { pickNamesFromFile } from '@/lib/export';
 import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
@@ -17,6 +17,7 @@ export default function ImportStudents() {
   const [text, setText] = useState('');
   const [sort, setSort] = useState(true);
   const [busy, setBusy] = useState(false);
+  const alpha = useSettings().prefs.studentOrder !== 'number';
   const existing = useMemo(() => new Set(studentsOf(id).map((s) => normalizeArabic(s.name))), [id]);
   const parsed = useMemo(() => parseNameList(text), [text]);
   const fresh = parsed.filter((n) => !existing.has(normalizeArabic(n)));
@@ -38,8 +39,8 @@ export default function ImportStudents() {
 
   const save = () => {
     const names = sort ? sortArabic(fresh) : fresh;
-    const start = studentsOf(id).reduce((m, s) => Math.max(m, s.number ?? 0), 0);
-    insertMany('students', names.map((name, i) => ({ section_id: id, name, number: start + i + 1, sort: start + i + 1 })));
+    const start = nextSeq(id);
+    insertMany('students', names.map((name, i) => ({ section_id: id, name, number: start + i, sort: start + i })));
     toast(`أُضيف ${countStudents(names.length)}`, { icon: 'check' });
     router.back();
   };
@@ -60,10 +61,14 @@ export default function ImportStudents() {
             {dupes ? <Pill label={`${arDigits(dupes)} مكرر`} tone="warn" small /> : null}
           </Row>
           <View style={{ gap: 4 }}>
-            {(sort ? sortArabic(fresh) : fresh).slice(0, 6).map((n, i) => <T key={n} size={14} dim>{arDigits(i + 1)}. {n}</T>)}
+            {(sort || alpha ? sortArabic(fresh) : fresh).slice(0, 6).map((n) => <T key={n} size={14} dim>• {n}</T>)}
             {fresh.length > 6 ? <T size={13} dim>… و{arDigits(fresh.length - 6)} آخرين</T> : null}
           </View>
-          <ToggleRow title="ترتيب أبجدي" subtitle="رقم الطالب حسب الترتيب الأبجدي" value={sort} onChange={setSort} />
+          {alpha ? (
+            <T dim size={12}>القائمة مرتبة أبجدياً: كل طالب يأخذ مكانه حسب اسمه، والأرقام تتبع الترتيب.</T>
+          ) : (
+            <ToggleRow title="ترتيبهم أبجدياً" subtitle="يُضافون في آخر القائمة مرتّبين أبجدياً بينهم" value={sort} onChange={setSort} />
+          )}
         </Card>
       ) : null}
       <Button title={fresh.length ? `إضافة ${countStudents(fresh.length)}` : 'إضافة'} icon="check" disabled={!fresh.length} onPress={save} />

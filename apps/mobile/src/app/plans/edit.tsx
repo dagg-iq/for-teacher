@@ -8,7 +8,6 @@ import { Button, Chip, Field, Header, IconButton, Row, Screen, T } from '@/compo
 import { get, insert, remove, update } from '@/data/db';
 import { classesSorted, sectionLabel, sectionsOf } from '@/data/queries';
 import { Alert } from '@/lib/dialog';
-import { printLessonPlan } from '@/lib/export-plan';
 import { toast } from '@/lib/toast';
 
 const METHODS = ['المحاضرة', 'المناقشة والحوار', 'الاستجواب', 'الاستقراء', 'حل المشكلات', 'التعلّم التعاوني', 'العصف الذهني', 'التجربة العملية', 'الخرائط الذهنية'];
@@ -16,7 +15,9 @@ const MATERIALS = ['السبورة', 'الكتاب المدرسي', 'جهاز ا
 
 export default function PlanEdit() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const p = id ? get('lesson_plans', id) : undefined;
+  // بعد أول حفظ (مثلاً «طباعة» لتحضير جديد) يصبح التحضير موجوداً: الحفظ التالي يعدّله لا ينشئ نسخة ثانية
+  const [savedId, setSavedId] = useState<string | undefined>(id);
+  const p = savedId ? get('lesson_plans', savedId) : undefined;
   const classes = classesSorted();
   const [date, setDate] = useState(() => (p ? new Date(`${p.date}T08:00:00`) : new Date()));
   const [title, setTitle] = useState(p?.title ?? '');
@@ -36,9 +37,11 @@ export default function PlanEdit() {
   });
   const save = (then?: (id: string) => void) => {
     const row = p ? update('lesson_plans', p.id, data()) : insert('lesson_plans', data());
+    if (row) setSavedId(row.id);
     toast('حُفظ التحضير', { icon: 'check' });
     if (then && row) then(row.id);
-    else router.back();
+    else if (router.canGoBack()) router.back();
+    else router.replace('/plans');
   };
 
   return (
@@ -74,7 +77,7 @@ export default function PlanEdit() {
       <Field label="الواجب البيتي" value={homework} onChangeText={setHomework} />
       <ToggleRow title="نُفّذ الدرس" value={done} onChange={setDone} />
       <Row gap={8}>
-        <Button title="طباعة" icon="print" variant="secondary" disabled={!title.trim()} onPress={() => save((pid) => printLessonPlan(pid).catch((e) => toast(String(e.message ?? e), { tone: 'bad' })))} />
+        <Button title="طباعة" icon="print" variant="secondary" disabled={!title.trim()} onPress={() => save((pid) => router.push(`/print?kind=plan&id=${pid}`))} />
         <Button title="حفظ" icon="check" style={{ flex: 1 }} disabled={!title.trim()} onPress={() => save()} />
       </Row>
     </Screen>

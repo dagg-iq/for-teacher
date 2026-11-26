@@ -9,6 +9,7 @@ import {
   type Base, type TableName, type TableRow, type TeacherProfile, type TimetableConfig,
 } from '@nahj/shared';
 import { useMemo, useSyncExternalStore } from 'react';
+import type { PrintLayout, PrintStyle } from '@/lib/print/style';
 
 export interface Settings {
   profile: TeacherProfile | null;
@@ -25,16 +26,44 @@ export interface Prefs {
   voiceSpeak: boolean;
   /** الانتقال للطالب التالي تلقائياً في وضع الترتيب */
   voiceAdvance: boolean;
+  /** محرك التعرّف على الكلام في المتصفح/الحاسوب: تلقائي، تعرّف المتصفح (Google)، أو داخل الجهاز (Whisper) */
+  voiceEngine?: 'auto' | 'google' | 'device';
+  /** دقة نموذج التعرّف داخل الجهاز */
+  whisperQuality?: 'base' | 'small';
   /** تذكير الحصص مفعّل */
   classReminders: boolean;
   /** ترويسة الطباعة */
   printHeader: boolean;
-  /** ترتيب الطلاب: أبجدي أو حسب التسلسل */
+  /** ترتيب الطلاب: أبجدي، أو حسب التسلسل (ترتيب الإضافة أو الترتيب اليدوي) */
   studentOrder: 'alpha' | 'number';
+  /** إظهار عدد الغيابات بجانب اسم الطالب في القوائم */
+  showAbsences: boolean;
+  /** حد التنبيه للغياب: من هذا العدد يظهر الطالب بالأحمر */
+  absenceAlert: number;
+  /** «مُجاز» يُحسب ضمن الغيابات في العدّ والتنبيه */
+  excusedCounts: boolean;
+  /** القرعة تستبعد الغائبين اليوم */
+  pickerSkipAbsent: boolean;
+  /** حد النجاح الافتراضي للسجلات الجديدة (نسبة مئوية) */
+  passMark: number;
+  /** الدرجات الحرجة: كم درجة تحت حد النجاح تُعرض للقرار (٠ = بلا تنبيه) — للسجلات الجديدة */
+  criticalBelow: number;
+  /** تنبيه الدرجات الحرجة في الرئيسية والدرجات */
+  criticalAlerts: boolean;
+  /** تقريب الأعمدة المحسوبة في السجلات الجديدة */
+  rounding: 'none' | 'int' | '1dp';
+  /** لا تظهر نسبة النجاح لسجل قبل إدخال هذه النسبة من الطلاب على الأقل */
+  rateMinFilled: number;
   /** شكل الأرقام: إنكليزية (0123) أو عربية مشرقية (٠١٢٣) */
   digits: 'latn' | 'arab';
+  /** شكل التاريخ: رقمي 26/11/2026 أو بأسماء الأشهر */
+  dateStyle: 'numeric' | 'months';
   /** آخر شعبة فُتحت في الدرجات والتقارير */
   lastSection?: string | null;
+  /** تنسيق الطباعة (القالب، الخط، الصفحة، الترويسة…) */
+  print?: Partial<PrintStyle>;
+  /** ترتيب أقسام كل نوع مطبوع واختياراته */
+  printLayouts?: Record<string, PrintLayout>;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -44,7 +73,17 @@ export const DEFAULT_PREFS: Prefs = {
   classReminders: true,
   printHeader: true,
   studentOrder: 'alpha',
+  showAbsences: true,
+  absenceAlert: 5,
+  excusedCounts: false,
+  pickerSkipAbsent: true,
+  passMark: 50,
+  criticalBelow: 3,
+  criticalAlerts: true,
+  rounding: 'int',
+  rateMinFilled: 50,
   digits: 'latn',
+  dateStyle: 'numeric',
 };
 
 type Tables = { [K in TableName]: Map<string, TableRow[K]> };
@@ -64,6 +103,8 @@ const state = {
 const KEY = (t: string) => `nahj.t.${t}`;
 const DIRTY_KEY = 'nahj.dirty';
 const SETTINGS_KEY = 'nahj.settings';
+const LOCAL_KEY = 'nahj.local';
+let local: Record<string, string | null> = {};
 
 // ------------------------------------------------------------------ الاشتراك
 const listeners = new Set<() => void>();
@@ -143,8 +184,10 @@ async function writeTables(tables: TableName[]) {
 export async function loadDB() {
   if (state.ready) return;
   try {
-    const keys = [...SYNC_TABLES.map(KEY), DIRTY_KEY, SETTINGS_KEY];
+    const keys = [...SYNC_TABLES.map(KEY), DIRTY_KEY, SETTINGS_KEY, LOCAL_KEY];
     const got = new Map(await AsyncStorage.multiGet(keys));
+    const loc = got.get(LOCAL_KEY);
+    if (loc) { try { local = { ...JSON.parse(loc), ...local }; } catch { /* */ } }
     for (const t of SYNC_TABLES) {
       const raw = got.get(KEY(t));
       if (!raw) continue;
@@ -336,6 +379,21 @@ export function setSettings(patch: Partial<Omit<Settings, 'updated_at'>>) {
   settingsWrite = true;
   schedulePersist();
   changed();
+}
+
+/** يعدّل بعض التفضيلات فوق آخر نسخة محفوظة (لا فوق نسخة قديمة التُقطت عند الرسم) */
+export function setPrefs(patch: Partial<Prefs>) {
+  setSettings({ prefs: { ...state.settings.prefs, ...patch } });
+}
+
+// ------------------------------------------------------------------ تفضيلات محلية (لا تُزامَن)
+// آخر شعبة فُتحت… أشياء تخص هذا الجهاز فقط: لا تغيّر وقت تعديل الإعدادات ولا تُرفع للسحابة
+export function getLocal(key: string): string | null {
+  return local[key] ?? (key === 'lastSection' ? state.settings.prefs.lastSection ?? null : null);
+}
+export function setLocal(key: string, value: string | null) {
+  local = { ...local, [key]: value };
+  AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(local)).catch(() => {});
 }
 
 export function getTimetable(): TimetableConfig {

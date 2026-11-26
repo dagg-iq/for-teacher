@@ -60,6 +60,8 @@ jobs:
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           EXPO_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://nahj-iq.web.app' }}
           EXPO_PUBLIC_SYNC_BACKEND: ${{ vars.SYNC_BACKEND || 'supabase' }}
+          EXPO_PUBLIC_GOOGLE_AUTH: ${{ secrets.GOOGLE_CLIENT_SECRET != '' }}
+          EXPO_PUBLIC_PASSWORD_RESET: ${{ secrets.SMTP_PASS != '' }}
           EXPO_PUBLIC_API_URL: ${{ vars.API_URL || '' }}
           MSG: ${{ github.event.head_commit.message }}
         run: |

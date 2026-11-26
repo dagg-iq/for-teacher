@@ -90,8 +90,10 @@ app.whenReady().then(() => {
     if (!p.startsWith(WEB) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) p = path.join(WEB, 'index.html');
     return net.fetch(pathToFileURL(p).toString());
   });
-  // الميكروفون مسموح (للإدخال الصوتي إن دعمه النظام لاحقاً)، وما عداه مرفوض
-  session.defaultSession.setPermissionRequestHandler((_wc, perm, cb) => cb(perm === 'media' || perm === 'clipboard-sanitized-write'));
+  // الميكروفون مسموح (الإدخال الصوتي بالتعرّف داخل الجهاز)، وما عداه مرفوض
+  const allowed = (perm) => perm === 'media' || perm === 'clipboard-sanitized-write';
+  session.defaultSession.setPermissionRequestHandler((_wc, perm, cb) => cb(allowed(perm)));
+  session.defaultSession.setPermissionCheckHandler((_wc, perm) => allowed(perm));
   createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
