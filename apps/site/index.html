@@ -30,7 +30,7 @@
       <a href="#install">التثبيت</a>
       <a href="#faq">أسئلة</a>
     </nav>
-    <a class="btn btn-sm" href="#download" data-download>تنزيل</a>
+    <a class="btn btn-sm" href="#download">تنزيل</a>
   </header>
 
   <main>
@@ -44,13 +44,18 @@
           كل ذلك في تطبيق واحد منظّم، يعمل بلا إنترنت.
         </p>
         <div class="cta" id="download">
-          <a class="btn btn-big" href="#" data-download>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
-            <span>تنزيل التطبيق لأندرويد</span>
-          </a>
-          <a class="btn btn-ghost" href="#install">كيف أثبّته؟</a>
+          <div class="dl-grid">
+            <div class="dl-item">
+              <a class="dl" href="#" data-dl="android"><svg class="dl-ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22A11.5 11.5 0 0 0 12 8.13c-1.75 0-3.4.37-4.92 1.01L5.22 5.92a.38.38 0 0 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg><span><small>للهاتف</small><b>أندرويد</b></span></a>
+              <p class="dl-meta" data-meta="android">أندرويد ٧+</p>
+            </div>
+            <div class="dl-item">
+              <a class="dl" href="#" data-dl="windows"><svg class="dl-ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.6 10.4 4.6v7H3zM11.6 4.4 21 3v8.6h-9.4zM3 12.4h7.4v7L3 18.4zM11.6 12.4H21V21l-9.4-1.3z"/></svg><span><small>للحاسوب</small><b>ويندوز</b></span></a>
+              <p class="dl-meta"><span data-meta="windows">ويندوز ١٠ و١١</span> · <a href="#" data-dl="portable">بلا تثبيت</a></p>
+            </div>
+          </div>
         </div>
-        <p class="meta" data-download-meta>ملف APK · أندرويد ٧ فما فوق · يعمل بلا إنترنت</p>
+        <p class="meta">مجاني · يعمل بلا إنترنت · نفس الحساب على الهاتف والحاسوب · <a href="#install">كيف أثبّته؟</a></p>
       </div>
       <div class="hero-phones" aria-hidden="true">
         <figure class="phone phone-back"><img src="screens/table.webp" alt="" width="390" height="844" /></figure>
@@ -147,11 +152,24 @@
 
     <section class="install" id="install">
       <h2>التثبيت في دقيقة</h2>
-      <ol class="install-steps">
-        <li><b>نزّل الملف</b><span>اضغط «تنزيل التطبيق» من هذه الصفحة على هاتفك.</span></li>
-        <li><b>افتحه</b><span>من الإشعارات أو مجلد التنزيلات. إن ظهر «مصادر غير معروفة» اضغط «الإعدادات» ثم «السماح من هذا المصدر».</span></li>
-        <li><b>ثبّت وابدأ</b><span>اكتب اسمك ومادتك، ثم أضف صفوفك — أو جرّب ببيانات تجريبية.</span></li>
-      </ol>
+      <div class="install-cols">
+        <div>
+          <h3><svg class="inst-ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22A11.5 11.5 0 0 0 12 8.13c-1.75 0-3.4.37-4.92 1.01L5.22 5.92a.38.38 0 0 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>على الهاتف (أندرويد)</h3>
+          <ol class="install-steps">
+            <li><b>نزّل الملف</b><span>اضغط «أندرويد» من هذه الصفحة على هاتفك.</span></li>
+            <li><b>افتحه</b><span>من الإشعارات أو مجلد التنزيلات. إن ظهر «مصادر غير معروفة» اضغط «الإعدادات» ثم «السماح من هذا المصدر».</span></li>
+            <li><b>ثبّت وابدأ</b><span>اكتب اسمك ومادتك، ثم أضف صفوفك — أو جرّب ببيانات تجريبية.</span></li>
+          </ol>
+        </div>
+        <div>
+          <h3><svg class="inst-ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.6 10.4 4.6v7H3zM11.6 4.4 21 3v8.6h-9.4zM3 12.4h7.4v7L3 18.4zM11.6 12.4H21V21l-9.4-1.3z"/></svg>على الحاسوب (ويندوز)</h3>
+          <ol class="install-steps">
+            <li><b>نزّل المثبّت</b><span>اضغط «ويندوز». أو «بلا تثبيت» لتشغيله مباشرة من أي مجلد أو فلاشة.</span></li>
+            <li><b>شغّله</b><span>إن ظهر تحذير Windows: اضغط «مزيد من المعلومات» ثم «تشغيل على أي حال».</span></li>
+            <li><b>سجّل الدخول</b><span>بنفس حساب الهاتف، فتظهر صفوفك ودرجاتك على الحاسوب وتبقى متزامنة.</span></li>
+          </ol>
+        </div>
+      </div>
       <p class="note">التحديثات تظهر داخل التطبيق تلقائياً، وتُثبّت فوق القديمة دون أن تفقد بياناتك.</p>
     </section>
 
@@ -162,13 +180,23 @@
       <details><summary>هل يفهم اللهجة العراقية في الإدخال الصوتي؟</summary><p>نعم: «سبعطعش»، «ثمنطعش»، «مية»، «تسعين ونص»، «غايب»… ويتسامح مع أخطاء التعرّف في الأسماء ويسألك عند تشابهها.</p></details>
       <details><summary>كيف يُحسب السعي السنوي؟</summary><p>معدل (معدل الفصل الأول + نصف السنة + معدل الفصل الثاني) مقرّباً لأقرب عدد صحيح، والنجاح ٥٠. ويمكنك تعديل أي معادلة أو حد نجاح.</p></details>
       <details><summary>من يرى بياناتي؟</summary><p>أنت فقط. البيانات محفوظة على هاتفك، وإن سجّلت الدخول تُحفظ في حسابك محمية بحيث لا يصل إليها غيرك. <a href="privacy.html">سياسة الخصوصية</a>.</p></details>
-      <details><summary>هل يعمل على آيفون؟</summary><p>النسخة الحالية لأندرويد. نسخة آيفون مخطط لها.</p></details>
+      <details><summary>هل يعمل على الحاسوب؟</summary><p>نعم، على ويندوز ١٠ و١١ (لابتوب أو حاسوب مكتبي)، بنفس الواجهة والمزايا ومنها الطباعة والإدخال الصوتي. سجّل الدخول بنفس الحساب لتتزامن بياناتك مع هاتفك.</p></details>
+      <details><summary>هل يعمل على آيفون؟</summary><p>النسخة الحالية لأندرويد وويندوز. نسخة آيفون مخطط لها.</p></details>
     </section>
 
     <section class="final">
       <img src="icon-512.png" alt="" width="88" height="88" style="border-radius:22px" />
       <h2>جرّب نَهج في حصتك القادمة</h2>
-      <a class="btn btn-big" href="#" data-download><span>تنزيل التطبيق</span></a>
+      <div class="dl-grid dl-center">
+            <div class="dl-item">
+              <a class="dl" href="#" data-dl="android"><svg class="dl-ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22A11.5 11.5 0 0 0 12 8.13c-1.75 0-3.4.37-4.92 1.01L5.22 5.92a.38.38 0 0 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg><span><small>للهاتف</small><b>أندرويد</b></span></a>
+              
+            </div>
+            <div class="dl-item">
+              <a class="dl" href="#" data-dl="windows"><svg class="dl-ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.6 10.4 4.6v7H3zM11.6 4.4 21 3v8.6h-9.4zM3 12.4h7.4v7L3 18.4zM11.6 12.4H21V21l-9.4-1.3z"/></svg><span><small>للحاسوب</small><b>ويندوز</b></span></a>
+              
+            </div>
+          </div>
     </section>
   </main>
 

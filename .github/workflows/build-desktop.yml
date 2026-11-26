@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: build-desktop-${{ github.ref }}
@@ -77,3 +78,26 @@ jobs:
             الكود: ${{ github.sha }}
           prerelease: true
           files: apps/desktop/dist/*.exe
+
+      - name: Point the site's Windows button at the new version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          N: ${{ github.run_number }}
+        run: |
+          V="1.0.$N"
+          BASE="https://github.com/$GITHUB_REPOSITORY/releases/download/desktop-$N"
+          SETUP="apps/desktop/dist/Nahj-Setup-$V.exe"
+          [ -f "$SETUP" ] || { echo "::warning::لم أجد $SETUP"; ls apps/desktop/dist; exit 0; }
+          SIZE=$(( ($(wc -c < "$SETUP") + 524288) / 1048576 ))
+          git config user.name "nahj-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for i in 1 2 3 4; do
+            git fetch origin "$GITHUB_REF_NAME" && git reset --hard "origin/$GITHUB_REF_NAME"
+            printf '{\n  "link": "%s",\n  "portable": "%s",\n  "version": "%s",\n  "size_mb": "%s"\n}\n' "$BASE/Nahj-Setup-$V.exe" "$BASE/Nahj-Portable-$V.exe" "$V" "$SIZE" > apps/site/download-desktop.json
+            git add apps/site/download-desktop.json
+            git diff --cached --quiet && break
+            git commit -m "نسخة الحاسوب $V: رابط التنزيل"
+            git push origin "HEAD:$GITHUB_REF_NAME" && break
+            sleep $((i * 3))
+          done
+          gh workflow run deploy-site.yml --ref "$GITHUB_REF_NAME" || true
