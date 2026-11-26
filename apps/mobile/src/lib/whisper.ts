@@ -72,6 +72,8 @@ export async function listenMic(opts: {
   onSegment: (pcm: Float32Array) => void;
   onLevel?: (v: number) => void;
   onSpeech?: (speaking: boolean) => void;
+  /** صمت (ملّي ثانية) ينهي الجملة — أقصر = أسرع، أطول = لا يقطع وقفة قصيرة داخل الجملة */
+  endSilence?: number;
 }): Promise<MicSession> {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
   const AC = (window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
@@ -89,7 +91,7 @@ export async function listenMic(opts: {
   let chunks: Float32Array[] = [];
   const pre: Float32Array[] = [];
   const PRE_FRAMES = Math.ceil(300 / frameMs);
-  const END_SILENCE = 750;
+  const END_SILENCE = opts.endSilence ?? 750;
   const MAX_MS = 9000;
   const MIN_SPEECH = 220;
 
@@ -166,4 +168,25 @@ export async function transcribe(pipe: Pipe, pcm: Float32Array): Promise<string>
   const text = Array.isArray(r) ? r.map((x) => x.text).join(' ') : r.text;
   if (override().debug) console.log('[whisper]', pcm.length, JSON.stringify(text));
   return cleanTranscript(text ?? '');
+}
+
+/** جملة صوتية (16 كيلوهرتز) إلى ملف WAV ‏16-بت — للتعرّف السحابي */
+export function encodeWav(pcm: Float32Array, rate = 16000): Uint8Array<ArrayBuffer> {
+  const n = pcm.length;
+  const buf = new ArrayBuffer(44 + n * 2);
+  const v = new DataView(buf);
+  const w = (o: number, str: string) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE');
+  w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true);
+  // تطبيع خفيف: صوت منخفض يُرفع حتى ‎-3 dB‎ (يساعد النموذج مع ميكروفون بعيد)
+  let peak = 0;
+  for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(pcm[i]));
+  const gain = peak > 0 && peak < 0.5 ? Math.min(6, 0.7 / peak) : 1;
+  for (let i = 0; i < n; i++) {
+    const x = Math.max(-1, Math.min(1, pcm[i] * gain));
+    v.setInt16(44 + i * 2, x < 0 ? x * 0x8000 : x * 0x7fff, true);
+  }
+  return new Uint8Array(buf);
 }

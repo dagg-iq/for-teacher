@@ -26,8 +26,8 @@ export interface Prefs {
   voiceSpeak: boolean;
   /** الانتقال للطالب التالي تلقائياً في وضع الترتيب */
   voiceAdvance: boolean;
-  /** محرك التعرّف على الكلام في المتصفح/الحاسوب: تلقائي، تعرّف المتصفح (Google)، أو داخل الجهاز (Whisper) */
-  voiceEngine?: 'auto' | 'google' | 'device';
+  /** محرك التعرّف على الكلام في المتصفح/الحاسوب: تلقائي، سحابي (Whisper large-v3)، تعرّف المتصفح (Google)، أو داخل الجهاز */
+  voiceEngine?: 'auto' | 'cloud' | 'google' | 'device';
   /** دقة نموذج التعرّف داخل الجهاز */
   whisperQuality?: 'base' | 'small';
   /** تذكير الحصص مفعّل */

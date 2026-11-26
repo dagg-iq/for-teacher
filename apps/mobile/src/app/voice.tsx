@@ -146,6 +146,14 @@ function EngineNote() {
       </Card>
     );
   }
+  if (engine === 'cloud') {
+    return (
+      <Card style={{ gap: 4 }}>
+        <T weight="bold" size={14}>التعرّف السحابي فائق الدقة</T>
+        <T dim size={13}>نموذج كلام كبير يفهم العربية واللهجة وأسماء طلابك، وكل جملة تُكتب خلال لحظة. يحتاج إنترنت وتسجيل الدخول؛ بدونهما يُستعمل التعرّف داخل الجهاز تلقائياً.</T>
+      </Card>
+    );
+  }
   if (engine === 'whisper') {
     return (
       <Card style={{ gap: 4 }}>
@@ -531,9 +539,9 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
           {Platform.OS === 'web' ? (
             <View style={{ gap: 8, marginTop: 6 }}>
               <T weight="bold" size={14}>محرك التعرّف</T>
-              <Segmented options={[{ key: 'auto', label: 'تلقائي' }, { key: 'google', label: 'المتصفح (Google)' }, { key: 'device', label: 'داخل الجهاز' }]}
-                value={prefs.voiceEngine ?? 'auto'} onChange={(v) => { rec.stop(); setPrefs({ voiceEngine: v }); }} />
-              <T dim size={12}>«داخل الجهاز» يعمل بلا إنترنت بعد تنزيل النموذج مرة واحدة، وهو المستعمل على تطبيق الحاسوب.</T>
+              <Segmented options={[{ key: 'auto', label: 'تلقائي' }, { key: 'cloud', label: 'سحابي (الأدق)' }, ...(IS_DESKTOP ? [] : [{ key: 'google' as const, label: 'المتصفح' }]), { key: 'device', label: 'داخل الجهاز' }]}
+                value={prefs.voiceEngine === 'google' && IS_DESKTOP ? 'auto' : prefs.voiceEngine ?? 'auto'} onChange={(v) => { rec.stop(); setPrefs({ voiceEngine: v }); }} />
+              <T dim size={12}>«سحابي» هو الأدق والأسرع (يحتاج إنترنت وتسجيل الدخول). «داخل الجهاز» يعمل بلا إنترنت بعد تنزيل النموذج مرة واحدة، وأقل دقة. «تلقائي» يختار السحابي ويرجع لداخل الجهاز عند انقطاع الإنترنت.</T>
               <T weight="bold" size={14}>دقة التعرّف داخل الجهاز</T>
               <Segmented options={(Object.keys(WHISPER_MODELS) as ('base' | 'small')[]).map((k) => ({ key: k, label: `${WHISPER_MODELS[k].label} (${WHISPER_MODELS[k].size})` }))}
                 value={prefs.whisperQuality ?? 'base'} onChange={(v) => { rec.stop(); setPrefs({ whisperQuality: v }); }} />

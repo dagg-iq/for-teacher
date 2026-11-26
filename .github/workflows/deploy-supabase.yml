@@ -70,13 +70,17 @@ jobs:
           PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
           FCM_SERVICE_ACCOUNT: ${{ secrets.FCM_SERVICE_ACCOUNT }}
           ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID || 'nahj-iq' }}
         run: |
           args=("FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID")
           [ -n "$ADMIN_EMAILS" ] && args+=("ADMIN_EMAILS=$ADMIN_EMAILS") || echo "::warning::السر ADMIN_EMAILS غير مضاف — لا أحد يستطيع دخول لوحة الإدارة"
           [ -n "$PUSH_SECRET" ] && args+=("PUSH_SECRET=$PUSH_SECRET")
+          [ -n "$GROQ_API_KEY" ] && args+=("GROQ_API_KEY=$GROQ_API_KEY") || echo "::warning::السر GROQ_API_KEY غير مضاف — التعرّف السحابي على الكلام معطّل (يُستعمل التعرّف داخل الجهاز)"
           [ -n "$FCM_SERVICE_ACCOUNT" ] && args+=("FCM_SERVICE_ACCOUNT=$FCM_SERVICE_ACCOUNT")
-          [ ${#args[@]} -gt 0 ] && supabase secrets set --project-ref "$PROJECT_REF" "${args[@]}" || echo "لا أسرار للدوال بعد"
+          # CLI 3 يحتاج --yes وإلا لا يحفظ شيئاً (بلا خطأ)؛ أي فشل هنا يوقف النشر
+          supabase secrets set --project-ref "$PROJECT_REF" --yes "${args[@]}"
+          supabase secrets list --project-ref "$PROJECT_REF" | grep -q ADMIN_EMAILS || [ -z "$ADMIN_EMAILS" ] || { echo "::error::ADMIN_EMAILS لم يُحفظ في Supabase"; exit 1; }
       - name: Deploy functions
         if: steps.check.outputs.ok == 'true'
         run: |

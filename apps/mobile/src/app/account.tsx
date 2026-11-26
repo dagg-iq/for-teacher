@@ -2,23 +2,17 @@ import { timeAgo } from '@nahj/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { AppIcon, Icon, type IconName } from '@/components/icon';
+import { Icon } from '@/components/icon';
 import { Group } from '@/components/kit';
-import { Button, Card, Divider, Field, Header, ListItem, Row, Screen, Segmented, T } from '@/components/ui';
+import { Button, Card, Divider, Header, ListItem, Row, Screen, T } from '@/components/ui';
 import { cloudBackupAvailable } from '@/data/cloud-backup';
 import { syncNow, useSyncStatus, type AccountStatus } from '@/data/sync';
-import { GOOGLE_AUTH, PASSWORD_RESET } from '@/lib/config';
+import { SignInGate } from '@/components/gate';
 import { useAuth } from '@/lib/auth';
 import { Alert } from '@/lib/dialog';
-import { arabicError, isConfigured } from '@/lib/supabase';
+import { isConfigured } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
-
-const PERKS: { icon: IconName; text: string }[] = [
-  { icon: 'cloud', text: 'نسخة من كل بياناتك في السحابة تلقائياً' },
-  { icon: 'refresh', text: 'تغيّر هاتفك؟ سجّل الدخول وتعود كل الدرجات' },
-  { icon: 'lock', text: 'بياناتك لك وحدك — لا يراها أحد غيرك' },
-];
 
 export default function Account() {
   const { c } = useTheme();
@@ -36,7 +30,7 @@ export default function Account() {
       </Screen>
     );
   }
-  return session ? <Signed email={email} /> : <SignIn />;
+  return session ? <Signed email={email} /> : <SignInGate />;
 }
 
 function Signed({ email }: { email: string | null }) {
@@ -98,61 +92,5 @@ function Waiting({ account }: { account?: AccountStatus }) {
       </T>
       {!blocked ? <Button title="تحقّق الآن" icon="refresh" variant="secondary" small onPress={() => syncNow()} /> : null}
     </Card>
-  );
-}
-
-function SignIn() {
-  const { c } = useTheme();
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle, resetPassword } = useAuth();
-  const [mode, setMode] = useState<'in' | 'up'>('up');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState<string | null>(null);
-  const run = async (key: string, fn: () => Promise<unknown>) => {
-    setBusy(key);
-    try { await fn(); } catch (e) { Alert.alert('تعذّر', arabicError(e)); } finally { setBusy(null); }
-  };
-  const submit = () => run('email', async () => {
-    if (mode === 'in') { await signInWithEmail(email, password); toast('أهلاً بعودتك', { icon: 'check' }); router.back(); }
-    else {
-      const r = await signUpWithEmail(email, password);
-      if (r === 'confirm') Alert.alert('تحقق من بريدك', 'أرسلنا رابط التأكيد إلى بريدك. افتحه ثم سجّل الدخول.');
-      else { toast('أُنشئ حسابك', { icon: 'check' }); router.back(); }
-    }
-  });
-  return (
-    <Screen edges={['top', 'bottom']}>
-      <Header title="الحساب" subtitle="احفظ بياناتك في السحابة" />
-      <Card tone="hero" style={{ gap: 12 }}>
-        <AppIcon size={44} />
-        {PERKS.map((p) => (
-          <Row key={p.text} gap={10}>
-            <Icon name={p.icon} size={18} color={c.heroInk2} />
-            <T size={14} color={c.heroInk} style={{ flex: 1 }}>{p.text}</T>
-          </Row>
-        ))}
-      </Card>
-      {GOOGLE_AUTH ? (
-        <>
-          <Button title="المتابعة بحساب Google" icon="user" variant="secondary" loading={busy === 'google'} onPress={() => run('google', async () => { await signInWithGoogle(); })} />
-          <Row gap={10} style={{ alignItems: 'center' }}>
-            <View style={{ flex: 1 }}><Divider /></View>
-            <T dim size={12}>أو بالبريد</T>
-            <View style={{ flex: 1 }}><Divider /></View>
-          </Row>
-        </>
-      ) : null}
-      <Segmented options={[{ key: 'up', label: 'حساب جديد' }, { key: 'in', label: 'تسجيل الدخول' }]} value={mode} onChange={setMode} />
-      <Field label="البريد الإلكتروني" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" style={{ textAlign: 'left', writingDirection: 'ltr' }} />
-      <Field label="كلمة السر" value={password} onChangeText={setPassword} secureTextEntry autoComplete={mode === 'up' ? 'new-password' : 'current-password'} hint={mode === 'up' ? '٦ أحرف على الأقل' : undefined} style={{ textAlign: 'left', writingDirection: 'ltr' }} />
-      <Button title={mode === 'in' ? 'دخول' : 'إنشاء الحساب'} icon="check" loading={busy === 'email'} disabled={!/.+@.+\..+/.test(email) || password.length < 6} onPress={submit} />
-      {mode === 'in' && PASSWORD_RESET ? (
-        <Button title="نسيت كلمة السر" variant="ghost" small onPress={() => {
-          if (!/.+@.+\..+/.test(email)) { toast('اكتب بريدك أولاً', { icon: 'info' }); return; }
-          run('reset', async () => { await resetPassword(email); Alert.alert('أُرسل الرابط', 'افتح بريدك واتبع الرابط لتعيين كلمة سر جديدة.'); });
-        }} />
-      ) : null}
-      <T dim size={12} center>البيانات التي أدخلتها على هذا الهاتف تُرفع إلى حسابك تلقائياً.</T>
-    </Screen>
   );
 }

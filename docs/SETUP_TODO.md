@@ -24,11 +24,12 @@
 4. أضف **متغيراً** (Variables) باسم `SUPABASE_PROJECT_REF` = رمز المشروع (الجزء الأول من الرابط).
 5. Actions ← **Deploy Supabase** ← Run workflow (يطبّق الجداول والصلاحيات ويرفع الدوال).
    ويضبط تلقائياً إعدادات الدخول: بلا رسالة تأكيد بالبريد، روابط الرجوع (`nahj://auth-callback` والموقع)، وحاوية التخزين `backups` للنسخ السحابية.
-6. (اختياري) تسجيل الدخول بـ Google: في Google Cloud Console أنشئ OAuth Client (نوع Web، Authorized redirect URI = `https://<ref>.supabase.co/auth/v1/callback`)،
-   ثم أضف السرين `GOOGLE_CLIENT_ID` و `GOOGLE_CLIENT_SECRET` وأعد **Deploy Supabase** و **Build APK** — يظهر الزر في التطبيق تلقائياً.
-7. (اختياري) «نسيت كلمة السر»: بريد Supabase المجاني لا يصل إلا لأعضاء فريق المشروع. لتفعيله أضف خادم بريد SMTP
-   (مثلاً Gmail بكلمة سر تطبيق: `smtp.gmail.com`، أو Resend/Brevo): الأسرار `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` `SMTP_SENDER`،
-   ثم أعد **Deploy Supabase** و **Build APK** — يظهر الزر تلقائياً.
+6. **الدخول بحساب Google (ضروري — التطبيق لا يُفتح إلا به):** Google Cloud Console (مشروع nahj-iq) ← APIs & Services ← Credentials ←
+   «Web client (auto created by Google Service)» ← Authorized redirect URIs ← أضف `https://<ref>.supabase.co/auth/v1/callback` ← Save.
+   انسخ Client ID و Client secret إلى السرين `GOOGLE_CLIENT_ID` و `GOOGLE_CLIENT_SECRET` ثم **Deploy Supabase**.
+   في OAuth consent screen: اسم التطبيق «نَهج» وحالة النشر **In production** (في Testing لا يدخل إلا المختبرون).
+7. **التعرّف السحابي على الكلام (الأدق والأسرع):** حساب مجاني في console.groq.com ← API Keys ← Create ← السر `GROQ_API_KEY` ← **Deploy Supabase**.
+   بدونه يعمل التعرّف داخل الجهاز (أقل دقة).
 8. أعد تشغيل **Build APK** لتأخذ النسخة الجديدة مفاتيح Supabase.
 
 ## ٢-ب) لوحة الإدارة (nahj-iq.web.app/admin) — ٥ دقائق
@@ -112,7 +113,8 @@
 | RELEASES_TOKEN | GitHub ← Developer settings | لتحديث APK من داخل التطبيق |
 | EXPO_TOKEN + متغير EAS_PROJECT_ID | expo.dev | للتحديث الفوري بلا تنزيل (OTA) |
 | ADMIN_EMAILS | بريد Gmail الخاص بك | للوحة الإدارة |
-| GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | Google Cloud ← OAuth | اختياري: الدخول بـ Google |
+| GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | Google Cloud ← OAuth | **ضروري**: الدخول بحساب Google |
+| GROQ_API_KEY | console.groq.com | التعرّف السحابي على الكلام |
 | SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / SMTP_SENDER | مزوّد بريد | اختياري: «نسيت كلمة السر» |
 
 </div>

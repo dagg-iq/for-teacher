@@ -128,3 +128,29 @@ footer { display: flex; justify-content: center; gap: 22px; padding: 28px 16px 4
 .doc h1 { font-size: 40px; margin-bottom: 10px; }
 .doc h2 { font-size: 24px; margin: 28px 0 8px; }
 .doc p, .doc li { color: var(--ink2); }
+
+/* ── أزرار التنزيل (أندرويد / ويندوز) */
+.dl-grid { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+.dl-center { justify-content: center; }
+.dl-item { display: grid; gap: 8px; justify-items: start; }
+.dl { display: inline-flex; align-items: center; gap: 14px; min-width: 200px; height: 68px; padding: 0 22px 0 26px; border-radius: 20px;
+  background: var(--accent); color: var(--accent-ink); text-decoration: none; box-shadow: 0 8px 24px rgba(14, 59, 51, .18); transition: transform .15s ease, box-shadow .15s ease; }
+.dl:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(14, 59, 51, .24); }
+.dl:active { transform: scale(.97); }
+.dl:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.dl[aria-disabled="true"] { opacity: .55; pointer-events: none; }
+.dl-ic { width: 34px; height: 34px; flex: none; }
+.dl span { display: grid; line-height: 1.25; text-align: start; }
+.dl small { font-size: 13px; opacity: .8; font-weight: 500; }
+.dl b { font-size: 21px; font-weight: 700; }
+.dl-meta { margin: 0; font-size: 13px; color: var(--ink2); padding-inline-start: 6px; }
+.dl-meta a { color: inherit; font-weight: 700; }
+.hero .dl { background: #F7F5F0; color: #0E3B33; box-shadow: 0 10px 30px rgba(0, 0, 0, .22); }
+.hero .dl[data-dl="windows"] { background: var(--gold); color: var(--gold-ink); }
+.hero .dl-meta, .hero .meta a { color: var(--hero-ink2); }
+.final .dl[data-dl="windows"] { background: var(--hero); color: #fff; }
+.install-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 8px; }
+.install-cols h3 { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 19px; }
+.inst-ic { width: 26px; height: 26px; color: var(--accent); flex: none; }
+@media (max-width: 860px) { .install-cols { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .dl-grid { flex-direction: column; } .dl-item, .dl { width: 100%; } .dl-item { justify-items: stretch; } .dl-center .dl-item { justify-items: center; } }
