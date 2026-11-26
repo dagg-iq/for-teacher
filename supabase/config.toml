@@ -17,3 +17,7 @@ enable_confirmations = false
 
 [functions.push]
 verify_jwt = false
+
+# الدالة تتحقق من المستخدم بنفسها (requireUser)؛ فحص البوابة لا يتوافق مع مفاتيح JWT الجديدة (asymmetric) في المشاريع الحديثة
+[functions.delete-account]
+verify_jwt = false
