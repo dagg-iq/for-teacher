@@ -37,7 +37,8 @@ if (!dist) {
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
   execFileSync(npm, ['pack', `@huggingface/transformers@${VERSION}`, '--silent'], { cwd: tmp, stdio: ['ignore', 'pipe', 'inherit'], shell: process.platform === 'win32' });
   const tgz = fs.readdirSync(tmp).find((f) => f.endsWith('.tgz'));
-  execFileSync('tar', ['-xzf', tgz, '-C', tmp, ...FILES.map((f) => `package/dist/${f}`)], { cwd: tmp });
+  // بلا -C: مسار ويندوز (C:\...) يكسر tar؛ cwd هو tmp أصلاً
+  execFileSync('tar', ['-xzf', tgz, ...FILES.map((f) => `package/dist/${f}`)], { cwd: tmp });
   dist = path.join(tmp, 'package', 'dist');
 }
 fromDir(dist);
