@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chooseHeard, isAmbiguous, isConfident, matchStudents, normalizeArabic, numberToArabicWords, parseCommand, parseSpokenNumber } from './voice';
+import { chooseHeard, cleanTranscript, isAmbiguous, isConfident, matchStudents, normalizeArabic, numberToArabicWords, parseCommand, parseSpokenNumber } from './voice';
 import type { Student } from './types';
 
 const now = new Date().toISOString();
@@ -171,5 +171,51 @@ describe('choosing among recognizer alternatives', () => {
   it('prefers an alternative that names a student', () => {
     const h = chooseHeard(['كرار خمسين', 'زينب خمسين'], CLASS, { max: 100 });
     expect(h?.text).toBe('زينب خمسين');
+  });
+
+  describe('audit fixes', () => {
+    const ss = ['أحمد علي حسين', 'حسين كاظم', 'زينب محمد', 'علي حسن', 'مصطفى كريم'].map((name, i) => ({ id: `s${i}`, section_id: 'x', name, sort: i, created_at: '', updated_at: '' }));
+    it('«معفى» alone is exempt, not absent', () => {
+      expect(parseCommand('معفى', ss)).toEqual({ type: 'exempt' });
+      expect(parseCommand('غايب', ss)).toEqual({ type: 'absent' });
+    });
+    it('negated absence is not absence', () => {
+      const c = parseCommand('أحمد سبعين مو غايب', ss);
+      expect(c.type).toBe('grade');
+    });
+    it('decimal comma between digits', () => {
+      expect(parseSpokenNumber('80,5')).toBe(80.5);
+      expect(parseSpokenNumber('٨٠،٥')).toBe(80.5);
+    });
+    it('formal feminine teens', () => {
+      expect(parseSpokenNumber('إحدى عشرة')).toBe(11);
+      expect(parseSpokenNumber('اثنتا عشرة')).toBe(12);
+      expect(parseSpokenNumber('ثمن وخمسين')).toBe(58);
+    });
+    it('student by list number', () => {
+      const c = parseCommand('رقم 5 تسعين', ss);
+      expect(c).toMatchObject({ type: 'grade', value: 90 });
+      expect(c.type === 'grade' && c.candidates[0].student.name).toBe('مصطفى كريم');
+      const d = parseCommand('رقم خمسة تسعين', ss);
+      expect(d).toMatchObject({ type: 'grade', value: 90 });
+      expect(d.type === 'grade' && d.candidates[0].student.name).toBe('مصطفى كريم');
+      expect(parseCommand('رقم اثنين غايب', ss)).toMatchObject({ type: 'mark', mark: 'absent' });
+      expect(parseCommand('رقم 40 تسعين', ss).type).toBe('unknown');
+    });
+  });
+  describe('cleanTranscript (whisper)', () => {
+    it('keeps Arabic text and digits', () => {
+      expect(cleanTranscript(' خمسة وسبعين.')).toBe('خمسة وسبعين');
+      expect(cleanTranscript('أحمد علي، 85!')).toBe('أحمد علي 85');
+      expect(cleanTranscript('80,5')).toBe('80.5');
+    });
+    it('drops silence hallucinations and runaway repetition', () => {
+      expect(cleanTranscript(' ... ')).toBe('');
+      expect(cleanTranscript('ترجمة نانسي قنقر')).toBe('');
+      expect(cleanTranscript('اشتركوا في القناة')).toBe('');
+      expect(cleanTranscript('وكي ' + 'كي'.repeat(40))).toBe('');
+      expect(cleanTranscript('وكي يجب أن يجب أن يجب أن يجب أن')).toBe('');
+      expect(cleanTranscript('خمسة وخمسين')).toBe('خمسة وخمسين');
+    });
   });
 });

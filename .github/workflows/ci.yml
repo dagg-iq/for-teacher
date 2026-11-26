@@ -20,7 +20,9 @@ jobs:
         run: npm run typecheck
       - name: Web export
         working-directory: apps/mobile
-        run: npx expo export -p web --output-dir /tmp/web
+        run: |
+          node scripts/vendor-whisper.cjs
+          npx expo export -p web --output-dir /tmp/web
       - name: Install browser
         run: npx -y playwright@1 install --with-deps chromium
       - name: Smoke test every screen
