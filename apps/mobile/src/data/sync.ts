@@ -7,12 +7,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { chunk, fromServerRow, SYNC_TABLES, toServerRow, type Base, type TableName, type TableRow } from '@nahj/shared';
 import { useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
-import { isConfigured } from '@/lib/supabase';
+import { SYNC_BACKEND } from '@/lib/config';
+import { isConfigured, supabase } from '@/lib/supabase';
 import { backend } from './backends';
 import { maybeAutoBackup } from './cloud-backup';
 import { getSettings, onLocalChange, syncState } from './db';
 
-export type SyncStatus = { state: 'off' | 'idle' | 'syncing' | 'error'; lastSync: string | null; error?: string; pending: number };
+export type AccountStatus = 'pending' | 'approved' | 'suspended' | 'rejected';
+/** waiting: الحساب لم يُفعّله المدير بعد (أو موقوف) — البيانات تبقى على الجهاز حتى التفعيل */
+export type SyncStatus = { state: 'off' | 'idle' | 'syncing' | 'error' | 'waiting'; lastSync: string | null; error?: string; pending: number; account?: AccountStatus };
 
 let status: SyncStatus = { state: isConfigured ? 'idle' : 'off', lastSync: null, pending: 0 };
 const listeners = new Set<() => void>();
@@ -46,6 +49,15 @@ async function run() {
   const alive = () => { if (gen !== generation || userId !== uid) throw new Stale(); };
   set({ state: 'syncing', error: undefined });
   try {
+    // ٠) هل فعّل المدير الحساب؟ (بلا تفعيل يرفض الخادم كل شيء، فلا نحاول)
+    const account = await accountStatus(uid);
+    alive();
+    if (account !== 'approved') {
+      set({ state: 'waiting', account, error: undefined });
+      if (account === 'pending') requestAccess(uid);
+      return;
+    }
+    set({ account });
     const cursor: Record<string, string> = JSON.parse((await AsyncStorage.getItem(`${CURSOR}.${uid}`)) || '{}');
 
     // ١) الإعدادات
@@ -102,6 +114,25 @@ async function run() {
   }
 }
 
+/** حالة الحساب عند المدير. خادم أقدم بلا جدول teacher_accounts، أو خادم Oracle: مفعّل */
+async function accountStatus(uid: string): Promise<AccountStatus> {
+  if (SYNC_BACKEND !== 'supabase') return 'approved';
+  const { data, error } = await supabase.from('teacher_accounts').select('status').eq('id', uid).maybeSingle();
+  if (error) {
+    if (/teacher_accounts|schema cache|does not exist/i.test(error.message)) return 'approved';
+    throw error;
+  }
+  return ((data as { status?: AccountStatus } | null)?.status) ?? 'pending';
+}
+
+/** يُشعر المدير بطلب الحساب (مرة واحدة؛ الخادم يتجاهل التكرار) */
+const requested = new Set<string>();
+function requestAccess(uid: string) {
+  if (requested.has(uid)) return;
+  requested.add(uid);
+  supabase.functions.invoke('access-request', { body: {} }).catch(() => { requested.delete(uid); });
+}
+
 let timer: ReturnType<typeof setTimeout> | null = null;
 
 /** يبدأ المزامنة التلقائية لمستخدم (ويوقفها عند الخروج) */
@@ -109,7 +140,7 @@ export function startSync(uid: string | null): () => void {
   generation++;
   userId = uid;
   if (!isConfigured) return () => {};
-  if (!uid) { set({ state: 'idle' }); return () => {}; }
+  if (!uid) { set({ state: 'idle', account: undefined }); return () => {}; }
   AsyncStorage.getItem(LAST).then((v) => v && set({ lastSync: v })).catch(() => {});
   syncNow();
   const offChange = onLocalChange(() => {

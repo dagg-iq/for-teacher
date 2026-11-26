@@ -21,3 +21,11 @@ verify_jwt = false
 # الدالة تتحقق من المستخدم بنفسها (requireUser)؛ فحص البوابة لا يتوافق مع مفاتيح JWT الجديدة (asymmetric) في المشاريع الحديثة
 [functions.delete-account]
 verify_jwt = false
+
+# لوحة الإدارة: تتحقق بنفسها من رمز Google (Firebase) وبريد المدير
+[functions.admin]
+verify_jwt = false
+
+# إشعار المدير بطلب حساب جديد: تتحقق من المستخدم بنفسها
+[functions.access-request]
+verify_jwt = false
