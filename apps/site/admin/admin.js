@@ -113,8 +113,9 @@ async function initAuth() {
     $('#google').disabled = true;
     return;
   }
-  // نطاق الموقع نفسه (Firebase Hosting يخدم /__/auth/) — يتجنب مشاكل ملفات الطرف الثالث في المتصفحات
-  if (!/^(localhost|127\.)/.test(location.hostname)) fbCfg = { ...fbCfg, authDomain: location.hostname };
+  // authDomain يبقى <project>.firebaseapp.com (من init.json): هو العنوان المسموح في مفتاح Google الذي أنشأه Firebase.
+  // تغييره لنطاق الموقع يعطي redirect_uri_mismatch ما لم يُضف ‎https://<نطاق>/__/auth/handler‎ في Google Cloud.
+  if (CFG.authDomain) fbCfg = { ...fbCfg, authDomain: CFG.authDomain };
   let A;
   try {
     const { initializeApp } = await import(`${FB}/firebase-app.js`);
@@ -128,10 +129,7 @@ async function initAuth() {
       user: null,
       token: async (force = false) => { if (!fa.currentUser) throw new Error('سجّل الدخول أولاً'); return fa.currentUser.getIdToken(force); },
       signIn: async () => {
-        try { await A.signInWithPopup(fa, provider); } catch (e) {
-          if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/operation-not-supported-in-this-environment') return A.signInWithRedirect(fa, provider);
-          throw e;
-        }
+        await A.signInWithPopup(fa, provider);
       },
       signOut: async () => { await A.signOut(fa); location.hash = ''; location.reload(); },
     };
@@ -162,6 +160,7 @@ async function initAuth() {
 function authError(e) {
   const c = e?.code || '';
   if (c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request') return '';
+  if (c === 'auth/popup-blocked') return 'المتصفح منع نافذة الدخول. اسمح بالنوافذ المنبثقة لهذا الموقع ثم اضغط الزر مرة أخرى.';
   if (c === 'auth/unauthorized-domain') return 'هذا النطاق غير مسموح في Firebase ← Authentication ← Settings ← Authorized domains.';
   if (c === 'auth/operation-not-allowed') return 'الدخول بـ Google غير مفعّل في Firebase ← Authentication.';
   if (c === 'auth/network-request-failed') return 'تعذّر الاتصال. تأكد من الإنترنت.';
