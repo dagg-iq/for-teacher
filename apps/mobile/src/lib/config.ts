@@ -19,7 +19,3 @@ export const IS_DESKTOP = typeof window !== 'undefined' && !!(window as unknown 
 export const SYNC_BACKEND: 'supabase' | 'rest' = process.env.EXPO_PUBLIC_SYNC_BACKEND === 'rest' ? 'rest' : 'supabase';
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL || '').replace(/\/$/, '');
 
-/** زر «المتابعة بحساب Google» — يظهر فقط إن فُعّل مزوّد Google في Supabase (أسرار GOOGLE_CLIENT_ID/SECRET) */
-export const GOOGLE_AUTH = process.env.EXPO_PUBLIC_GOOGLE_AUTH === 'true';
-/** «نسيت كلمة السر» — يحتاج خادم بريد (أسرار SMTP_*)؛ بريد Supabase المجاني لا يصل إلا لأعضاء فريق المشروع */
-export const PASSWORD_RESET = process.env.EXPO_PUBLIC_PASSWORD_RESET === 'true';

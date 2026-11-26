@@ -1,5 +1,7 @@
 /**
- * التعرّف على الكلام — ثلاثة محركات، يُختار الأنسب تلقائياً:
+ * التعرّف على الكلام — أربعة محركات، يُختار الأنسب تلقائياً:
+ *  - «cloud» على الحاسوب والمتصفح (الافتراضي متى توفّر حساب وإنترنت): Whisper large-v3 على خوادم سريعة —
+ *    الأدق للعربية واللهجة والأسماء (الأسماء تُرسل تلميحاً)، وكل جملة تعود خلال أقل من ثانية تقريباً.
  *  - «native» على الهاتف: expo-speech-recognition (خدمة Google في أندرويد). أندرويد ١٣+ استماع متواصل بلا صفير،
  *    والأقدم جملة جملة مع إعادة تشغيل هادئة. أخطاء «مشغول/العميل» تُعاد تلقائياً بدل إيقاف الجلسة.
  *  - «web» في المتصفح (Chrome/Edge): التعرّف المدمج في المتصفح.
@@ -11,6 +13,7 @@ import * as Speech from 'expo-speech';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { IS_DESKTOP } from './config';
+import { buildPrompt, CloudError, cloudConfigured, cloudSignedIn, cloudTranscribe } from './cloud-stt';
 import { listenMic, loadWhisper, transcribe, type MicSession, type WhisperQuality } from './whisper';
 
 type Mod = typeof import('expo-speech-recognition');
@@ -23,8 +26,8 @@ try {
 }
 
 export type ListenState = 'idle' | 'starting' | 'loading' | 'listening' | 'error';
-export type Engine = 'native' | 'web' | 'whisper' | 'none';
-export type EnginePref = 'auto' | 'google' | 'device';
+export type Engine = 'native' | 'cloud' | 'web' | 'whisper' | 'none';
+export type EnginePref = 'auto' | 'cloud' | 'google' | 'device';
 
 const isWeb = Platform.OS === 'web';
 const hasWebSpeech = () => isWeb && typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
@@ -34,6 +37,8 @@ const hasMic = () => isWeb && typeof navigator !== 'undefined' && !!navigator.me
 export function pickEngine(pref: EnginePref = 'auto'): Engine {
   if (!isWeb) return mod ? 'native' : 'none';
   if (pref === 'device') return hasMic() ? 'whisper' : 'none';
+  // السحابي أولاً (الأدق والأسرع)؛ بلا حساب أو إنترنت ينتقل تلقائياً عند البدء
+  if ((pref === 'auto' || pref === 'cloud') && cloudConfigured && hasMic()) return 'cloud';
   if (pref === 'google') return hasWebSpeech() ? 'web' : hasMic() ? 'whisper' : 'none';
   // الحاسوب: تعرّف المتصفح المدمج لا يعمل داخل Electron (يحتاج مفاتيح Google)
   if (IS_DESKTOP) return hasMic() ? 'whisper' : 'none';
@@ -68,6 +73,13 @@ const ERRORS: Record<string, string> = {
   timeout: `لم يبدأ التعرّف على الكلام على ${where}. حاول مرة أخرى، أو اكتب الأوامر في الخانة.`,
   unsupported: 'هذا المتصفح لا يدعم الإدخال الصوتي. استعمل Chrome أو Edge، أو اكتب الأوامر في الخانة.',
   model: 'تعذّر تنزيل نموذج الكلام. يلزم إنترنت مرة واحدة فقط لتنزيله، ثم يعمل بلا إنترنت.',
+};
+
+const CLOUD_NOTICE: Record<string, string> = {
+  signin: 'التعرّف السحابي الأدق يحتاج تسجيل الدخول — استُعمل التعرّف داخل الجهاز.',
+  'not-approved': 'التعرّف السحابي يعمل بعد موافقة الإدارة على حسابك — استُعمل التعرّف داخل الجهاز.',
+  'not-configured': 'التعرّف السحابي غير مفعّل بعد — استُعمل التعرّف داخل الجهاز.',
+  network: 'لا يوجد إنترنت — استُعمل التعرّف داخل الجهاز.',
 };
 
 let speakingUntil = 0;
@@ -287,6 +299,62 @@ export function useRecognizer(opts: {
     startWhisper();
   }, [startWhisper]);
 
+  // ---------------------------------------------------------------- السحابي (Whisper large-v3)
+  const netFails = useRef(0);
+  const fallbackToDevice = useCallback((code: string) => {
+    mic.current?.stop();
+    mic.current = null;
+    busy.current = 0;
+    setPartial('');
+    cb.current.onNotice?.(CLOUD_NOTICE[code] ?? CLOUD_NOTICE.network);
+    engineRef.current = 'whisper';
+    setEngine('whisper');
+    if (wanted.current) startWhisper();
+  }, [startWhisper]);
+
+  const startCloud = useCallback(async () => {
+    setError(null);
+    failed.current = false;
+    netFails.current = 0;
+    setState('starting');
+    if (!(await cloudSignedIn())) { fallbackToDevice('signin'); return; }
+    if (!wanted.current) { setState('idle'); return; }
+    const prompt = buildPrompt(cb.current.contextual ?? []);
+    try {
+      mic.current = await listenMic({
+        endSilence: 550,
+        onLevel: setVolume,
+        onSpeech: (s) => { if (s && !busy.current) setPartial('…'); },
+        onSegment: (pcm) => {
+          busy.current++;
+          setPartial('جارٍ التعرّف…');
+          // الطلب يبدأ فوراً (بالتوازي)، والنتائج تُسلَّم بترتيب الكلام
+          const job = cloudTranscribe(pcm, prompt).then((t) => ({ t, e: null as unknown }), (e: unknown) => ({ t: '', e }));
+          queue.current = queue.current.then(async () => {
+            const { t, e } = await job;
+            busy.current = Math.max(0, busy.current - 1);
+            if (!busy.current) setPartial('');
+            if (!wanted.current || engineRef.current !== 'cloud') return;
+            if (e instanceof CloudError) {
+              if (e.code === 'signin' || e.code === 'not-approved' || e.code === 'not-configured') { fallbackToDevice(e.code); return; }
+              if (e.code === 'network' && ++netFails.current >= 2) { fallbackToDevice('network'); return; }
+              cb.current.onNotice?.(e.code === 'rate' ? 'طلبات كثيرة على خدمة الكلام — أعد الجملة بعد لحظة.' : e.code === 'network' ? 'انقطع الاتصال لحظة — أعد الجملة.' : 'تعذّر التعرّف على هذه الجملة — أعدها.');
+              return;
+            }
+            netFails.current = 0;
+            if (t) cb.current.onFinal([t]);
+          });
+        },
+      });
+    } catch (err) {
+      const name = (err as { name?: string })?.name;
+      fail(name === 'NotAllowedError' || name === 'SecurityError' ? 'not-allowed' : 'audio-capture');
+      return;
+    }
+    if (!wanted.current) { mic.current?.stop(); mic.current = null; setState('idle'); return; }
+    setState('listening');
+  }, [fail, fallbackToDevice]);
+
   useEffect(() => () => { mic.current?.stop(); mic.current = null; }, []);
 
   // ---------------------------------------------------------------- التحكم
@@ -299,6 +367,7 @@ export function useRecognizer(opts: {
     quiet.current = 0;
     wanted.current = true;
     if (e === 'whisper') { startWhisper(); return; }
+    if (e === 'cloud') { startCloud(); return; }
     if (!mod) { fail('unsupported'); return; }
     setState('starting');
     if (e === 'native') {
@@ -310,14 +379,14 @@ export function useRecognizer(opts: {
     if (!perm?.granted) { fail('not-allowed'); return; }
     if (!wanted.current) return;
     begin();
-  }, [begin, fail, startWhisper]);
+  }, [begin, fail, startWhisper, startCloud]);
 
   const stop = useCallback(() => {
     wanted.current = false;
     setPartial('');
     setVolume(0);
     if (watchdog.current) { clearTimeout(watchdog.current); watchdog.current = null; }
-    if (engineRef.current === 'whisper') { mic.current?.stop(); mic.current = null; }
+    if (engineRef.current === 'whisper' || engineRef.current === 'cloud') { mic.current?.stop(); mic.current = null; busy.current = 0; }
     else { try { mod?.ExpoSpeechRecognitionModule.stop(); } catch { /* */ } }
     setState('idle');
   }, []);

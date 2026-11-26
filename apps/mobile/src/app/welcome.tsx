@@ -9,11 +9,10 @@ import { enter, PressScale } from '@/components/motion';
 import { Button, Chip, Field, Row, Segmented, T } from '@/components/ui';
 import { setSettings, useSettings, getSettings } from '@/data/db';
 import { seedDemo } from '@/data/demo';
-import { isConfigured } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
 
-const FEATURES: { icon: IconName; title: string; body: string }[] = [
+export const FEATURES: { icon: IconName; title: string; body: string }[] = [
   { icon: 'school', title: 'صفوفك وطلابك', body: 'الصفوف والشعب والطلاب في مكان واحد، مع ملف لكل طالب.' },
   { icon: 'chart', title: 'سجل درجات يحسب وحده', body: 'السعي السنوي والمعدلات والتقديرات بقوالب عراقية أو بمعادلاتك، مع الإحصاء.' },
   { icon: 'calendar', title: 'جدولك وحضورك وتحضيرك', body: 'حصتك القادمة، الغياب بضغطة، دفتر التحضير، وتذكير قبل كل حصة.' },
@@ -57,7 +56,6 @@ function Intro({ onNext }: { onNext: () => void }) {
           <T weight="bold" size={17} color="#0E3B33">لنبدأ</T>
           <Icon name="forward" size={20} color="#0E3B33" strokeWidth={2.2} />
         </PressScale>
-        {isConfigured ? <Button title="لدي حساب — تسجيل الدخول" variant="secondary" onPress={() => router.push("/account")} /> : null}
       </View>
     </ScrollView>
   );

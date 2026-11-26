@@ -32,6 +32,7 @@ if (Platform.OS !== 'web') {
 /** رسالة خطأ عربية مفهومة من أخطاء Supabase */
 export function arabicError(e: unknown): string {
   const m = (e instanceof Error ? e.message : String(e ?? '')).toLowerCase();
+  if (m.includes('provider is not enabled') || m.includes('unsupported provider')) return 'الدخول بحساب Google غير مفعّل على الخادم بعد. تواصل مع إدارة نَهج.';
   if (m.includes('banned')) return 'هذا الحساب موقوف. تواصل مع إدارة نَهج.';
   if (m.includes('invalid login')) return 'البريد أو كلمة السر غير صحيحة.';
   if (m.includes('already registered') || m.includes('already been registered')) return 'هذا البريد مسجّل مسبقاً. سجّل الدخول بدلاً من ذلك.';

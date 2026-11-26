@@ -4,7 +4,7 @@
  * - الروابط الخارجية تُفتح في المتصفح، ونوافذ الطباعة تبقى داخل التطبيق.
  * - نسخة واحدة فقط تعمل، وحجم النافذة وموضعها يُحفظان.
  */
-const { app, BrowserWindow, protocol, net, shell, Menu, nativeTheme, session } = require('electron');
+const { app, BrowserWindow, protocol, net, shell, Menu, nativeTheme, session, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
@@ -17,6 +17,22 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 if (!app.requestSingleInstanceLock()) app.quit();
+
+// الدخول بحساب Google: يتم في متصفح النظام (Google يمنع الدخول داخل النوافذ المضمّنة)،
+// ثم يعود إلى التطبيق برابط nahj://auth-callback?code=… فيُمرَّر للواجهة لإكمال الدخول
+if (process.defaultApp && process.argv.length >= 2) app.setAsDefaultProtocolClient('nahj', process.execPath, [path.resolve(process.argv[1])]);
+else app.setAsDefaultProtocolClient('nahj');
+const deepLinkFrom = (argv) => (argv || []).find((a) => typeof a === 'string' && a.startsWith('nahj://'));
+let pendingLink = deepLinkFrom(process.argv) || null;
+function deliver(url) {
+  if (!url) return;
+  if (win && !win.webContents.isLoading()) win.webContents.send('nahj:deeplink', url);
+  else pendingLink = url;
+}
+ipcMain.handle('nahj:open-external', (_e, url) => {
+  if (typeof url === 'string' && /^https:\/\//i.test(url)) return shell.openExternal(url);
+  return false;
+});
 
 const stateFile = () => path.join(app.getPath('userData'), 'window.json');
 function loadBounds() {
@@ -64,6 +80,7 @@ function createWindow() {
   });
   // أشرطة تمرير رفيعة هادئة تناسب تطبيق الحاسوب
   win.webContents.on('did-finish-load', () => {
+    if (pendingLink) { win.webContents.send('nahj:deeplink', pendingLink); pendingLink = null; }
     win.webContents.insertCSS(`
       ::-webkit-scrollbar{width:10px;height:10px}
       ::-webkit-scrollbar-track{background:transparent}
@@ -75,7 +92,8 @@ function createWindow() {
   win.loadURL(`${ORIGIN}/`);
 }
 
-app.on('second-instance', () => {
+app.on('second-instance', (_e, argv) => {
+  deliver(deepLinkFrom(argv));
   if (!win) return;
   if (win.isMinimized()) win.restore();
   win.focus();

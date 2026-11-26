@@ -303,8 +303,10 @@ Deno.serve(handler(async (req) => {
     }
 
     case 'create': {
+      // موافقة مسبقة: حساب بهذا البريد (بلا كلمة سر)؛ حين يدخل صاحبه بحساب Google بنفس البريد يُربط به ويجده مفعّلاً
       const email = emailArg(args.email);
-      const { data, error } = await db.auth.admin.createUser({ email, password: passwordArg(args.password), email_confirm: true });
+      const password = typeof args.password === 'string' && args.password ? passwordArg(args.password) : undefined;
+      const { data, error } = await db.auth.admin.createUser({ email, ...(password ? { password } : {}), email_confirm: true });
       if (error) throw new HttpError(400, /already|exists|registered/i.test(error.message) ? 'هذا البريد مسجّل مسبقاً' : error.message);
       await setStatus(db, data.user.id, 'approved');
       if (typeof args.name === 'string' && args.name.trim()) {

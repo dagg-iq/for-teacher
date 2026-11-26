@@ -29,3 +29,7 @@ verify_jwt = false
 # إشعار المدير بطلب حساب جديد: تتحقق من المستخدم بنفسها
 [functions.access-request]
 verify_jwt = false
+
+# التعرّف السحابي على الكلام: تتحقق من المستخدم بنفسها
+[functions.transcribe]
+verify_jwt = false

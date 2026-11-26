@@ -16,8 +16,10 @@ import { IS_DESKTOP } from '@/lib/config';
 import { useWide } from '@/lib/hooks';
 import { Sidebar } from '@/components/sidebar';
 import { loadDB, useSettings } from '@/data/db';
-import { startSync } from '@/data/sync';
+import { startSync, syncNow } from '@/data/sync';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { SignInGate, WaitingGate } from '@/components/gate';
+import { isConfigured } from '@/lib/supabase';
 import { DialogHost } from '@/lib/dialog';
 import { useClassReminders } from '@/lib/notify';
 import { registerDevice } from '@/lib/push';
@@ -73,7 +75,7 @@ export default function RootLayout() {
 
 function Navigator() {
   const { c, dark } = useTheme();
-  const { ready, session } = useAuth();
+  const { ready, session, status } = useAuth();
   const settings = useSettings();
   const segments = useSegments();
   // شكل الأرقام يُضبط قبل رسم أي شاشة؛ تغييره يعيد بناء الشاشات (key) لتظهر الأرقام الجديدة في كل مكان
@@ -84,7 +86,10 @@ function Navigator() {
   const hasProfile = !!settings.profile?.name;
   const wide = useWide();
   const first = (segments as string[])[0];
-  const side = wide && hasProfile && first !== 'welcome' && first !== 'auth-callback';
+  // البوابة: بلا حساب ← الدخول بـ Google؛ حساب غير مفعّل ← الانتظار. (رابط العودة من Google يمر دائماً)
+  const gate: 'signin' | 'wait' | 'loading' | null = !isConfigured || first === 'auth-callback' ? null
+    : !session ? 'signin' : status === 'loading' ? 'loading' : status !== 'approved' ? 'wait' : null;
+  const side = !gate && wide && hasProfile && first !== 'welcome' && first !== 'auth-callback';
   // حركة الشعار عند الفتح (الهاتف وتطبيق الحاسوب). على الويب نخفي شاشة البداية مباشرة
   const [introDone, setIntroDone] = useState(Platform.OS === 'web' && !IS_DESKTOP);
 
@@ -92,13 +97,14 @@ function Navigator() {
   useEffect(() => {
     if (!ready) return;
     const hide = introDone ? setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 120) : undefined;
-    if (!hasProfile && first !== 'welcome' && first !== 'account' && first !== 'auth-callback') router.replace('/welcome');
+    if (!gate && !hasProfile && first !== 'welcome' && first !== 'account' && first !== 'auth-callback') router.replace('/welcome');
     return () => { if (hide) clearTimeout(hide); };
-  }, [ready, hasProfile, first, introDone]);
+  }, [ready, hasProfile, first, introDone, gate]);
 
   // المزامنة عند وجود حساب
   const uid = session?.user.id ?? null;
   useEffect(() => startSync(uid), [uid]);
+  useEffect(() => { if (uid && status === 'approved') syncNow(); }, [uid, status]);
   useEffect(() => { if (uid) registerDevice(uid); }, [uid]);
 
   // تذكير الحصص (إشعارات محلية)
@@ -116,7 +122,7 @@ function Navigator() {
     <ThemeProvider value={navTheme}>
       <PortalProvider>
         <StatusBar style={dark ? 'light' : 'dark'} />
-        {!ready ? <View style={{ flex: 1, backgroundColor: c.bg }} /> : (
+        {!ready || gate === 'loading' ? <View style={{ flex: 1, backgroundColor: c.bg }} /> : gate === 'signin' ? <SignInGate /> : gate === 'wait' ? <WaitingGate /> : (
           <View style={{ flex: 1, flexDirection: 'row', backgroundColor: c.bg }}>
             {/* الحاسوب: الشريط الجانبي في كل الشاشات */}
             {side ? <Sidebar /> : null}

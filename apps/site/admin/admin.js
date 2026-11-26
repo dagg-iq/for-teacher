@@ -397,24 +397,20 @@ const genPassword = () => {
 async function createTeacher() {
   const dlg = $('#dlg');
   const f = $('#dlg-form');
-  const pw = genPassword();
-  f.innerHTML = `<h2>إضافة مدرّس</h2><p>يُنشأ الحساب مفعّلاً مباشرة. أعطِ المدرّس البريد وكلمة السر ليدخل من التطبيق.</p>
-    <label class="lbl">البريد<input class="field ltr" id="c-email" type="email" required autocomplete="off"></label>
+  f.innerHTML = `<h2>إضافة مدرّس (موافقة مسبقة)</h2><p>اكتب بريد Gmail للمدرّس. حين يدخل التطبيق بحساب Google بهذا البريد يجده مفعّلاً مباشرة بلا انتظار.</p>
+    <label class="lbl">بريد Gmail<input class="field ltr" id="c-email" type="email" required autocomplete="off" placeholder="name@gmail.com"></label>
     <label class="lbl">الاسم (اختياري)<input class="field" id="c-name" autocomplete="off"></label>
-    <label class="lbl">كلمة السر<span class="pw"><input class="field" id="c-pw" value="${pw}" minlength="6" required autocomplete="off"><button type="button" class="btn btn-ghost btn-sm" id="c-gen">توليد</button></span></label>
-    <div class="row"><button class="btn" value="ok">إنشاء الحساب</button><button class="btn btn-ghost" value="cancel" formnovalidate>إلغاء</button></div>`;
-  $('#c-gen').onclick = () => { $('#c-pw').value = genPassword(); };
+    <div class="row"><button class="btn" value="ok">إضافة</button><button class="btn btn-ghost" value="cancel" formnovalidate>إلغاء</button></div>`;
   dlg.returnValue = '';
   dlg.showModal();
   $('#c-email').focus();
   const ok = await new Promise((r) => { dlg.onclose = () => r(dlg.returnValue === 'ok'); });
   if (!ok) return;
-  const email = $('#c-email').value.trim(); const name = $('#c-name').value.trim(); const password = $('#c-pw').value;
+  const email = $('#c-email').value.trim(); const name = $('#c-name').value.trim();
   try {
-    await api('create', { email, name, password });
+    await api('create', { email, name });
     await refresh(false, true); render();
-    await dialog({ title: 'أُنشئ الحساب', body: `البريد: ${email}\nكلمة السر: ${password}\n\nانسخها الآن وأرسلها للمدرّس.`, ok: 'نسخ وإغلاق' });
-    navigator.clipboard?.writeText(`نَهج\nالبريد: ${email}\nكلمة السر: ${password}`).catch(() => {});
+    toast(`أُضيف ${email} — يدخل بحساب Google مباشرة`);
   } catch (e) { toast(e.message, true); }
 }
 
