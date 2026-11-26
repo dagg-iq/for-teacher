@@ -29,7 +29,7 @@ export default function Home() {
   return (
     <Screen>
       {/* السبورة: التحية والحصة الحالية مكتوبة بالطباشير (على الشاشة العريضة: بطاقة مستديرة) */}
-      <View style={[{ paddingHorizontal: 20, paddingBottom: 46, backgroundColor: c.heroBg, gap: 14, overflow: 'hidden' },
+      <View style={[{ paddingHorizontal: 20, paddingBottom: wide ? 22 : 46, backgroundColor: c.heroBg, gap: 14, overflow: 'hidden' },
         wide ? { marginTop: 8, paddingTop: 22, borderRadius: 30 } : { marginHorizontal: -20, marginTop: -(insets.top + 8), paddingTop: insets.top + 14, borderBottomLeftRadius: 34, borderBottomRightRadius: 34 }]}>
         <Row style={{ justifyContent: 'space-between' }}>
           <View style={{ flexShrink: 1 }}>
@@ -53,7 +53,8 @@ export default function Home() {
         </Card>
       ) : (
         <>
-          <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: -48 }}>
+          {/* الهاتف: البطاقات تتراكب على أسفل السبورة؛ الحاسوب: تحتها مباشرة (السبورة بطاقة مستديرة) */}
+          <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: wide ? 0 : -48 }}>
             <Stat label="الطلاب" value={d.students} icon="users" onPress={() => router.push('/classes')} />
             <Stat label="الشعب" value={d.sections} icon="grid" onPress={() => router.push('/classes')} />
           </View>

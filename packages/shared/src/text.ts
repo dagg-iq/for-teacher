@@ -18,6 +18,7 @@ export const countStudents = (n: number) => countOf(n, 'طالب', 'طالبان
 export const countSections = (n: number) => countOf(n, 'شعبة', 'شعبتان', 'شعب', 'شعبة', 'شعبة واحدة');
 export const countClasses = (n: number) => countOf(n, 'صف', 'صفّان', 'صفوف', 'صفاً');
 export const countPeriods = (n: number) => countOf(n, 'حصة', 'حصتان', 'حصص', 'حصة', 'حصة واحدة');
+export const countGrades = (n: number) => countOf(n, 'درجة', 'درجتان', 'درجات', 'درجة', 'درجة واحدة');
 export const countBooks = (n: number) => countOf(n, 'سجل', 'سجلّان', 'سجلات', 'سجلاً');
 
 /**

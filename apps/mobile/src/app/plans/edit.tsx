@@ -15,7 +15,9 @@ const MATERIALS = ['السبورة', 'الكتاب المدرسي', 'جهاز ا
 
 export default function PlanEdit() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const p = id ? get('lesson_plans', id) : undefined;
+  // بعد أول حفظ (مثلاً «طباعة» لتحضير جديد) يصبح التحضير موجوداً: الحفظ التالي يعدّله لا ينشئ نسخة ثانية
+  const [savedId, setSavedId] = useState<string | undefined>(id);
+  const p = savedId ? get('lesson_plans', savedId) : undefined;
   const classes = classesSorted();
   const [date, setDate] = useState(() => (p ? new Date(`${p.date}T08:00:00`) : new Date()));
   const [title, setTitle] = useState(p?.title ?? '');
@@ -35,9 +37,11 @@ export default function PlanEdit() {
   });
   const save = (then?: (id: string) => void) => {
     const row = p ? update('lesson_plans', p.id, data()) : insert('lesson_plans', data());
+    if (row) setSavedId(row.id);
     toast('حُفظ التحضير', { icon: 'check' });
     if (then && row) then(row.id);
-    else router.back();
+    else if (router.canGoBack()) router.back();
+    else router.replace('/plans');
   };
 
   return (

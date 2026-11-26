@@ -2,7 +2,7 @@ import {
   arDigits, breaksBetween, countPeriods, DAY_NAMES, DAY_SHORT, formatClock, nowState, periodName, toMinutes, WEEK_ORDER, weeklyLoad, type Slot,
 } from '@nahj/shared';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Icon } from '@/components/icon';
 import { Pill } from '@/components/kit';
@@ -24,8 +24,9 @@ export default function Schedule() {
   const [day, setDay] = useState(() => (cfg.days.includes(now.getDay()) ? now.getDay() : days[0] ?? 0));
   const [view, setView] = useState<'day' | 'week'>('day');
   const [edit, setEdit] = useState<{ day: number; period: number } | null>(null);
-  const slots = useQuery(() => all('slots'));
-  const load = useQuery(() => weeklyLoad(all('slots')));
+  // حصص في أيام أو أرقام حصص لم تعد ضمن الدوام لا تُحسب (تبقى محفوظة وتعود إن أعيدت)
+  const slots = useQuery(() => all('slots').filter((s) => cfg.days.includes(s.day) && s.period < cfg.periods.length), [cfg]);
+  const load = useMemo(() => weeklyLoad(slots), [slots]);
   const total = slots.filter((s) => s.section_id || s.label).length;
 
   if (!settings.timetable) {
@@ -173,10 +174,15 @@ function SlotEditor({ day, period, slot, onClose }: { day: number; period: numbe
   const [section, setSection] = useState<string | null>(slot?.section_id ?? null);
   const [label, setLabel] = useState(slot?.label ?? '');
   const [room, setRoom] = useState(slot?.room ?? '');
+  const pickSection = (id: string | null) => {
+    setSection(id);
+    if (!slot && id && !room.trim()) setRoom(sections.find((s) => s.id === id)?.room ?? '');
+  };
   const cfg = getTimetable();
   const p = cfg.periods[period];
   const save = () => {
-    const data = { day, period, section_id: section, label: section ? null : label.trim() || null, room: room.trim() || (section ? sections.find((s) => s.id === section)?.room ?? null : null) };
+    // القاعة: ما كتبه المدرس (ويمكن مسحها)، وتُقترح قاعة الشعبة فقط لحصة جديدة
+    const data = { day, period, section_id: section, label: section ? null : label.trim() || null, room: room.trim() || null };
     if (!data.section_id && !data.label) { if (slot) remove('slots', slot.id); onClose(); return; }
     if (slot) update('slots', slot.id, data);
     else insert('slots', data);
@@ -190,7 +196,7 @@ function SlotEditor({ day, period, slot, onClose }: { day: number; period: numbe
         <T weight="bold" size={14}>الشعبة</T>
         {sections.length ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {sections.map((s) => <Chip key={s.id} label={sectionLabel(s.id, true)} active={section === s.id} onPress={() => setSection(section === s.id ? null : s.id)} />)}
+            {sections.map((s) => <Chip key={s.id} label={sectionLabel(s.id, true)} active={section === s.id} onPress={() => pickSection(section === s.id ? null : s.id)} />)}
           </View>
         ) : <T dim size={13}>أضف صفوفك أولاً من تبويب الصفوف.</T>}
         {!section ? <Field label="أو عنوان آخر" value={label} onChangeText={setLabel} placeholder="مثال: إشراف، ريادة، نشاط" /> : null}
@@ -199,7 +205,6 @@ function SlotEditor({ day, period, slot, onClose }: { day: number; period: numbe
           {slot ? <Button title="إفراغ" variant="danger" small onPress={() => { remove('slots', slot.id); onClose(); }} /> : null}
           <Button title="حفظ" icon="check" style={{ flex: 1 }} onPress={save} />
         </Row>
-        <View style={{ height: 1, backgroundColor: c.line }} />
       </View>
     </Sheet>
   );

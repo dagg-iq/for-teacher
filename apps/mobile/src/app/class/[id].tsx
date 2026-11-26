@@ -33,7 +33,7 @@ export default function ClassDetail() {
   return (
     <Screen>
       <Header title={k.name} subtitle={[k.subject, STAGE_LABEL[k.stage]].filter(Boolean).join(' · ')}
-        right={<IconButton name="more" label="خيارات" onPress={() => setMenu(true)} />} />
+        right={<IconButton name="more-v" label="خيارات" onPress={() => setMenu(true)} />} />
       {sections.length === 0 ? (
         <Card><Empty icon="grid" title="لا شعب" body="أضف شعبة لهذا الصف." action="إضافة شعبة" onAction={() => router.push(`/class/new?id=${k.id}`)} /></Card>
       ) : sections.map(({ s, students, books }) => (

@@ -1,6 +1,5 @@
 import {
-  arDigits, cloneColumns, formatScore, MARK_LABEL, parseNumber, type GradeColumn, type SheetRow,
-} from '@nahj/shared';
+  arDigits, cloneColumns, formatScore, MARK_LABEL, parseNumber, type GradeColumn, type SheetRow, countGrades } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
@@ -9,7 +8,7 @@ import { Pill } from '@/components/kit';
 import { PressScale, tap } from '@/components/motion';
 import { Sheet, SheetItem } from '@/components/sheet';
 import { Button, Card, Chip, Empty, Field, Header, IconButton, Row, Screen, Segmented, T } from '@/components/ui';
-import { get, insert, remove, update, useQuery } from '@/data/db';
+import { all, get, insert, remove, update, useQuery } from '@/data/db';
 import { setGrade, setOverride } from '@/data/grades';
 import { allSections, linkLabel, sectionLabel, sheetOf } from '@/data/queries';
 import { useWide } from '@/lib/hooks';
@@ -51,9 +50,11 @@ export default function BookScreen() {
   if (!book) return <Screen><Header /><Empty title="السجل غير موجود" /></Screen>;
 
   const run = (fn: () => Promise<void>) => fn().catch((e) => toast(e instanceof Error ? e.message : 'تعذّر', { tone: 'bad', icon: 'info' }));
-  const del = () => Alert.alert('حذف السجل؟', `سيُحذف «${book.title}» وكل درجاته.${book.group_id ? ' السجلات التي تحسب منه (السعي) ستفقد هذه الدرجات.' : ''}`, [
+  // السجلات التي تأخذ منه درجاتها (السعي…) تُذكر بأسمائها قبل الحذف
+  const dependents = all('gradebooks').filter((b) => b.id !== book.id && b.columns.some((x) => x.kind === 'link' && x.source?.book_id === book.id));
+  const del = () => Alert.alert('حذف السجل؟', `سيُحذف «${book.title}» وكل درجاته.${dependents.length ? `\n\nتحذير: ${dependents.map((d) => `«${d.title}»`).join('، ')} ${dependents.length > 1 ? 'تحسب' : 'يحسب'} منه، وستصبح ${dependents.length > 1 ? 'نتائجها' : 'نتيجته'} فارغة. للإخفاء بدل الحذف استعمل «أرشفة».` : ''}`, [
     { text: 'إلغاء', style: 'cancel' },
-    { text: 'حذف', style: 'destructive', onPress: () => { remove('gradebooks', book.id); toast('حُذف السجل', { icon: 'trash' }); router.back(); } },
+    { text: 'حذف', style: 'destructive', onPress: () => { remove('gradebooks', book.id); toast('حُذف السجل', { icon: 'trash' }); if (router.canGoBack()) router.back(); else router.replace('/grades'); } },
   ]);
   const sources = [...new Map(book.columns.filter((x) => x.kind === 'link' && x.source).map((x) => [x.source!.book_id, get('gradebooks', x.source!.book_id)])).values()].filter(Boolean);
   const critical = rows.reduce((n, r) => n + Object.keys(r.critical).length, 0);
@@ -67,7 +68,7 @@ export default function BookScreen() {
           right={(
             <>
               {inputs.length ? <IconButton name="mic" label="إدخال صوتي" filled onPress={() => router.push(`/voice?book=${book.id}${activeCol ? `&column=${activeCol.id}` : ''}`)} /> : null}
-              <IconButton name="more" label="خيارات" onPress={() => setMenu(true)} />
+              <IconButton name="more-v" label="خيارات" onPress={() => setMenu(true)} />
             </>
           )} />
         {sources.length ? (
@@ -81,7 +82,7 @@ export default function BookScreen() {
             style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, backgroundColor: tone.warn.bg }}>
             <Icon name="info" size={20} color={tone.warn.ink} />
             <View style={{ flex: 1 }}>
-              <T weight="bold" size={14} color={tone.warn.ink}>{arDigits(critical)} درجة حرجة قريبة من النجاح</T>
+              <T weight="bold" size={14} color={tone.warn.ink}>{countGrades(critical)} حرجة قريبة من النجاح</T>
               <T size={12} color={tone.warn.ink}>راجعها وقرر رفعها إلى درجة النجاح — لا يتغير شيء بدون موافقتك.</T>
             </View>
             <T weight="bold" size={13} color={tone.warn.ink}>مراجعة</T>
@@ -261,7 +262,8 @@ function GridCell({ bookId, studentId, col, value, mark, inputRef, onDown, onUp,
   inputRef: (el: TextInput | null) => void; onDown: () => void; onUp: () => void; onNextCol: () => void;
 }) {
   const { c, tone } = useTheme();
-  const shown = mark === 'absent' && value == null ? 'غ' : value == null ? '' : arDigits(value);
+  // الغائب يُحسب صفراً في المعادلات، لكنه يُعرض «غ» لا «0»
+  const shown = mark === 'absent' && (value == null || value === 0) ? 'غ' : value == null ? '' : arDigits(value);
   const [text, setText] = useState(shown);
   const [bad, setBad] = useState(false);
   useEffect(() => { setText(shown); }, [shown]);
@@ -277,7 +279,9 @@ function GridCell({ bookId, studentId, col, value, mark, inputRef, onDown, onUp,
     return true;
   };
   return (
-    <TextInput ref={inputRef} value={text} onChangeText={(t) => { setText(t); setBad(false); }} onBlur={commit}
+    <TextInput ref={inputRef} value={text} onChangeText={(t) => { setText(t); setBad(false); }}
+      // قيمة غير صالحة عند مغادرة الخانة: تعود الخانة للدرجة المحفوظة (لا تبقى قيمة ظاهرة غير محفوظة)
+      onBlur={() => { if (!commit()) { setText(shown); setBad(false); } }}
       onSubmitEditing={() => { if (commit()) onDown(); }} blurOnSubmit={false} selectTextOnFocus keyboardType="decimal-pad"
       onKeyPress={Platform.OS === 'web' ? (e) => {
         const k = (e.nativeEvent as { key?: string }).key;
@@ -332,8 +336,9 @@ function EntryRow({ row, index, col, bookId, decider, inputRef, onNext, divider,
   inputRef: (el: TextInput | null) => void; onNext: () => void; divider: boolean; lineColor: string;
 }) {
   const { c, tone } = useTheme();
-  const v = row.values[col.id];
   const mark = row.marks[col.id] ?? null;
+  // الغائب يُعرض «غائب» لا «0»
+  const v = mark === 'absent' && !row.values[col.id] ? null : row.values[col.id];
   const [text, setText] = useState(v == null ? '' : arDigits(v));
   const [bad, setBad] = useState(false);
   useEffect(() => { setText(v == null ? '' : arDigits(v)); }, [v]);
@@ -376,7 +381,7 @@ function EntryRow({ row, index, col, bookId, decider, inputRef, onNext, divider,
         ref={inputRef}
         value={mark === 'absent' && !text ? '' : text}
         onChangeText={(t) => { setText(t); setBad(false); }}
-        onBlur={() => commit(text)}
+        onBlur={() => { if (!commit(text)) { setText(v == null ? '' : arDigits(v)); setBad(false); } }}
         onSubmitEditing={() => { if (commit(text)) onNext(); }}
         blurOnSubmit={false}
         returnKeyType="next"

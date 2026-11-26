@@ -110,6 +110,27 @@ describe('year set (linked books)', () => {
     expect(row.verdict?.pass).toBe(true);
   });
 
+  it('a raise is dropped when the months are corrected out of the critical range', () => {
+    const t1 = by('سعي الفصل الأول');
+    const total = t1.columns.find((c) => c.id === t1.result.column_id)!;
+    const raised = g(t1.id, 'x', total.id, 50);
+    // صُحّح الشهر الأول من ٤٨ إلى ٨٠: السعي الصحيح ٦٤ لا ٥٠
+    const fixed = [
+      ...exam('الشهر الأول — الفصل الأول', 'x', [60, 8, 12]), // 80
+      ...exam('الشهر الثاني — الفصل الأول', 'x', [30, 5, 12]), // 47 → (80+47)/2 = 63.5 → 64
+      raised,
+    ];
+    const row = computeSet(specs, students, fixed).get(t1.id)![0];
+    expect(row.values[total.id]).toBe(64);
+    expect(row.overridden[total.id]).toBeUndefined();
+    expect(row.verdict?.pass).toBe(true);
+    // وإن هبط تحت النطاق (٣٥) يظهر راسباً بدرجته الحقيقية لا ٥٠
+    const low = [...exam('الشهر الأول — الفصل الأول', 'x', [20, 5, 10]), ...exam('الشهر الثاني — الفصل الأول', 'x', [20, 5, 10]), raised];
+    const r2 = computeSet(specs, students, low).get(t1.id)![0];
+    expect(r2.values[total.id]).toBe(35);
+    expect(r2.verdict?.pass).toBe(false);
+  });
+
   it('absent counts as zero; links survive cloning the set for another section', () => {
     const clone = cloneBookSet(specs);
     const ids = new Set(clone.map((s) => s.id));

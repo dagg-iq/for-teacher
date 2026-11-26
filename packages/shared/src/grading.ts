@@ -259,9 +259,20 @@ export function buildSheet(book: Pick<Gradebook, 'id' | 'columns' | 'result'>, s
     }
     // الغائب يُحسب صفراً في المعادلات إلا إذا أُعطي درجة؛ المعفى لا يدخل الحساب
     for (const c of book.columns) if (marks[c.id] === 'exempt') inputs[c.id] = null;
-    const hasOverride = Object.keys(overrides).length > 0;
-    const values = evaluateRow(book.columns, inputs, overrides);
-    const raw = hasOverride ? evaluateRow(book.columns, inputs) : values;
+    let hasOverride = Object.keys(overrides).length > 0;
+    let raw = hasOverride ? evaluateRow(book.columns, inputs) : null;
+    if (raw) {
+      // رفع الدرجة الحرجة قرار على قيمة محددة: إن تغيّرت الدرجة المحسوبة (صُحّح شهر مثلاً) وخرجت من النطاق الحرج
+      // يسقط الرفع وتظهر الدرجة الصحيحة — لا تبقى ٥٠ مكان ٦٤
+      for (const c of book.columns) {
+        if (!(c.id in overrides) || !c.boost) continue;
+        const v = raw[c.id];
+        if (v == null || v + 1e-9 < c.boost.from || v >= c.boost.to - 1e-9) delete overrides[c.id];
+      }
+      hasOverride = Object.keys(overrides).length > 0;
+    }
+    const values = evaluateRow(book.columns, inputs, hasOverride ? overrides : undefined);
+    if (!raw || !hasOverride) raw = values;
     const overridden: Record<string, true> = {};
     for (const k of Object.keys(overrides)) overridden[k] = true;
     const critical: Record<string, true> = {};

@@ -105,7 +105,7 @@ export function Screen({
     paddingBottom: edges.includes('bottom') ? insets.bottom + 16 : 24,
   };
   // الآيباد والأجهزة اللوحية: المحتوى في عمود مريح للقراءة بدل أن يمتد على كامل العرض
-  const inner = [padded ? { paddingHorizontal: wide ? 28 : 20 } : null, { width: '100%' as const, maxWidth: wide ? 1400 : MAX_WIDTH, alignSelf: 'center' as const }];
+  const inner = [padded ? { paddingHorizontal: wide ? 28 : 20 } : null, { width: '100%' as const, maxWidth: wide ? 1160 : MAX_WIDTH, alignSelf: 'center' as const }];
   if (!scroll) {
     return (
       <KeyboardView style={[{ flex: 1, backgroundColor: c.bg }, pad, style]} bottomInset={insets.bottom}>

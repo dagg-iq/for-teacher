@@ -10,6 +10,7 @@ import { count, getSettings, useQuery } from '@/data/db';
 import { createYearSet } from '@/data/grades';
 import { allSections, booksOfSection } from '@/data/queries';
 import { useTheme } from '@/lib/theme';
+import { Alert } from '@/lib/dialog';
 import { toast } from '@/lib/toast';
 
 /** إعداد سجلات السنة: الحقول مرة واحدة، فتُنشأ كل السجلات مترابطة لكل شعبة مختارة */
@@ -41,6 +42,16 @@ export default function YearSetup() {
   }
 
   const create = () => {
+    if (existing) {
+      Alert.alert('سجلات سنة موجودة', `${arDigits(existing)} من الشعب المختارة لديها سجلات سنة. إنشاء مجموعة ثانية يكرر الأسماء نفسها — هل تريد ذلك فعلاً؟ (لسنة جديدة: أرشف القديمة أولاً)`, [
+        { text: 'إلغاء', style: 'cancel' },
+        { text: 'إنشاء مجموعة ثانية', onPress: doCreate },
+      ]);
+      return;
+    }
+    doCreate();
+  };
+  const doCreate = () => {
     const ids = createYearSet(picked, plan);
     toast(picked.length > 1 ? `أُنشئت السجلات لـ${countSections(picked.length)}` : 'أُنشئت سجلات السنة', { icon: 'check' });
     if (picked.length === 1) router.replace(`/book/${ids[0]}`);

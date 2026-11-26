@@ -25,7 +25,8 @@ const server = http.createServer((req, res) => {
 const ROUTES = (process.env.ROUTES || [
   '/', '/classes', '/grades', '/schedule', '/more',
   '/class/new', '/book/new', '/voice', '/attendance', '/plans', '/plans/edit', '/tasks', '/picker', '/timer',
-  '/account', '/settings', '/about', '/schedule/setup', '/reports', '/book/year', '/licenses',
+  '/account', '/settings', '/settings/profile', '/settings/students', '/settings/grades', '/settings/attendance',
+  '/about', '/schedule/setup', '/reports', '/book/year', '/licenses', '/print?kind=timetable', '/attendance?tab=log',
 ].join(',')).split(',');
 
 (async () => {
@@ -61,9 +62,10 @@ const ROUTES = (process.env.ROUTES || [
   });
   const extra = [];
   if (ids.classes[0]) extra.push(`/class/${ids.classes[0].id}`);
-  if (ids.sections[0]) extra.push(`/section/${ids.sections[0].id}`, `/section/${ids.sections[0].id}?tab=books`, `/section/${ids.sections[0].id}?tab=attendance`, `/section/import?id=${ids.sections[0].id}`, `/attendance?section=${ids.sections[0].id}`, `/voice?section=${ids.sections[0].id}`);
-  if (ids.students[0]) extra.push(`/student/${ids.students[0].id}`);
-  if (ids.books[0]) extra.push(`/book/${ids.books[0].id}`, `/book/columns?id=${ids.books[0].id}`, `/book/stats?id=${ids.books[0].id}`, `/voice?book=${ids.books[0].id}`);
+  if (ids.sections[0]) extra.push(`/section/${ids.sections[0].id}`, `/section/${ids.sections[0].id}?tab=books`, `/section/${ids.sections[0].id}?tab=attendance`, `/section/import?id=${ids.sections[0].id}`, `/attendance?section=${ids.sections[0].id}`, `/voice?section=${ids.sections[0].id}`,
+    `/print?kind=report&id=${ids.sections[0].id}`, `/print?kind=list&id=${ids.sections[0].id}`, `/print?kind=attendance&id=${ids.sections[0].id}`);
+  if (ids.students[0]) extra.push(`/student/${ids.students[0].id}`, `/print?kind=student&id=${ids.students[0].id}`);
+  if (ids.books[0]) extra.push(`/book/${ids.books[0].id}`, `/book/columns?id=${ids.books[0].id}`, `/book/stats?id=${ids.books[0].id}`, `/voice?book=${ids.books[0].id}`, `/print?kind=book&id=${ids.books[0].id}`);
   const all = process.env.ROUTES ? ROUTES : [...ROUTES, ...extra];
   let i = 2;
   for (const r of all) {

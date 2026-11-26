@@ -50,7 +50,7 @@ export default function StudentScreen() {
   return (
     <Screen>
       <Header title={s.name} subtitle={`${sectionLabel(s.section_id)}${no ? ` · رقم ${arDigits(no)} في القائمة` : ''}`}
-        right={<IconButton name="more" label="خيارات" onPress={() => setMenu(true)} />} />
+        right={<IconButton name="more-v" label="خيارات" onPress={() => setMenu(true)} />} />
       <Card style={{ flexDirection: 'row', paddingVertical: 12 }}>
         {[
           { label: 'غياب', v: ab.absent, bad: ab.count >= profile_alert },

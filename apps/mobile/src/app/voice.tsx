@@ -1,7 +1,6 @@
 import {
   arDigits, chooseHeard, formatPercent, formatScore, isAmbiguous, isConfident, MARK_LABEL, NUMBER_HINTS, ORDERED_HINTS, parseCommand,
-  type GradeColumn, type GradeMark, type NameCandidate, type Student,
-} from '@nahj/shared';
+  type GradeColumn, type GradeMark, type NameCandidate, type Student, countStudents } from '@nahj/shared';
 import { useKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -126,7 +125,7 @@ function Setup({ sectionId, bookId, columnId, mode, onSection, onBook, onColumn,
             <T weight="bold" size={14} color={c.softInk}>أوامر تفهمها</T>
             <T size={13} color={c.softInk}>«نعم» تثبيت فوري · «لا» إلغاء · «تراجع» حذف آخر درجة · «غائب» · «معفى» · «التالي» · «السابق» · «توقف» · «رقم {arDigits(5)} تسعين» للطالب الخامس</T>
           </Card>
-          <Button title={!columnId ? 'ابدأ' : n ? `ابدأ (${arDigits(n)} طالب)` : 'لا طلاب في الشعبة'} icon="mic" disabled={!columnId || !n} onPress={onStart} />
+          <Button title={!columnId ? 'ابدأ' : n ? `ابدأ (${countStudents(n)})` : 'لا طلاب في الشعبة'} icon="mic" disabled={!columnId || !n} onPress={onStart} />
         </>
       )}
     </Screen>

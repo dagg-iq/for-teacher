@@ -13,6 +13,8 @@ import { Intro } from '@/components/intro';
 import { UpdateSheet } from '@/components/update-sheet';
 import { cleanOldApks } from '@/lib/updater';
 import { IS_DESKTOP } from '@/lib/config';
+import { useWide } from '@/lib/hooks';
+import { Sidebar } from '@/components/sidebar';
 import { loadDB, useSettings } from '@/data/db';
 import { startSync } from '@/data/sync';
 import { AuthProvider, useAuth } from '@/lib/auth';
@@ -80,6 +82,9 @@ function Navigator() {
   const dateStyle = settings.prefs.dateStyle ?? 'numeric';
   setDateStyle(dateStyle);
   const hasProfile = !!settings.profile?.name;
+  const wide = useWide();
+  const first = (segments as string[])[0];
+  const side = wide && hasProfile && first !== 'welcome' && first !== 'auth-callback';
   // حركة الشعار عند الفتح (الهاتف وتطبيق الحاسوب). على الويب نخفي شاشة البداية مباشرة
   const [introDone, setIntroDone] = useState(Platform.OS === 'web' && !IS_DESKTOP);
 
@@ -87,10 +92,9 @@ function Navigator() {
   useEffect(() => {
     if (!ready) return;
     const hide = introDone ? setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 120) : undefined;
-    const first = (segments as string[])[0];
     if (!hasProfile && first !== 'welcome' && first !== 'account' && first !== 'auth-callback') router.replace('/welcome');
     return () => { if (hide) clearTimeout(hide); };
-  }, [ready, hasProfile, segments, introDone]);
+  }, [ready, hasProfile, first, introDone]);
 
   // المزامنة عند وجود حساب
   const uid = session?.user.id ?? null;
@@ -113,12 +117,18 @@ function Navigator() {
       <PortalProvider>
         <StatusBar style={dark ? 'light' : 'dark'} />
         {!ready ? <View style={{ flex: 1, backgroundColor: c.bg }} /> : (
-          <Stack key={`${digits}-${dateStyle}`} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg }, animation: 'ios_from_left' }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
-            <Stack.Screen name="voice" options={{ animation: 'fade_from_bottom' }} />
-            <Stack.Screen name="book/new" options={{ animation: 'fade_from_bottom' }} />
-          </Stack>
+          <View style={{ flex: 1, flexDirection: 'row', backgroundColor: c.bg }}>
+            {/* الحاسوب: الشريط الجانبي في كل الشاشات */}
+            {side ? <Sidebar /> : null}
+            <View style={{ flex: 1 }}>
+              <Stack key={`${digits}-${dateStyle}`} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg }, animation: side ? 'fade' : 'ios_from_left' }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
+                <Stack.Screen name="voice" options={{ animation: 'fade_from_bottom' }} />
+                <Stack.Screen name="book/new" options={{ animation: 'fade_from_bottom' }} />
+              </Stack>
+            </View>
+          </View>
         )}
         {ready && introDone ? <UpdateSheet /> : null}
         {!introDone ? <Intro ready={ready} onDone={() => { setIntroDone(true); cleanOldApks(); }} /> : null}

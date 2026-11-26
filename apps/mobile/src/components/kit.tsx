@@ -1,7 +1,7 @@
 /** مكونات إضافية خاصة بنَهج: بطاقات الأرقام، الشارات، حلقة النسبة، الأعمدة، المفاتيح */
 import { arDigits, formatScore, radius, type Tone } from '@nahj/shared';
 import { useEffect, type ReactNode } from 'react';
-import { Pressable, Switch, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { fonts, useTheme } from '@/lib/theme';
@@ -105,8 +105,19 @@ export function ToggleRow({ title, subtitle, value, onChange, icon }: { title: s
         <T weight="bold" size={15}>{title}</T>
         {subtitle ? <T dim size={13}>{subtitle}</T> : null}
       </View>
-      <Switch value={value} onValueChange={(v) => { tap('select'); onChange(v); }} trackColor={{ true: c.accent, false: c.line }} thumbColor="#FFFFFF" />
+      <Toggle value={value} />
     </Pressable>
+  );
+}
+
+/** مفتاح تشغيل مرسوم (مفتاح النظام في الويب يرسم الزر منفصلاً عن مساره في الواجهة العربية) */
+export function Toggle({ value }: { value: boolean }) {
+  const { c } = useTheme();
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+      style={{ width: 46, height: 28, borderRadius: 14, padding: 3, backgroundColor: value ? c.accent : c.line, flexDirection: 'row', justifyContent: value ? 'flex-end' : 'flex-start' }}>
+      <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#FFFFFF' }} />
+    </View>
   );
 }
 

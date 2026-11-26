@@ -1,12 +1,12 @@
-import { arDigits } from '@nahj/shared';
+import { arDigits, isoDay } from '@nahj/shared';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, Share, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { Stepper, ToggleRow } from '@/components/kit';
 import { tap } from '@/components/motion';
 import { Button, Card, Chip, Empty, Header, Row, Screen, Segmented, T } from '@/components/ui';
-import { useQuery } from '@/data/db';
-import { allSections, sectionLabel, studentsOf } from '@/data/queries';
+import { useQuery, useSettings } from '@/data/db';
+import { allSections, attendanceOn, sectionLabel, studentsOf } from '@/data/queries';
 import { say } from '@/lib/speech';
 import { useTheme } from '@/lib/theme';
 
@@ -38,7 +38,12 @@ export default function Picker() {
 
 function One({ sectionId }: { sectionId: string }) {
   const { c } = useTheme();
-  const students = useQuery(() => studentsOf(sectionId), [sectionId]);
+  // الغائبون اليوم لا تختارهم القرعة (إعداد في «الحضور والغياب»)
+  const skipAbsent = useSettings().prefs.pickerSkipAbsent !== false;
+  const all = useQuery(() => studentsOf(sectionId), [sectionId]);
+  const absentToday = useQuery(() => new Set([...attendanceOn(sectionId, isoDay()).values()].filter((a) => a.status === 'absent').map((a) => a.student_id)), [sectionId]);
+  const students = skipAbsent ? all.filter((s) => !absentToday.has(s.id)) : all;
+  const [usedCount, setUsedCount] = useState(0);
   const [name, setName] = useState<string | null>(null);
   const [rolling, setRolling] = useState(false);
   const [noRepeat, setNoRepeat] = useState(true);
@@ -51,7 +56,7 @@ function One({ sectionId }: { sectionId: string }) {
 
   const roll = () => {
     let pool = students.filter((s) => !noRepeat || !used.current.has(s.id));
-    if (!pool.length) { used.current.clear(); pool = students; }
+    if (!pool.length) { used.current.clear(); setUsedCount(0); pool = students; }
     if (!pool.length) return;
     setRolling(true);
     let n = 0;
@@ -62,6 +67,7 @@ function One({ sectionId }: { sectionId: string }) {
         if (timer.current) clearInterval(timer.current);
         const pick = pool[Math.floor(Math.random() * pool.length)];
         used.current.add(pick.id);
+        setUsedCount(used.current.size);
         setName(pick.name);
         setRolling(false);
         tap('success');
@@ -76,7 +82,8 @@ function One({ sectionId }: { sectionId: string }) {
         <Animated.View style={anim}>
           <T display size={name && name.length > 18 ? 28 : 34} color={c.heroInk} center>{name ?? 'من سيجيب؟'}</T>
         </Animated.View>
-        <T size={13} color={c.heroInk2}>{noRepeat ? `بقي ${arDigits(Math.max(0, students.length - used.current.size))} لم يُختاروا` : `${arDigits(students.length)} طالب`}</T>
+        <T size={13} color={c.heroInk2}>{noRepeat ? `بقي ${arDigits(Math.max(0, students.length - usedCount))} لم يُختاروا` : `${arDigits(students.length)} طالب`}{skipAbsent && absentToday.size ? ` · استُبعد ${arDigits(absentToday.size)} غائب اليوم` : ''}</T>
+        {noRepeat && usedCount ? <Chip small label="إعادة القرعة من جديد" onPress={() => { used.current.clear(); setUsedCount(0); setName(null); }} /> : null}
       </Card>
       <Button title={rolling ? '…' : 'اختر طالباً'} icon="shuffle" disabled={rolling || !students.length} onPress={roll} />
       <Card style={{ paddingVertical: 4 }}>
@@ -89,7 +96,11 @@ function One({ sectionId }: { sectionId: string }) {
 
 function Groups({ sectionId }: { sectionId: string }) {
   const { c } = useTheme();
-  const students = useQuery(() => studentsOf(sectionId), [sectionId]);
+  const skipAbsent = useSettings().prefs.pickerSkipAbsent !== false;
+  const students = useQuery(() => {
+    const absent = new Set([...attendanceOn(sectionId, isoDay()).values()].filter((a) => a.status === 'absent').map((a) => a.student_id));
+    return studentsOf(sectionId).filter((s) => !skipAbsent || !absent.has(s.id));
+  }, [sectionId, skipAbsent]);
   const [count, setCount] = useState(4);
   const [groups, setGroups] = useState<string[][]>([]);
   const make = () => {
