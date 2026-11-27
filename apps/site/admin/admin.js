@@ -362,7 +362,7 @@ function viewTeachers() {
       <thead><tr>${COLS.map(([k, l]) => `<th><button data-act="sort" data-k="${k}">${l}${S.sort === k ? (S.dir > 0 ? ' ↑' : ' ↓') : ''}</button></th>`).join('')}</tr></thead>
       <tbody>${list.map((t) => `<tr data-open="${esc(t.id)}">
         <td><div class="who"><span class="avatar">${initial(t)}</span><span class="li-main"><b>${esc(t.name || '—')}</b><small>${esc(t.email)}</small></span></div></td>
-        <td>${chip(t.status)}${t.banned && t.status === 'approved' ? ' <span class="chip plain">محظور</span>' : ''}</td>
+        <td>${chip(t.status)}${t.banned && t.status === 'approved' ? ' <span class="chip plain">محظور</span>' : ''}${t.last_error ? ' <span class="chip st-suspended" title="خطأ مزامنة">خطأ مزامنة</span>' : ''}</td>
         <td>${esc([t.school, t.subject].filter(Boolean).join(' · ') || '—')}</td>
         <td class="num">${n(t.stats.students)}</td>
         <td class="num">${n(t.stats.grades)}</td>
@@ -460,6 +460,8 @@ function drawerHtml(d) {
       ${[['الصفوف', s.classes], ['الشعب', s.sections], ['الطلاب', s.students], ['السجلات', s.gradebooks], ['الدرجات', s.grades], ['الحضور', s.attendance], ['الخطط', s.plans], ['المهام', s.tasks]]
         .map(([k, v]) => `<div class="stat"><b>${n(v)}</b><small>${k}</small></div>`).join('')}
     </div>
+    ${d.last_error ? `<div class="card" style="box-shadow:0 0 0 1px var(--bad);background:var(--bad-bg)"><h3 style="margin-bottom:6px;color:var(--bad)">آخر خطأ مزامنة على جهازه</h3>
+      <p style="margin:0;white-space:pre-line;overflow-wrap:anywhere" dir="auto">${esc(d.last_error)}</p><small class="muted">${fmtDateTime(d.last_error_at)} (${ago(d.last_error_at)}) — يختفي تلقائياً بعد أول مزامنة ناجحة</small></div>` : ''}
     <div class="card"><h3 style="margin-bottom:10px">المعلومات</h3><dl class="kv">
       <dt>الاسم</dt><dd>${esc(name || '—')}</dd>
       <dt>المدرسة</dt><dd>${esc(p.school || '—')}</dd>

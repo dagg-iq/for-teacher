@@ -54,7 +54,7 @@ run('sync against real Supabase', () => {
       student_notes: [{ id: uuid(), student_id: st.id, kind: 'positive', text: 'ممتاز', date: '2026-11-18', ...base }],
     };
     for (const table of SYNC_TABLES) {
-      const { error } = await a.c.from(table).upsert(rows[table].map((r) => toServerRow(r, a.id)), { onConflict: 'id', defaultToNull: false });
+      const { error } = await a.c.from(table).upsert(rows[table].map((r) => toServerRow(r, a.id, table as (typeof SYNC_TABLES)[number])), { onConflict: 'id', defaultToNull: false });
       expect(error, `${table}: ${error?.message}`).toBeNull();
     }
     const { error: sErr } = await a.c.from('teacher_settings').upsert({ owner_id: a.id, profile: { name: 'أ' }, timetable: null, prefs: {}, updated_at: t });

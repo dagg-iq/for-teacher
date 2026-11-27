@@ -142,3 +142,18 @@ do $$ begin
 end $$;
 reset role;
 select count(*) > 0 as stats_ok from public.admin_teacher_stats();
+-- خطأ المزامنة: المدرّس يكتب خطأه هو فقط
+set role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+select public.report_sync_error('تعذّر رفع ٣ سجل');
+reset role;
+do $$ begin
+  if (select last_error from public.teacher_accounts where id = '22222222-2222-2222-2222-222222222222') <> 'تعذّر رفع ٣ سجل' then raise exception 'error not saved'; end if;
+  if (select last_error from public.teacher_accounts where id = '11111111-1111-1111-1111-111111111111') is not null then raise exception 'wrote other user'; end if;
+end $$;
+set role authenticated;
+select public.report_sync_error('');
+reset role;
+do $$ begin
+  if (select last_error from public.teacher_accounts where id = '22222222-2222-2222-2222-222222222222') is not null then raise exception 'error not cleared'; end if;
+end $$;
