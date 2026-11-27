@@ -185,7 +185,7 @@ export function namesFromRows(rows: (string | number | null)[][]): string[] {
   const best = [...score.entries()].sort((a, b) => b[1] - a[1])[0];
   if (!best) return [];
   const header = /^(الاسم|اسم الطالب|اسم الطالبة|الأسماء|الاسم الثلاثي|الاسم الرباعي)$/;
-  return rows.map((r) => r[best[0]]).filter((v): v is string => typeof v === 'string' && v.trim().length > 1 && !header.test(v.trim())).map((v) => v.trim().replace(/\s+/g, ' '));
+  return rows.map((r) => r[best[0]]).filter((v): v is string => typeof v === 'string' && v.trim().length > 1 && v.trim().length <= 100 && !header.test(v.trim())).map((v) => v.trim().replace(/\s+/g, ' '));
 }
 
 export { ATTENDANCE_LABEL };

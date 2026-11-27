@@ -84,6 +84,14 @@ async function claimLocalData(userId: string) {
 
 const STATUS = (uid: string) => `nahj.status.${uid}`;
 
+/** دخول جديد (لا جلسة محفوظة عند الفتح): للترحيب «أهلاً بعودتك» مرة واحدة */
+let signedInAt = 0;
+export function consumeSignIn(): boolean {
+  const fresh = Date.now() - signedInAt < 120000;
+  signedInAt = 0;
+  return fresh;
+}
+
 /** حالة الحساب من الخادم (مع نسخة محفوظة للعمل بلا إنترنت بعد أول تفعيل) */
 async function fetchStatus(uid: string): Promise<GateStatus> {
   if (SYNC_BACKEND !== 'supabase') return 'approved';
@@ -145,13 +153,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isConfigured) return;
     let alive = true;
+    let hadSession = false;
     supabase.auth.getSession().then(async ({ data }) => {
+      hadSession = !!data.session;
       if (!alive) return;
       if (data.session) await claimLocalData(data.session.user.id);
       setSession(data.session);
       setReady(true);
     }).catch(() => setReady(true));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((e, s) => {
+      if (e === 'SIGNED_IN' && s && !hadSession) signedInAt = Date.now();
+      hadSession = !!s;
       (async () => {
         if (s) await claimLocalData(s.user.id);
         setSession(s);

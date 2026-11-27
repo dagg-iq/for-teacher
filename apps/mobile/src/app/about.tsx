@@ -9,8 +9,9 @@ import { Intro } from '@/components/intro';
 import { Group } from '@/components/kit';
 import { Portal } from '@/components/portal';
 import { DownloadStatus } from '@/components/update-sheet';
+import { checkDesktopUpdate, DesktopUpdateSheet, type DesktopUpdateInfo } from '@/components/desktop-update';
 import { Button, Card, Divider, Header, ListItem, Row, Screen, SectionTitle, T } from '@/components/ui';
-import { APP_VERSION, BUILD_NUMBER, SITE_URL } from '@/lib/config';
+import { APP_VERSION, BUILD_NUMBER, IS_DESKTOP, SITE_URL } from '@/lib/config';
 import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
 import { applyOta, checkForApk, fetchOta, otaEnabled, otaLabel, type UpdateInfo } from '@/lib/updater';
@@ -27,6 +28,7 @@ export default function About() {
   const { c } = useTheme();
   const [intro, setIntro] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [desk, setDesk] = useState<DesktopUpdateInfo | null>(null);
   const [apk, setApk] = useState<UpdateInfo | null>(null);
   const [otaReady, setOtaReady] = useState(false);
   const ota = otaLabel();
@@ -110,6 +112,13 @@ export default function About() {
           </View>
         ) : null}
         {Platform.OS !== 'web' ? <Button title={checking ? 'يتحقق…' : 'التحقق من التحديثات'} variant="secondary" icon="refresh" loading={checking} onPress={check} /> : null}
+        {IS_DESKTOP ? <Button title={checking ? 'يتحقق…' : 'التحقق من التحديثات'} variant="secondary" icon="refresh" loading={checking} onPress={async () => {
+          setChecking(true);
+          const u = await checkDesktopUpdate();
+          setChecking(false);
+          if (u) setDesk(u); else toast('عندك آخر نسخة', { icon: 'check' });
+        }} /> : null}
+        {desk ? <DesktopUpdateSheet info={desk} onClose={() => setDesk(null)} /> : null}
       </Card>
 
       <SectionTitle title="المطوّر" />
