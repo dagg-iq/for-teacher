@@ -164,8 +164,8 @@ function StudentsTab({ sectionId }: { sectionId: string }) {
       ) : (
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
           <TextInput value={newName} onChangeText={setNewName} onSubmitEditing={add} blurOnSubmit={false} returnKeyType="done" multiline={false}
-            placeholder="اسم طالب جديد (أو الصق قائمة)" placeholderTextColor={c.ink3} accessibilityLabel="اسم طالب جديد"
-            style={{ flex: 1, height: 50, borderRadius: 16, borderWidth: 1, borderColor: c.line, backgroundColor: c.card, paddingHorizontal: 16, fontFamily: fonts.regular, fontSize: 16, color: c.ink, textAlign: 'right' }} />
+            placeholder="اسم طالب جديد أو الصق قائمة" placeholderTextColor={c.ink3} accessibilityLabel="اسم طالب جديد"
+            style={{ flex: 1, minWidth: 0, height: 50, borderRadius: 16, borderWidth: 1, borderColor: c.line, backgroundColor: c.card, paddingHorizontal: 16, fontFamily: fonts.regular, fontSize: 16, color: c.ink, textAlign: 'right' }} />
           <IconButton name="plus" label="إضافة طالب" filled onPress={add} size={50} />
         </View>
       )}

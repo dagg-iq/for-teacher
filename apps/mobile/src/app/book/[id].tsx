@@ -91,7 +91,7 @@ export default function BookScreen() {
           <Chip small label="الدرجات المرفوعة" onPress={() => setReview(true)} />
         ) : null}
         <Row gap={8}>
-          <Button title="الحقول والمعادلات" icon="formula" small variant="secondary" style={wide ? undefined : { flex: 1 }} onPress={() => router.push(`/book/columns?id=${book.id}`)} />
+          <Button title={wide ? 'الحقول والمعادلات' : 'الحقول'} icon="formula" small variant="secondary" style={wide ? undefined : { flex: 1 }} onPress={() => router.push(`/book/columns?id=${book.id}`)} />
           <Button title="الإحصاء" icon="pie" small variant="secondary" style={wide ? undefined : { flex: 1 }} onPress={() => router.push(`/book/stats?id=${book.id}`)} />
         </Row>
         {!wide && inputs.length ? <Segmented options={[{ key: 'entry', label: 'إدخال سريع' }, { key: 'table', label: 'الجدول' }]} value={mode} onChange={setMode} /> : null}
@@ -318,10 +318,10 @@ function EntryList({ bookId, columns, active, onColumn, rows, decider, focusStud
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
         {columns.map((col) => <Chip key={col.id} label={arDigits(col.name)} active={col.id === active.id} onPress={() => onColumn(col.id)} />)}
       </ScrollView>
-      <Row style={{ justifyContent: 'space-between' }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', rowGap: 2, columnGap: 10 }}>
         <T size={13} weight="bold" style={{ flexShrink: 1 }} lines={1}>{active.name} <T dim size={13}>· من {arDigits(active.max)} · أُدخل {arDigits(filled)} من {arDigits(rows.length)}</T></T>
-        <T dim size={12}>«غ» غائب · «م» معفى · «غش»</T>
-      </Row>
+        <T dim size={12} lines={1}>«غ» غائب · «م» معفى · «غش»</T>
+      </View>
       <Card style={{ paddingVertical: 4 }}>
         {rows.map((r, i) => (
           <EntryRow key={`${r.student.id}-${active.id}`} row={r} index={i} col={active} bookId={bookId} decider={decider}

@@ -520,7 +520,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TextInput value={typed} onChangeText={setTyped} placeholder={mode === 'ordered' ? `أو اكتب الدرجة: ${arDigits(85)} (أو «غايب»)` : `أو اكتب: أحمد علي ${arDigits(85)}`} placeholderTextColor={c.ink3}
               onSubmitEditing={() => { if (typed.trim()) { handleHeard([typed.trim()]); setTyped(''); } }} returnKeyType="send" blurOnSubmit={false}
-              style={{ flex: 1, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, backgroundColor: c.bg, paddingHorizontal: 16, fontFamily: fonts.regular, fontSize: 15, color: c.ink, textAlign: 'right' }} />
+              style={{ flex: 1, minWidth: 0, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, backgroundColor: c.bg, paddingHorizontal: 16, fontFamily: fonts.regular, fontSize: 15, color: c.ink, textAlign: 'right' }} />
             <IconButton name="send" label="إرسال" filled onPress={() => { if (typed.trim()) { handleHeard([typed.trim()]); setTyped(''); } }} />
           </View>
         ) : null}

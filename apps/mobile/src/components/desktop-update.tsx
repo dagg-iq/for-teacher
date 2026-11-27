@@ -3,7 +3,6 @@
  * وإن وُجدت أحدث: «تحديث الآن» ينزّل المثبّت ويثبّته بصمت فوق الحالية (البيانات تبقى) ثم يعيد فتح التطبيق.
  * النسخة المحمولة (بلا تثبيت) لا تُحدَّث في مكانها: نفتح رابط تنزيلها.
  */
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { arDigits, formatPercent } from '@nahj/shared';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
@@ -21,7 +20,6 @@ interface Bridge {
   openExternal?: (url: string) => Promise<unknown>;
 }
 const bridge = (): Bridge | null => (IS_DESKTOP ? ((window as unknown as { nahjDesktop?: Bridge }).nahjDesktop ?? null) : null);
-const SKIP = 'nahj.desktopSkip';
 const short = (v: string) => arDigits(String(v).split('.').pop() ?? v);
 
 /** يُستعمل أيضاً من «عن نَهج» (تحقق يدوي) */
@@ -35,17 +33,22 @@ export function DesktopUpdate() {
   const [info, setInfo] = useState<DesktopUpdateInfo | null>(null);
   useEffect(() => {
     if (!bridge()?.checkUpdate) return;
-    const t = setTimeout(async () => {
+    let last = 0;
+    const check = async () => {
+      if (Date.now() - last < 60000) return;
+      last = Date.now();
       const u = await checkDesktopUpdate();
-      if (!u) return;
-      const skipped = await AsyncStorage.getItem(SKIP).catch(() => null);
-      if (skipped === u.version) return;
-      setInfo(u);
-    }, 4000);
-    return () => clearTimeout(t);
+      if (u) setInfo((cur) => cur ?? u);
+    };
+    const t = setTimeout(check, 3000);
+    const i = setInterval(check, 20 * 60 * 1000);
+    const onFocus = () => { check(); };
+    window.addEventListener('focus', onFocus);
+    return () => { clearTimeout(t); clearInterval(i); window.removeEventListener('focus', onFocus); };
   }, []);
   if (!info) return null;
-  return <DesktopUpdateSheet info={info} onClose={() => { AsyncStorage.setItem(SKIP, info.version).catch(() => {}); setInfo(null); }} />;
+  // التحديث إلزامي: «لاحقاً» يغلقها الآن، وتعود عند الرجوع للتطبيق
+  return <DesktopUpdateSheet info={info} onClose={() => setInfo(null)} />;
 }
 
 export function DesktopUpdateSheet({ info, onClose }: { info: DesktopUpdateInfo; onClose: () => void }) {

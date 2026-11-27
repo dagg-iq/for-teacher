@@ -184,6 +184,32 @@ function requestAccess(uid: string) {
 
 let timer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * مزامنة فورية: أي تغيّر على الخادم في بيانات هذا المدرّس (من جهاز آخر) يُطلق سحباً خلال ثانيتين.
+ * يحترم RLS (لا تصل إلا صفوف المدرّس نفسه). بلا اتصال مباشر: تبقى المزامنة الدورية وعند فتح التطبيق.
+ */
+function listenLive(uid: string): () => void {
+  if (SYNC_BACKEND !== 'supabase') return () => {};
+  let t: ReturnType<typeof setTimeout> | null = null;
+  const poke = () => {
+    if (t) clearTimeout(t);
+    t = setTimeout(() => { syncNow(); }, 2000);
+  };
+  let ch = supabase.channel(`nahj-sync-${uid}`);
+  for (const table of [...SYNC_TABLES, 'teacher_settings']) {
+    ch = ch.on('postgres_changes' as never, { event: '*', schema: 'public', table, filter: `owner_id=eq.${uid}` } as never, poke as never);
+  }
+  ch.subscribe();
+  // على الحاسوب: الرجوع لنافذة التطبيق يزامن فوراً
+  const onFocus = () => { syncNow(); };
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('focus', onFocus);
+  return () => {
+    if (t) clearTimeout(t);
+    supabase.removeChannel(ch).catch(() => {});
+    if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') window.removeEventListener('focus', onFocus);
+  };
+}
+
 /** يبدأ المزامنة التلقائية لمستخدم (ويوقفها عند الخروج) */
 export function startSync(uid: string | null): () => void {
   generation++;
@@ -199,8 +225,10 @@ export function startSync(uid: string | null): () => void {
   });
   const sub = AppState.addEventListener('change', (s) => { if (s === 'active') syncNow(); });
   const interval = setInterval(() => { syncNow(); }, 5 * 60 * 1000);
+  const offLive = listenLive(uid);
   return () => {
     offChange();
+    offLive();
     sub.remove();
     clearInterval(interval);
     if (timer) clearTimeout(timer);

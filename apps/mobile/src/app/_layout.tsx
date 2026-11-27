@@ -21,6 +21,7 @@ import { startSync, syncNow } from '@/data/sync';
 import { AuthProvider, consumeSignIn, useAuth } from '@/lib/auth';
 import { SignInGate, WaitingGate } from '@/components/gate';
 import { AppLock } from '@/lib/applock';
+import { useImmersiveNavBar } from '@/lib/navbar';
 import { NotifyPrompt } from '@/components/notify-prompt';
 import { isConfigured } from '@/lib/supabase';
 import { DialogHost } from '@/lib/dialog';
@@ -137,6 +138,9 @@ function Navigator() {
   useEffect(() => startSync(uid), [uid]);
   useEffect(() => { if (uid && status === 'approved') syncNow(); }, [uid, status]);
   useEffect(() => { if (uid) registerDevice(uid); }, [uid]);
+
+  // أزرار أندرويد السفلية: مخفية (تظهر بالسحب) ما لم يختر المدرس غير ذلك
+  useImmersiveNavBar(settings.prefs.hideNavBar !== false);
 
   // تذكير الحصص (إشعارات محلية)
   useClassReminders();
