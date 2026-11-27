@@ -56,7 +56,7 @@ export function purgeable<T extends Base>(rows: Iterable<T>, dirty: Set<string>,
 export const SERVER_COLUMNS: Record<TableName, readonly string[]> = {
   classes: ['id', 'name', 'stage', 'subject', 'hue', 'sort', 'created_at', 'updated_at', 'deleted'],
   sections: ['id', 'class_id', 'name', 'room', 'sort', 'created_at', 'updated_at', 'deleted'],
-  students: ['id', 'section_id', 'name', 'number', 'parent_phone', 'notes', 'gender', 'sort', 'created_at', 'updated_at', 'deleted'],
+  students: ['id', 'section_id', 'name', 'number', 'parent_phone', 'notes', 'gender', 'sort', 'history', 'created_at', 'updated_at', 'deleted'],
   gradebooks: ['id', 'section_id', 'title', 'template', 'columns', 'result', 'year', 'note', 'archived', 'pinned', 'group_id', 'role', 'ord', 'created_at', 'updated_at', 'deleted'],
   grades: ['id', 'gradebook_id', 'student_id', 'column_id', 'value', 'mark', 'created_at', 'updated_at', 'deleted'],
   attendance: ['id', 'section_id', 'student_id', 'date', 'status', 'note', 'created_at', 'updated_at', 'deleted'],
