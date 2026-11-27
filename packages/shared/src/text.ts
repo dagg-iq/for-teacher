@@ -39,7 +39,8 @@ export function parseNameList(raw: string): string[] {
       .replace(/^[-•*·]\s*/, '')
       .replace(/\s+/g, ' ')
       .trim();
-    if (cleaned.length < 2) continue;
+    // ليس اسماً: قصير جداً، أو سطر طويل (فقرة أو صف كامل ملصوق) — الخادم لا يقبل اسماً أطول من ١٦٠ حرفاً
+    if (cleaned.length < 2 || cleaned.length > 100) continue;
     if (/^[0-9٠-٩\s.]+$/.test(cleaned)) continue;
     const key = cleaned.replace(/[إأآ]/g, 'ا');
     if (seen.has(key)) continue;

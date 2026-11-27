@@ -75,3 +75,9 @@ describe('digit style', () => {
     expect(sortArabic(['باقر علي', 'احمد كريم', 'آمنة', 'أحمد علي', 'إبراهيم خليل', 'زينب'])).toEqual(['إبراهيم خليل', 'أحمد علي', 'احمد كريم', 'آمنة', 'باقر علي', 'زينب']);
   });
 });
+
+describe('parseNameList limits', () => {
+  it('skips lines that are too long to be a name', () => {
+    expect(parseNameList(`أحمد علي\n${'كلمة '.repeat(40)}\nزيد خالد`)).toEqual(['أحمد علي', 'زيد خالد']);
+  });
+});
