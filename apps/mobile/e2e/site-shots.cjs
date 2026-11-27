@@ -21,7 +21,7 @@ async function shoot(base, scheme, plan) {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, colorScheme: scheme, locale: 'ar-IQ' });
   const page = await ctx.newPage();
-  await page.goto(base + '/', { waitUntil: 'networkidle' });
+  await page.goto(base + '/?demo', { waitUntil: 'networkidle' });
   await page.waitForTimeout(1200);
   await page.getByText('لنبدأ', { exact: true }).click();
   await page.waitForTimeout(400);

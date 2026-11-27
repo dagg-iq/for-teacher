@@ -44,7 +44,7 @@ const ROUTES = (process.env.ROUTES || [
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource|placeholder\.supabase/.test(m.text())) errors.push(`console: ${m.text()}`); });
 
-  await page.goto(base + '/', { waitUntil: 'networkidle' });
+  await page.goto(base + '/?demo', { waitUntil: 'networkidle' });
   await page.waitForTimeout(1500);
   // الترحيب ← البيانات التجريبية
   if (page.url().includes('welcome')) {

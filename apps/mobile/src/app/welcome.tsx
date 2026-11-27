@@ -1,16 +1,19 @@
 import { arDigits, COMMON_SUBJECTS, GOVERNORATES, schoolYear, type TeacherProfile } from '@nahj/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Platform, ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, LogoMark, Wordmark, type IconName } from '@/components/icon';
 import { enter, PressScale } from '@/components/motion';
 import { Button, Chip, Field, Row, Segmented, T } from '@/components/ui';
-import { setSettings, useSettings, getSettings } from '@/data/db';
+import { getSettings, setSettings, useSettings } from '@/data/db';
 import { seedDemo } from '@/data/demo';
+import { isConfigured } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
-import { toast } from '@/lib/toast';
+
+/** زر البيانات التجريبية للاختبارات وصور الموقع فقط (نسخة الويب مع ‎?demo‎ في العنوان) — لا يظهر للمدرّسين */
+const DEMO = Platform.OS === 'web' && typeof location !== 'undefined' && /[?&]demo\b/.test(location.search);
 
 export const FEATURES: { icon: IconName; title: string; body: string }[] = [
   { icon: 'school', title: 'صفوفك وطلابك', body: 'الصفوف والشعب والطلاب في مكان واحد، مع ملف لكل طالب.' },
@@ -20,7 +23,8 @@ export const FEATURES: { icon: IconName; title: string; body: string }[] = [
 ];
 
 export default function Welcome() {
-  const [step, setStep] = useState<0 | 1>(0);
+  // مع الحسابات: شاشة الدخول عرضت المزايا، فنبدأ بالملف مباشرة
+  const [step, setStep] = useState<0 | 1>(isConfigured ? 1 : 0);
   return step === 0 ? <Intro onNext={() => setStep(1)} /> : <ProfileForm onBack={() => setStep(0)} />;
 }
 
@@ -73,17 +77,9 @@ function ProfileForm({ onBack }: { onBack: () => void }) {
   const [showAll, setShowAll] = useState(false);
 
   const ok = name.trim().length >= 2;
-  const save = (demo: boolean) => {
+  const save = () => {
     const profile: TeacherProfile = { name: name.trim(), gender, subject: subject.trim(), school: school.trim(), governorate: gov, };
-    if (demo) {
-      seedDemo();
-      // ما كتبه المدرس يبقى، والفارغ يُكمَل من ملف البيانات التجريبية (حتى لا تظهر الطباعة بلا مدرسة ولا مادة)
-      const demoProfile = getSettings().profile;
-      setSettings({ profile: { ...profile, name: profile.name || demoProfile?.name || 'محمد حازم', subject: profile.subject || demoProfile?.subject || '', school: profile.school || demoProfile?.school || '' } });
-      toast('أُضيفت بيانات تجريبية للتجربة — لمسحها لاحقاً: الإعدادات ← مسح كل البيانات', { icon: 'sparkle' });
-    } else {
-      setSettings({ profile });
-    }
+    setSettings({ profile });
     router.replace('/');
   };
 
@@ -120,8 +116,8 @@ function ProfileForm({ onBack }: { onBack: () => void }) {
         </ScrollView>
       </View>
       <View style={{ gap: 10, marginTop: 8 }}>
-        <Button title="ابدأ" icon="check" disabled={!ok} onPress={() => save(false)} />
-        <Button title="جرّب ببيانات تجريبية" variant="secondary" icon="sparkle" onPress={() => save(true)} />
+        <Button title="ابدأ" icon="check" disabled={!ok} onPress={save} />
+        {DEMO ? <Button title="جرّب ببيانات تجريبية" variant="secondary" icon="sparkle" onPress={() => { seedDemo(); setSettings({ profile: { ...getSettings().profile!, name: name.trim() || getSettings().profile?.name || 'محمد حازم' } }); router.replace('/'); }} /> : null}
       </View>
     </ScrollView>
   );

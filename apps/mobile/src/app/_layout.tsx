@@ -2,9 +2,9 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, router, useSegments } fr
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { setDateStyle, setDigitStyle } from '@nahj/shared';
-import { I18nManager, LogBox, Platform, ScrollView, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { setDateStyle, setDigitStyle, teacherTitle } from '@nahj/shared';
+import { ActivityIndicator, I18nManager, LogBox, Platform, ScrollView, Text, View } from 'react-native';
 import type { ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -15,17 +15,19 @@ import { cleanOldApks } from '@/lib/updater';
 import { IS_DESKTOP } from '@/lib/config';
 import { useWide } from '@/lib/hooks';
 import { Sidebar } from '@/components/sidebar';
-import { loadDB, useSettings } from '@/data/db';
+import { getSettings, loadDB, useSettings } from '@/data/db';
 import { startSync, syncNow } from '@/data/sync';
-import { AuthProvider, useAuth } from '@/lib/auth';
+import { AuthProvider, consumeSignIn, useAuth } from '@/lib/auth';
 import { SignInGate, WaitingGate } from '@/components/gate';
 import { AppLock } from '@/lib/applock';
+import { NotifyPrompt } from '@/components/notify-prompt';
 import { isConfigured } from '@/lib/supabase';
 import { DialogHost } from '@/lib/dialog';
 import { useClassReminders } from '@/lib/notify';
 import { registerDevice } from '@/lib/push';
 import { AppThemeProvider, fontAssets, loadThemeMode, useTheme } from '@/lib/theme';
-import { ToastHost } from '@/lib/toast';
+import { toast, ToastHost } from '@/lib/toast';
+import { T } from '@/components/ui';
 import { useWidgetSync } from '@/widgets/sync';
 
 // التطبيق عربي بالكامل: من اليمين لليسار
@@ -94,13 +96,40 @@ function Navigator() {
   // حركة الشعار عند الفتح (الهاتف وتطبيق الحاسوب). على الويب نخفي شاشة البداية مباشرة
   const [introDone, setIntroDone] = useState(Platform.OS === 'web' && !IS_DESKTOP);
 
-  // أول فتح: شاشة الترحيب وإعداد الملف
+  // حساب سابق على جهاز جديد: نستعيد ملفه وبياناته من السحابة أولاً بدل شاشة إنشاء الملف، ثم «أهلاً بعودتك»
+  const sessionUid = session?.user.id ?? null;
+  const [restored, setRestored] = useState<string | null>(null);
+  const needRestore = !gate && isConfigured && !!sessionUid && !hasProfile && restored !== sessionUid;
+  useEffect(() => {
+    if (!needRestore || !sessionUid) return;
+    let alive = true;
+    Promise.race([syncNow(), new Promise((r) => setTimeout(r, 20000))]).catch(() => {}).finally(() => {
+      if (!alive) return;
+      const p = getSettings().profile;
+      consumeSignIn();
+      if (p?.name) toast(`أهلاً بعودتك، ${teacherTitle(p.name, p.gender)}`, { icon: 'check' });
+      setRestored(sessionUid);
+    });
+    return () => { alive = false; };
+  }, [needRestore, sessionUid]);
+  // دخول بحساب له ملف محفوظ على هذا الجهاز: ترحيب قصير
+  const greeted = useRef<string | null>(null);
+  useEffect(() => {
+    if (gate || !sessionUid || !hasProfile || greeted.current === sessionUid) return;
+    const first = greeted.current === null;
+    greeted.current = sessionUid;
+    if (!first) return;
+    const p = getSettings().profile;
+    if (p?.name && consumeSignIn()) toast(`أهلاً بعودتك، ${teacherTitle(p.name, p.gender)}`, { icon: 'check' });
+  }, [gate, sessionUid, hasProfile]);
+
+  // أول فتح: شاشة الترحيب وإعداد الملف (بعد محاولة الاستعادة من السحابة)
   useEffect(() => {
     if (!ready) return;
     const hide = introDone ? setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 120) : undefined;
-    if (!gate && !hasProfile && first !== 'welcome' && first !== 'account' && first !== 'auth-callback') router.replace('/welcome');
+    if (!gate && !needRestore && !hasProfile && first !== 'welcome' && first !== 'account' && first !== 'auth-callback') router.replace('/welcome');
     return () => { if (hide) clearTimeout(hide); };
-  }, [ready, hasProfile, first, introDone, gate]);
+  }, [ready, hasProfile, first, introDone, gate, needRestore]);
 
   // المزامنة عند وجود حساب
   const uid = session?.user.id ?? null;
@@ -123,7 +152,7 @@ function Navigator() {
     <ThemeProvider value={navTheme}>
       <PortalProvider>
         <StatusBar style={dark ? 'light' : 'dark'} />
-        {!ready || gate === 'loading' ? <View style={{ flex: 1, backgroundColor: c.bg }} /> : gate === 'signin' ? <SignInGate /> : gate === 'wait' ? <WaitingGate /> : (
+        {!ready || gate === 'loading' ? <View style={{ flex: 1, backgroundColor: c.bg }} /> : needRestore ? <Restoring /> : gate === 'signin' ? <SignInGate /> : gate === 'wait' ? <WaitingGate /> : (
           <View style={{ flex: 1, flexDirection: 'row', backgroundColor: c.bg }}>
             {/* الحاسوب: الشريط الجانبي في كل الشاشات */}
             {side ? <Sidebar /> : null}
@@ -138,11 +167,24 @@ function Navigator() {
           </View>
         )}
         {ready && introDone ? <UpdateSheet /> : null}
+        {ready && introDone && !gate && !needRestore && hasProfile ? <NotifyPrompt uid={sessionUid} /> : null}
         {!introDone ? <Intro ready={ready} onDone={() => { setIntroDone(true); cleanOldApks(); }} /> : null}
         <ToastHost />
         <DialogHost />
         <AppLock />
       </PortalProvider>
     </ThemeProvider>
+  );
+}
+
+/** استعادة بيانات حساب سابق (جهاز جديد أو إعادة تثبيت) */
+function Restoring() {
+  const { c } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24 }}>
+      <ActivityIndicator color={c.accent} size="large" />
+      <T weight="bold" size={17}>جارٍ استعادة بياناتك…</T>
+      <T dim size={14} center>صفوفك وطلابك ودرجاتك تعود من حسابك.</T>
+    </View>
   );
 }
