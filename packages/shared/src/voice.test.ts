@@ -219,3 +219,12 @@ describe('choosing among recognizer alternatives', () => {
     });
   });
 });
+
+describe('dialect numbers heard by speech engines', () => {
+  it('ثانية ← ٨ (محرك سمع ثمانية)، خمسي ← ٥٠', () => {
+    expect(parseSpokenNumber('ثانية')).toBe(8);
+    expect(parseSpokenNumber('خمسي')).toBe(50);
+    expect(parseSpokenNumber('خمسة وسبعي')).toBe(75);
+    expect(parseSpokenNumber('ثانية وتسعي')).toBe(98);
+  });
+});

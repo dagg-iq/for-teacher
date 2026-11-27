@@ -123,6 +123,8 @@ export function useRecognizer(opts: {
   contextual?: string[];
   pref?: EnginePref;
   quality?: WhisperQuality;
+  /** ميكروفون محدد (الحاسوب/المتصفح) */
+  micId?: string;
   /** رسالة جانبية (تغيير اللهجة، الانتقال لمحرك آخر…) */
   onNotice?: (text: string) => void;
 }) {
@@ -248,6 +250,24 @@ export function useRecognizer(opts: {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [begin, engine]);
 
+  // ---------------------------------------------------------------- مراقب الميكروفون: لا يصل صوت؟
+  const peak = useRef(0);
+  const silentWatch = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onLevel = useCallback((v: number) => { setVolume(v); if (v > peak.current) peak.current = v; }, []);
+  const watchMic = useCallback(() => {
+    peak.current = 0;
+    if (silentWatch.current) clearTimeout(silentWatch.current);
+    silentWatch.current = setTimeout(() => {
+      if (!wanted.current || !mic.current) return;
+      if (peak.current < 0.04) {
+        cb.current.onNotice?.(IS_DESKTOP
+          ? 'لا يصل صوت من الميكروفون. تأكد: إعدادات ويندوز ← الخصوصية ← الميكروفون ← «السماح لتطبيقات سطح المكتب»، أو اختر ميكروفوناً آخر من إعدادات الصوت (⚙).'
+          : 'لا يصل صوت من الميكروفون. تأكد من السماح به، أو اختر ميكروفوناً آخر من إعدادات الصوت.');
+      }
+    }, 6000);
+  }, []);
+  useEffect(() => () => { if (silentWatch.current) clearTimeout(silentWatch.current); }, []);
+
   // ---------------------------------------------------------------- Whisper داخل الجهاز
   const startWhisper = useCallback(async () => {
     setError(null);
@@ -265,7 +285,8 @@ export function useRecognizer(opts: {
     if (!wanted.current) { setState('idle'); return; }
     try {
       mic.current = await listenMic({
-        onLevel: setVolume,
+        deviceId: cb.current.micId || undefined,
+        onLevel,
         onSpeech: (s) => { if (s && !busy.current) setPartial('…'); },
         onSegment: (pcm) => {
           busy.current++;
@@ -288,7 +309,8 @@ export function useRecognizer(opts: {
     }
     if (!wanted.current) { mic.current?.stop(); mic.current = null; setState('idle'); return; }
     setState('listening');
-  }, [fail]);
+    watchMic();
+  }, [fail, onLevel, watchMic]);
 
   const switchToWhisper = useCallback(() => {
     cb.current.onNotice?.('تعرّف المتصفح غير متاح — استُعمل التعرّف داخل الجهاز.');
@@ -322,8 +344,9 @@ export function useRecognizer(opts: {
     const prompt = buildPrompt(cb.current.contextual ?? []);
     try {
       mic.current = await listenMic({
-        endSilence: 550,
-        onLevel: setVolume,
+        endSilence: 520,
+        deviceId: cb.current.micId || undefined,
+        onLevel,
         onSpeech: (s) => { if (s && !busy.current) setPartial('…'); },
         onSegment: (pcm) => {
           busy.current++;
@@ -353,7 +376,8 @@ export function useRecognizer(opts: {
     }
     if (!wanted.current) { mic.current?.stop(); mic.current = null; setState('idle'); return; }
     setState('listening');
-  }, [fail, fallbackToDevice]);
+    watchMic();
+  }, [fail, fallbackToDevice, onLevel, watchMic]);
 
   useEffect(() => () => { mic.current?.stop(); mic.current = null; }, []);
 
