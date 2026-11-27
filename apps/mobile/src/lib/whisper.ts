@@ -74,10 +74,20 @@ export async function listenMic(opts: {
   onSpeech?: (speaking: boolean) => void;
   /** صمت (ملّي ثانية) ينهي الجملة — أقصر = أسرع، أطول = لا يقطع وقفة قصيرة داخل الجملة */
   endSilence?: number;
+  /** ميكروفون محدد (من الإعدادات)؛ بدونه الافتراضي */
+  deviceId?: string;
 }): Promise<MicSession> {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+  const audio: MediaTrackConstraints = { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+  if (opts.deviceId) audio.deviceId = { exact: opts.deviceId };
+  const stream = await navigator.mediaDevices.getUserMedia({ audio }).catch((e: unknown) => {
+    // الميكروفون المحفوظ لم يعد موجوداً: نرجع للافتراضي
+    if (opts.deviceId && (e as { name?: string })?.name === 'OverconstrainedError') return navigator.mediaDevices.getUserMedia({ audio: { ...audio, deviceId: undefined } });
+    throw e;
+  });
   const AC = (window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
   const ctx = new AC({ sampleRate: 16000 });
+  // المتصفح قد ينشئه «متوقفاً» إن لم يكن بعد ضغطة مباشرة — فلا يصل أي صوت
+  if (ctx.state === 'suspended') await ctx.resume().catch(() => {});
   const rate = ctx.sampleRate;
   const src = ctx.createMediaStreamSource(stream);
   const frame = 1024;
@@ -93,7 +103,7 @@ export async function listenMic(opts: {
   const PRE_FRAMES = Math.ceil(300 / frameMs);
   const END_SILENCE = opts.endSilence ?? 750;
   const MAX_MS = 9000;
-  const MIN_SPEECH = 220;
+  const MIN_SPEECH = 160;
 
   const flush = () => {
     const ok = speechMs >= MIN_SPEECH;
@@ -119,7 +129,7 @@ export async function listenMic(opts: {
     for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
     const rms = Math.sqrt(sum / data.length);
     opts.onLevel?.(Math.min(1, rms / 0.12));
-    const on = Math.max(0.012, floor * 3);
+    const on = Math.max(0.009, floor * 2.6);
     if (!speaking) {
       pre.push(data);
       if (pre.length > PRE_FRAMES) pre.shift();
@@ -141,8 +151,11 @@ export async function listenMic(opts: {
   };
   src.connect(node);
   node.connect(ctx.destination);
+  // استئناف إن أوقفه النظام (تبديل الجهاز الصوتي، النوم…)
+  const keep = setInterval(() => { if (ctx.state === 'suspended') ctx.resume().catch(() => {}); }, 1500);
   return {
     stop: () => {
+      clearInterval(keep);
       try { node.disconnect(); src.disconnect(); } catch { /* */ }
       stream.getTracks().forEach((t) => t.stop());
       ctx.close().catch(() => {});
@@ -189,4 +202,12 @@ export function encodeWav(pcm: Float32Array, rate = 16000): Uint8Array<ArrayBuff
     v.setInt16(44 + i * 2, x < 0 ? x * 0x8000 : x * 0x7fff, true);
   }
   return new Uint8Array(buf);
+}
+
+/** الميكروفونات المتاحة (الأسماء تظهر بعد السماح بالميكروفون مرة) */
+export async function listMics(): Promise<{ id: string; label: string }[]> {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) return [];
+  const all = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+  return all.filter((d) => d.kind === 'audioinput' && d.deviceId && d.deviceId !== 'communications')
+    .map((d, i) => ({ id: d.deviceId === 'default' ? '' : d.deviceId, label: d.label || `ميكروفون ${i + 1}` }));
 }

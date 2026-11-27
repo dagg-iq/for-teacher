@@ -17,6 +17,8 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 if (!app.requestSingleInstanceLock()) app.quit();
+// الصوت يعمل بلا انتظار ضغطة (الإدخال الصوتي: معالج الصوت لا يبدأ «متوقفاً»)
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 // الدخول بحساب Google: يتم في متصفح النظام (Google يمنع الدخول داخل النوافذ المضمّنة)،
 // ثم يعود إلى التطبيق برابط nahj://auth-callback?code=… فيُمرَّر للواجهة لإكمال الدخول

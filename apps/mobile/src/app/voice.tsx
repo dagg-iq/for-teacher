@@ -19,7 +19,7 @@ import { getGrade, setGrade } from '@/data/grades';
 import { allSections, gradebooksOf, sectionLabel, studentsOf } from '@/data/queries';
 import { pickEngine, speechAvailable, useRecognizer } from '@/lib/speech';
 import { IS_DESKTOP } from '@/lib/config';
-import { WHISPER_MODELS } from '@/lib/whisper';
+import { listMics, WHISPER_MODELS } from '@/lib/whisper';
 import { fonts, useTheme } from '@/lib/theme';
 
 type Mode = 'names' | 'ordered';
@@ -216,7 +216,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
   // الأسماء أولاً ثم كلمات الأعداد العامية: المحرك يفضّلها عند التعرّف
   const hints = useMemo(() => (mode === 'ordered' ? ORDERED_HINTS : [...students.map((s) => s.name).slice(0, 100 - NUMBER_HINTS.length), ...NUMBER_HINTS]), [students, mode]);
   const rec = useRecognizer({
-    onFinal: (t) => handleHeard(t), contextual: hints, pref: prefs.voiceEngine ?? 'auto', quality: prefs.whisperQuality ?? 'base',
+    onFinal: (t) => handleHeard(t), contextual: hints, pref: prefs.voiceEngine ?? 'auto', quality: prefs.whisperQuality ?? 'base', micId: prefs.micId,
     onNotice: (text) => setNotice({ tone: 'info', text }),
   });
   const alts = useRef<number[]>([]);
@@ -536,6 +536,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
           <T dim size={12}>تُكتب الدرجة تلقائياً بعد انتهاء المؤقت، ويمكنك إلغاؤها قبل ذلك بقول «لا». «يدوي» = بعد «نعم» فقط.</T>
           <ToggleRow title="الانتقال للطالب التالي تلقائياً" subtitle="في وضع «بالترتيب»" value={prefs.voiceAdvance} onChange={(v) => setPrefs({ voiceAdvance: v })} />
           {!IS_DESKTOP ? <ToggleRow title="خانة الكتابة" subtitle="اكتب الأوامر بدل قولها (مثلاً في مكان صاخب)" value={kb} onChange={setKb} /> : null}
+          {Platform.OS === 'web' ? <MicPicker value={prefs.micId ?? ''} onChange={(id) => { rec.stop(); setPrefs({ micId: id }); }} /> : null}
           {Platform.OS === 'web' ? (
             <View style={{ gap: 8, marginTop: 6 }}>
               <T weight="bold" size={14}>محرك التعرّف</T>
@@ -571,5 +572,20 @@ function MicButton({ active, volume, onPress }: { active: boolean; volume: numbe
         <Icon name="mic" size={28} color={active ? c.goldInk : '#FFFFFF'} />
       </View>
     </PressScale>
+  );
+}
+
+/** اختيار الميكروفون (الحاسوب/المتصفح): مفيد حين يكون للابتوب أكثر من ميكروفون أو سماعة */
+function MicPicker({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+  const [mics, setMics] = useState<{ id: string; label: string }[]>([]);
+  useEffect(() => { listMics().then(setMics).catch(() => {}); }, []);
+  if (mics.length < 2) return null;
+  return (
+    <View style={{ gap: 8, marginTop: 6 }}>
+      <T weight="bold" size={14}>الميكروفون</T>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {mics.map((m) => <Chip key={m.id || 'default'} label={m.id ? m.label : `الافتراضي${m.label && !/^ميكروفون/.test(m.label) ? ` (${m.label.replace(/^Default - /, '')})` : ''}`} active={value === m.id} onPress={() => onChange(m.id)} />)}
+      </View>
+    </View>
   );
 }

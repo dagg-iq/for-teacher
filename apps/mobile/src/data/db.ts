@@ -30,6 +30,8 @@ export interface Prefs {
   voiceEngine?: 'auto' | 'cloud' | 'google' | 'device';
   /** أندرويد: إخفاء أزرار الهاتف السفلية (تظهر بالسحب). الافتراضي: مخفية */
   hideNavBar?: boolean;
+  /** الحاسوب/المتصفح: الميكروفون المختار للإدخال الصوتي ('' = الافتراضي) */
+  micId?: string;
   /** دقة نموذج التعرّف داخل الجهاز */
   whisperQuality?: 'base' | 'small';
   /** تذكير الحصص مفعّل */
