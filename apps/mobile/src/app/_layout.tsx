@@ -19,6 +19,7 @@ import { loadDB, useSettings } from '@/data/db';
 import { startSync, syncNow } from '@/data/sync';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { SignInGate, WaitingGate } from '@/components/gate';
+import { AppLock } from '@/lib/applock';
 import { isConfigured } from '@/lib/supabase';
 import { DialogHost } from '@/lib/dialog';
 import { useClassReminders } from '@/lib/notify';
@@ -140,6 +141,7 @@ function Navigator() {
         {!introDone ? <Intro ready={ready} onDone={() => { setIntroDone(true); cleanOldApks(); }} /> : null}
         <ToastHost />
         <DialogHost />
+        <AppLock />
       </PortalProvider>
     </ThemeProvider>
   );

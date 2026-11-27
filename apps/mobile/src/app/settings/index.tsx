@@ -7,13 +7,14 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { router } from 'expo-router';
 import { Platform, View } from 'react-native';
-import { Group } from '@/components/kit';
+import { Group, ToggleRow } from '@/components/kit';
 import { Card, Divider, Header, ListItem, Row, Screen, Segmented, T } from '@/components/ui';
 import { exportBackup, importBackup, setPrefs, useSettings, wipeLocal, type Backup } from '@/data/db';
 import { cloudBackupAvailable } from '@/data/cloud-backup';
 import { allSections } from '@/data/queries';
 import { useAuth } from '@/lib/auth';
 import { Alert } from '@/lib/dialog';
+import { lockSupport, setLockPrefs, unlock, useLockPrefs } from '@/lib/applock';
 import { saveAndShare } from '@/lib/export';
 import { useTheme, type ThemeMode } from '@/lib/theme';
 import { toast } from '@/lib/toast';
@@ -101,6 +102,8 @@ export default function Settings() {
           onPress={printFirst ? () => router.push(`/print?kind=report&id=${printFirst.id}`) : undefined} />
       </Group>
 
+      {Platform.OS !== 'web' ? <LockSettings /> : null}
+
       <Group title="البيانات">
         {cloudBackupAvailable ? (
           <>
@@ -124,5 +127,36 @@ export default function Settings() {
       </Group>
       <Row style={{ justifyContent: 'center' }}><T dim size={12}>الإعدادات تُحفظ فور تغييرها.</T></Row>
     </Screen>
+  );
+}
+
+/** قفل التطبيق بالبصمة أو رمز الهاتف (هذا الجهاز فقط) */
+function LockSettings() {
+  const lock = useLockPrefs();
+  const toggle = async (v: boolean) => {
+    if (!v) {
+      // الإيقاف يحتاج البصمة أيضاً، حتى لا يوقفه من أمسك الهاتف مفتوحاً
+      if (await unlock('أكّد لإيقاف قفل التطبيق')) { await setLockPrefs({ enabled: false }); toast('أُوقف قفل التطبيق'); }
+      return;
+    }
+    const sup = await lockSupport();
+    if (!sup.ok) { Alert.alert('لا يمكن تفعيل القفل', sup.reason ?? ''); return; }
+    if (await unlock('أكّد لتفعيل قفل التطبيق')) { await setLockPrefs({ enabled: true }); toast('فُعّل قفل التطبيق', { icon: 'check' }); }
+  };
+  return (
+    <Group title="الأمان">
+      <ToggleRow title="قفل التطبيق" subtitle="بالبصمة أو بقفل شاشة الهاتف (رمز، نمط، كلمة مرور)" value={lock.enabled} onChange={toggle} />
+      {lock.enabled ? (
+        <>
+          <Divider />
+          <View style={{ paddingVertical: 12, gap: 8 }}>
+            <T weight="bold" size={14}>يُقفل بعد الخروج من التطبيق</T>
+            <Segmented options={[{ key: '0', label: 'فوراً' }, { key: '60', label: 'دقيقة' }, { key: '300', label: '٥ دقائق' }]} value={String(lock.after)}
+              onChange={(v) => setLockPrefs({ after: Number(v) })} />
+            <T dim size={12}>يُطلب القفل أيضاً عند كل فتح للتطبيق. الإعداد خاص بهذا الهاتف.</T>
+          </View>
+        </>
+      ) : null}
+    </Group>
   );
 }

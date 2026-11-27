@@ -98,6 +98,12 @@
             }
           ]
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "يستعمل نَهج بصمة الوجه لقفل التطبيق."
+        }
       ]
     ],
     "experiments": {

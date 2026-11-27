@@ -10,7 +10,8 @@ import { Pill } from '@/components/kit';
 import { Sheet, SheetItem } from '@/components/sheet';
 import { Button, Card, Chip, Empty, Field, Header, IconButton, Row, Screen, SectionTitle, T } from '@/components/ui';
 import { all, get, insert, remove, update, useQuery, useSettings } from '@/data/db';
-import { absencesOf, allSections, booksOfSection, nextSeq, sectionLabel, sheetOf, studentNo } from '@/data/queries';
+import { absencesOf, allSections, booksOfSection, sectionLabel, sheetOf, studentNo } from '@/data/queries';
+import { previewTransfer, transferStudent } from '@/data/transfer';
 import { Alert } from '@/lib/dialog';
 import { useTheme } from '@/lib/theme';
 import { toast } from '@/lib/toast';
@@ -51,6 +52,16 @@ export default function StudentScreen() {
     <Screen>
       <Header title={s.name} subtitle={`${sectionLabel(s.section_id)}${no ? ` · رقم ${arDigits(no)} في القائمة` : ''}`}
         right={<IconButton name="more-v" label="خيارات" onPress={() => setMenu(true)} />} />
+      {s.history?.length ? (
+        <Card style={{ gap: 4, borderWidth: 1, borderColor: c.gold }}>
+          {s.history.slice(-3).reverse().map((h, i) => (
+            <Row key={`${h.date}-${i}`} gap={8}>
+              <Icon name="forward" size={16} color={c.gold} />
+              <T size={13} style={{ flex: 1 }}>{`منقول من ${h.from} إلى ${h.to} — ${formatDate(parseIsoDay(h.date))}`}</T>
+            </Row>
+          ))}
+        </Card>
+      ) : null}
       <Card style={{ flexDirection: 'row', paddingVertical: 12 }}>
         {[
           { label: 'غياب', v: ab.absent, bad: ab.count >= profile_alert },
@@ -139,10 +150,25 @@ export default function StudentScreen() {
       {editing ? <EditStudent visible onClose={() => setEditing(false)} id={id} /> : null}
       <Sheet visible={moving} onClose={() => setMoving(false)}>
         <T display size={22}>نقل {s.name.split(' ')[0]}</T>
-        <T dim size={13}>السجلات تختلف بين الشعب، فدرجاته وحضوره في هذه الشعبة لا تنتقل معه: تبقى محفوظة هنا (وتعود إن أعدته)، ويبدأ في الشعبة الجديدة بسجلات فارغة وفي آخر قائمتها إن كانت مرتبة بالتسلسل.</T>
+        <T dim size={13}>ينتقل الطالب كاملاً: درجاته تُنقل إلى السجلات المقابلة في الشعبة الجديدة (نفس السجل ونفس اسم العمود)، وغياباته وملاحظاته معه، ويُكتب في ملفه أنه منقول.</T>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
           {allSections().filter((x) => x.id !== s.section_id).map((x) => (
-            <Chip key={x.id} label={sectionLabel(x.id, true)} onPress={() => { update('students', s.id, { section_id: x.id, number: nextSeq(x.id), sort: nextSeq(x.id) }); setMoving(false); toast(`نُقل إلى ${sectionLabel(x.id)}`, { icon: 'check' }); }} />
+            <Chip key={x.id} label={sectionLabel(x.id, true)} onPress={() => {
+              const p = previewTransfer(s.id, x.id);
+              const lines = [
+                `${arDigits(p.grades)} درجة تنتقل${p.books ? ` إلى ${arDigits(p.books)} سجل مقابل` : ''}`,
+                `${arDigits(p.attendance)} يوم حضور/غياب ينتقل`,
+                p.kept ? `${arDigits(p.kept)} درجة بلا سجل أو عمود مقابل في الشعبة الجديدة — تبقى محفوظة في الشعبة القديمة` : '',
+              ].filter(Boolean).join('\n');
+              Alert.alert(`نقل ${s.name} إلى ${sectionLabel(x.id)}؟`, lines, [
+                { text: 'إلغاء', style: 'cancel' },
+                { text: 'نقل', onPress: () => {
+                  const r = transferStudent(s.id, x.id);
+                  setMoving(false);
+                  toast(`نُقل إلى ${sectionLabel(x.id)} مع ${arDigits(r.grades)} درجة`, { icon: 'check' });
+                } },
+              ]);
+            }} />
           ))}
         </View>
       </Sheet>

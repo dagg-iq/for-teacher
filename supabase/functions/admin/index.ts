@@ -106,6 +106,8 @@ async function teachers(db: SupabaseClient) {
       email: u.email ?? '',
       status: (a?.status ?? 'approved') as Status,
       note: a?.note ?? null,
+      last_error: a?.last_error ?? null,
+      last_error_at: a?.last_error_at ?? null,
       created_at: u.created_at,
       decided_at: a?.decided_at ?? null,
       last_sign_in_at: u.last_sign_in_at ?? null,
@@ -239,6 +241,7 @@ Deno.serve(handler(async (req) => {
         provider: user.app_metadata?.provider ?? 'email',
         banned: isBanned(user),
         status: acc.data?.status ?? 'approved', note: acc.data?.note ?? null, decided_at: acc.data?.decided_at ?? null,
+        last_error: acc.data?.last_error ?? null, last_error_at: acc.data?.last_error_at ?? null,
         profile: settings.data?.profile ?? null, settings_updated_at: settings.data?.updated_at ?? null,
         stats: stats.get(id) ?? ZERO,
         classes: ((classes.data ?? []) as { id: string; name: string; subject: string; stage: string }[]).map((c) => ({

@@ -46,6 +46,16 @@ export interface Student extends Base {
   notes?: string | null;
   gender?: 'm' | 'f' | null;
   sort: number;
+  /** سجل النقل بين الشعب (الأحدث آخراً) */
+  history?: StudentTransfer[] | null;
+}
+
+export interface StudentTransfer {
+  from_section_id: string;
+  /** اسم الشعبة وقت النقل (يبقى حتى لو حُذفت الشعبة) */
+  from: string;
+  to: string;
+  date: string;
 }
 
 /** عمود في سجل الدرجات: إدخال يدوي، أو معادلة، أو «مرتبط» يأخذ قيمته من عمود في سجل آخر */
