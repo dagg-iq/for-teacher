@@ -273,7 +273,7 @@ const ok = (cond, msg) => { console.log(cond ? '✓' : '✗', msg); if (!cond) f
   // ٦ب) ترقيم الطلاب: الطالب الجديد يأخذ مكانه الأبجدي ورقمه = مكانه، والرقم نفسه في الحضور
   await page.goto(base + `/section/${sec.id}`, { waitUntil: 'networkidle' });
   await wait(800);
-  await page.getByPlaceholder('اسم طالب جديد (أو الصق قائمة)').fill('إبراهيم كريم');
+  await page.getByPlaceholder('اسم طالب جديد أو الصق قائمة').fill('إبراهيم كريم');
   await page.keyboard.press('Enter');
   await wait(600);
   const rowsText = await page.evaluate(() => document.body.innerText);

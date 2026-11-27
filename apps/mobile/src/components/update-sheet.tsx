@@ -1,10 +1,10 @@
 import { arDigits } from '@nahj/shared';
 import { useEffect, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { AppState, Platform, View } from 'react-native';
 import { toast } from '@/lib/toast';
 import { useTheme } from '@/lib/theme';
 import {
-  applyOta, cancelDownload, checkForApk, fetchOta, installDownloaded, skipApk, startDownload, useDownload, type UpdateInfo,
+  applyOta, cancelDownload, checkForApk, fetchOta, installDownloaded, startDownload, useDownload, type UpdateInfo,
 } from '@/lib/updater';
 import { Icon } from './icon';
 import { Sheet } from './sheet';
@@ -18,16 +18,22 @@ import { Button, T } from './ui';
 export function UpdateSheet() {
   const [apk, setApk] = useState<UpdateInfo | null>(null);
   const [ota, setOta] = useState(false);
+  // التحديث إلزامي: يُفحص عند الفتح وعند كل رجوع للتطبيق، و«لاحقاً» يغلق النافذة حتى الرجوع التالي فقط
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    const t = setTimeout(() => {
+    const check = () => {
       fetchOta().then((r) => { if (r === 'downloaded') setOta(true); }).catch(() => {});
       checkForApk().then((u) => u && setApk(u)).catch(() => {});
-    }, 5000);
-    return () => clearTimeout(t);
+    };
+    const t = setTimeout(check, 4000);
+    let last = Date.now();
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st === 'active' && Date.now() - last > 15000) { last = Date.now(); check(); }
+    });
+    return () => { clearTimeout(t); sub.remove(); };
   }, []);
 
-  if (apk) return <ApkSheet info={apk} onClose={() => { skipApk(apk.version); setApk(null); }} />;
+  if (apk) return <ApkSheet info={apk} onClose={() => setApk(null)} />;
   return (
     <Sheet visible={ota} onClose={() => setOta(false)}>
       <View style={{ alignItems: 'center', gap: 10, paddingVertical: 8 }}>

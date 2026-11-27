@@ -57,7 +57,6 @@ export async function applyOta() {
 }
 
 // ───────────────────────────── ٢. APK ─────────────────────────────
-const SKIP_KEY = 'nahj.update.skip';
 
 export interface UpdateInfo { version: number; url: string; sizeMb: number | null; notes?: string }
 
@@ -68,20 +67,10 @@ export async function checkForApk(force = false): Promise<UpdateInfo | null> {
   const d = (await res.json()) as { url?: string; version?: string | number; size_mb?: string | number; notes?: string };
   const version = Number(d.version);
   if (!d.url || !version || version <= BUILD_NUMBER) return null;
-  if (!force) {
-    // «لاحقاً»: لا نزعجه بنفس النسخة قبل يوم
-    const skip = await AsyncStorage.getItem(SKIP_KEY).catch(() => null);
-    if (skip) {
-      const [v, at] = skip.split(':').map(Number);
-      if (v === version && Date.now() - at < 86400000) return null;
-    }
-  }
+  void force;
   return { version, url: d.url, sizeMb: Number(d.size_mb) || null, notes: d.notes };
 }
 
-export function skipApk(version: number) {
-  AsyncStorage.setItem(SKIP_KEY, `${version}:${Date.now()}`).catch(() => {});
-}
 
 export interface DownloadState {
   status: 'idle' | 'downloading' | 'ready' | 'error';

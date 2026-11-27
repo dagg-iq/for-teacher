@@ -14,6 +14,7 @@ import { cloudBackupAvailable } from '@/data/cloud-backup';
 import { allSections } from '@/data/queries';
 import { useAuth } from '@/lib/auth';
 import { Alert } from '@/lib/dialog';
+import { navBarSupported } from '@/lib/navbar';
 import { lockSupport, setLockPrefs, unlock, useLockPrefs } from '@/lib/applock';
 import { saveAndShare } from '@/lib/export';
 import { useTheme, type ThemeMode } from '@/lib/theme';
@@ -87,6 +88,12 @@ export default function Settings() {
             onChange={(v) => { if (v !== prefs.dateStyle) setPrefs({ dateStyle: v }); }} />
           <T dim size={12}>الأرقام والتاريخ يُطبَّقان على كل التطبيق والطباعة وملفات Excel.</T>
         </View>
+        {navBarSupported ? (
+          <>
+            <Divider />
+            <ToggleRow title="إخفاء أزرار الهاتف السفلية" subtitle="شاشة أوسع؛ تظهر الأزرار بالسحب من أسفل الشاشة" value={prefs.hideNavBar !== false} onChange={(v) => setPrefs({ hideNavBar: v })} />
+          </>
+        ) : null}
       </Group>
 
       <Group title="أقسام التطبيق">
