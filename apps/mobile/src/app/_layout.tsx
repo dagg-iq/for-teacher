@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PortalProvider } from '@/components/portal';
 import { Intro } from '@/components/intro';
 import { UpdateSheet } from '@/components/update-sheet';
+import { DesktopUpdate } from '@/components/desktop-update';
 import { cleanOldApks } from '@/lib/updater';
 import { IS_DESKTOP } from '@/lib/config';
 import { useWide } from '@/lib/hooks';
@@ -166,7 +167,7 @@ function Navigator() {
             </View>
           </View>
         )}
-        {ready && introDone ? <UpdateSheet /> : null}
+        {ready && introDone ? (IS_DESKTOP ? <DesktopUpdate /> : <UpdateSheet />) : null}
         {ready && introDone && !gate && !needRestore && hasProfile ? <NotifyPrompt uid={sessionUid} /> : null}
         {!introDone ? <Intro ready={ready} onDone={() => { setIntroDone(true); cleanOldApks(); }} /> : null}
         <ToastHost />

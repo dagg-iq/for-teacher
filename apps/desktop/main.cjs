@@ -29,6 +29,53 @@ function deliver(url) {
   if (win && !win.webContents.isLoading()) win.webContents.send('nahj:deeplink', url);
   else pendingLink = url;
 }
+// ── التحديث من داخل التطبيق: الموقع ينشر رابط آخر نسخة في download.json، ننزّل المثبّت ونشغّله بصمت ثم يعيد فتح التطبيق
+const SITE = 'https://nahj-iq.web.app';
+const isPortable = () => !!process.env.PORTABLE_EXECUTABLE_FILE;
+const verNum = (v) => Number(String(v || '').split('.').pop()) || 0;
+ipcMain.handle('nahj:check-update', async () => {
+  try {
+    const res = await net.fetch(`${SITE}/download.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const d = (await res.json()).desktop || {};
+    if (!d.url || verNum(d.version) <= verNum(app.getVersion())) return null;
+    return { version: d.version, sizeMb: d.size_mb || '', url: d.url, portable: d.portable || '', isPortable: isPortable(), current: app.getVersion() };
+  } catch { return null; }
+});
+let updating = false;
+ipcMain.handle('nahj:install-update', async (e, url) => {
+  if (updating) return { ok: false, error: 'busy' };
+  if (typeof url !== 'string' || !/^https:\/\/github\.com\/dagg-iq\/[\w.-]+\/releases\/download\/[\w.-]+\/Nahj-Setup-[\w.-]+\.exe$/.test(url)) return { ok: false, error: 'bad-url' };
+  updating = true;
+  const os = require('os');
+  const { spawn } = require('child_process');
+  const file = path.join(os.tmpdir(), path.basename(url));
+  try {
+    const res = await net.fetch(url);
+    if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+    const total = Number(res.headers.get('content-length')) || 0;
+    const out = fs.createWriteStream(file);
+    let got = 0; let last = 0;
+    const reader = res.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      got += value.length;
+      if (!out.write(Buffer.from(value))) await new Promise((r) => out.once('drain', r));
+      if (total && Date.now() - last > 200) { last = Date.now(); e.sender.send('nahj:update-progress', got / total); }
+    }
+    await new Promise((r, j) => out.end((err) => (err ? j(err) : r())));
+    e.sender.send('nahj:update-progress', 1);
+    // NSIS: ‎/S‎ تثبيت صامت فوق الحالي (البيانات تبقى)، ‎--force-run‎ يفتح التطبيق بعد التثبيت
+    spawn(file, ['/S', '--force-run'], { detached: true, stdio: 'ignore' }).unref();
+    setTimeout(() => app.quit(), 400);
+    return { ok: true };
+  } catch (err) {
+    updating = false;
+    return { ok: false, error: String(err && err.message || err) };
+  }
+});
+
 ipcMain.handle('nahj:open-external', (_e, url) => {
   if (typeof url === 'string' && /^https:\/\//i.test(url)) return shell.openExternal(url);
   return false;
