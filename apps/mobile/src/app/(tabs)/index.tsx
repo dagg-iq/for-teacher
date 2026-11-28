@@ -79,7 +79,7 @@ export default function Home() {
                       <T weight="bold" size={14} color={c.accent}>{w.student.name.trim().replace(/^[إأآ]/, 'ا').charAt(0)}</T>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <T weight="bold" size={15} lines={2}>{w.student.name}</T>
+                      <T weight="bold" size={15} fit>{w.student.name}</T>
                       <T dim size={12} lines={1}>{sectionLabel(w.student.section_id)} · {w.book.title}</T>
                     </View>
                     <Pill label={`راسب ${formatScore(w.value)}`} tone="bad" small />

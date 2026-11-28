@@ -433,7 +433,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
             <PressScale key={s.id} onPress={() => { chosen.current = s.id; setCurrent(i); setNotice({ tone: 'info', text: `${s.name} — قل الدرجة.` }); }} scaleTo={0.98}
               style={{ height: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, borderRadius: 16, backgroundColor: isPending ? c.soft : active ? c.card : 'transparent', borderWidth: active || isPending ? 1.5 : 0, borderColor: isPending ? c.accent : c.line }}>
               <T dim size={12} weight="bold" style={{ width: 22, textAlign: 'center' }}>{arDigits(i + 1)}</T>
-              <T size={15} weight={active ? 'bold' : 'medium'} style={{ flex: 1 }} lines={2}>{s.name}</T>
+              <T size={15} weight={active ? 'bold' : 'medium'} style={{ flex: 1 }} fit>{s.name}</T>
               {isPending ? <Pill small label={pending!.mark ? MARK_LABEL[pending!.mark] : formatScore(pending!.value)} tone="info" />
                 : g?.mark ? <Pill small label={MARK_LABEL[g.mark]} tone="warn" />
                   : g?.value != null ? <T weight="bold" size={16} color={g.value / column.max * 100 < (book?.result.pass ?? 50) ? tone.bad.ink : c.ink}>{formatScore(g.value)}</T>
@@ -450,7 +450,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
             <Row>
               <View style={{ flex: 1 }}>
                 <T size={13} color={c.heroInk2}>{pending.prev ? 'استبدال' : 'كتابة'}</T>
-                <T weight="bold" size={17} color={c.heroInk} lines={2}>{pending.student.name}</T>
+                <T weight="bold" size={17} color={c.heroInk} fit>{pending.student.name}</T>
               </View>
               <T display size={34} color={c.heroInk}>{pending.mark ? MARK_LABEL[pending.mark] : formatScore(pending.value)}</T>
             </Row>
@@ -483,7 +483,7 @@ function Session({ bookId, sectionId, column, mode, onSetup }: { bookId: string;
           <Row>
             <View style={{ flex: 1 }}>
               <T size={12} dim>{mode === 'ordered' ? 'الطالب الحالي' : 'المحدد'}</T>
-              <T weight="bold" size={17} lines={2}>{cur.name}</T>
+              <T weight="bold" size={17} fit>{cur.name}</T>
             </View>
             {curGrade?.value != null || curGrade?.mark ? <Pill label={curGrade.mark ? MARK_LABEL[curGrade.mark] : formatScore(curGrade.value)} /> : null}
           </Row>

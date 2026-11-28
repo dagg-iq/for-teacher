@@ -254,7 +254,7 @@ function ColumnEditor({ book, col, kind, onClose, onSave }: {
                   <T size={12} weight="bold" color={c.softInk}>= {safeDisplay(formula, [...others, { id: colId, name, kind: 'formula', max }]).slice(2)}</T>
                   {preview.map((p) => (
                     <Row key={p.name} style={{ justifyContent: 'space-between' }}>
-                      <T size={13} color={c.softInk} lines={1} style={{ flex: 1 }}>{p.name}</T>
+                      <T size={13} color={c.softInk} fit style={{ flex: 1 }}>{p.name}</T>
                       <T size={14} weight="bold" color={c.softInk}>{formatScore(p.value)}</T>
                     </Row>
                   ))}
