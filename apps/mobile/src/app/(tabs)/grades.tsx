@@ -79,7 +79,7 @@ export default function Grades() {
                   </Row>
                   <Chip small label="التقرير" onPress={() => router.push(`/reports?section=${current!.id}`)} />
                 </Row>
-                <View style={{ flexDirection: wide ? 'row' : 'column', flexWrap: 'wrap', gap: 12 }}>
+                <View style={wide ? { flexDirection: 'row', flexWrap: 'wrap', gap: 12 } : { gap: 12 }}>
                 {STAGES.map((st) => {
                   const books = set.books.filter((b) => (b.ord ?? 0) >= st.from && (b.ord ?? 0) <= st.to);
                   if (!books.length) return null;
