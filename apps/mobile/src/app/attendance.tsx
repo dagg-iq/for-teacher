@@ -3,7 +3,7 @@ import {
 } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, Share, View } from 'react-native';
+import { ScrollView, Share, useWindowDimensions, View } from 'react-native';
 import { DateSheet } from '@/components/date-sheet';
 import { Icon } from '@/components/icon';
 import { Pill, SearchBar } from '@/components/kit';
@@ -111,6 +111,7 @@ function PickSection({ onPick }: { onPick: (id: string) => void }) {
 /** تسجيل يوم واحد لشعبة */
 function Take({ sectionId, date, onDate }: { sectionId: string; date: string; onDate: (d: string) => void }) {
   const { c, tone } = useTheme();
+  const narrow = useWindowDimensions().width < 520;
   const [pick, setPick] = useState(false);
   const students = useQuery(() => studentsOf(sectionId), [sectionId]);
   const marks = useQuery(() => attendanceOn(sectionId, date), [sectionId, date]);
@@ -174,20 +175,32 @@ function Take({ sectionId, date, onDate }: { sectionId: string; date: string; on
           const t = tone[TONE[st]];
           const mini = (k: AttendanceStatus, label: string) => (
             <PressScale key={k} onPress={() => setStatus(s.id, st === k ? 'present' : k)} scaleTo={0.92} accessibilityLabel={`${s.name}: ${label}`} accessibilityState={{ selected: st === k }}
-              style={{ height: 36, paddingHorizontal: 10, borderRadius: 18, borderWidth: 1, borderColor: st === k ? 'transparent' : c.line, backgroundColor: st === k ? tone[TONE[k]].bg : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+              style={{ height: narrow ? 30 : 36, paddingHorizontal: narrow ? 12 : 10, borderRadius: 18, borderWidth: 1, borderColor: st === k ? 'transparent' : c.line, backgroundColor: st === k ? tone[TONE[k]].bg : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
               <T size={12} weight="bold" color={st === k ? tone[TONE[k]].ink : c.ink3} style={{ lineHeight: 18 }}>{label}</T>
             </PressScale>
           );
-          return (
+          const main = (
+            <PressScale onPress={() => setStatus(s.id, st === 'absent' ? 'present' : 'absent')} scaleTo={0.98} accessibilityLabel={`${s.name}: ${ATTENDANCE_LABEL[st]}`}
+              style={{ flex: narrow ? undefined : 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
+              <T dim size={12} weight="bold" style={{ width: 24, textAlign: 'center' }}>{arDigits(i + 1)}</T>
+              <T size={15} weight="medium" style={{ flex: 1 }} fit color={st === 'absent' ? t.ink : c.ink}>{s.name}</T>
+              <View style={{ minWidth: 58, height: 30, borderRadius: 15, backgroundColor: taken || st !== 'present' ? t.bg : c.bg, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 }}>
+                <T size={12} weight="bold" color={taken || st !== 'present' ? t.ink : c.ink3} style={{ lineHeight: 18 }}>{ATTENDANCE_LABEL[st]}</T>
+              </View>
+            </PressScale>
+          );
+          // الهاتف: الاسم يأخذ عرض الصف كاملاً، و«متأخر/مُجاز» تحته — فلا يُضغط الاسم
+          return narrow ? (
+            <View key={s.id} style={{ paddingVertical: 6, gap: 4, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+              {main}
+              <View style={{ flexDirection: 'row', gap: 8, paddingStart: 34 }}>
+                {mini('late', 'متأخر')}
+                {mini('excused', 'مُجاز')}
+              </View>
+            </View>
+          ) : (
             <View key={s.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
-              <PressScale onPress={() => setStatus(s.id, st === 'absent' ? 'present' : 'absent')} scaleTo={0.98} accessibilityLabel={`${s.name}: ${ATTENDANCE_LABEL[st]}`}
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
-                <T dim size={12} weight="bold" style={{ width: 24, textAlign: 'center' }}>{arDigits(i + 1)}</T>
-                <T size={15} weight="medium" style={{ flex: 1 }} lines={2} color={st === 'absent' ? t.ink : c.ink}>{s.name}</T>
-                <View style={{ minWidth: 58, height: 30, borderRadius: 15, backgroundColor: taken || st !== 'present' ? t.bg : c.bg, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 }}>
-                  <T size={12} weight="bold" color={taken || st !== 'present' ? t.ink : c.ink3} style={{ lineHeight: 18 }}>{ATTENDANCE_LABEL[st]}</T>
-                </View>
-              </PressScale>
+              {main}
               {mini('late', 'متأخر')}
               {mini('excused', 'مُجاز')}
             </View>

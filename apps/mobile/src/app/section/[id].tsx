@@ -186,7 +186,7 @@ function StudentsTab({ sectionId }: { sectionId: string }) {
                   <View style={{ width: 30, alignItems: 'center' }}>
                     <T dim size={13} weight="bold">{arDigits(pos)}</T>
                   </View>
-                  <T size={15} weight="medium" style={{ flex: 1 }} lines={2}>{s.name}</T>
+                  <T size={15} weight="medium" style={{ flex: 1 }} fit>{s.name}</T>
                   {reorder ? (
                     <>
                       <View style={{ opacity: i === 0 ? 0.3 : 1 }}><IconButton name="up" label={`تقديم ${s.name}`} size={34} onPress={i === 0 ? undefined : () => move(i, -1)} /></View>

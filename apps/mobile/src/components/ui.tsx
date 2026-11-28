@@ -5,6 +5,7 @@ import { useEffect, type ReactNode } from 'react';
 import {
   ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, TextInput, View,
   type PressableProps, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle,
+  Platform,
 } from 'react-native';
 import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,7 +32,7 @@ export function descentPad(size: number, kind: 'display' | 'serif' | 'sans' = 's
 type Weight = 'regular' | 'medium' | 'bold' | 'black';
 
 export function T({
-  children, size = 15, weight = 'regular', display, serif, color, dim, style, lines, center, selectable,
+  children, size = 15, weight = 'regular', display, serif, color, dim, style, lines, center, selectable, fit,
 }: {
   children: ReactNode;
   size?: number;
@@ -46,6 +47,8 @@ export function T({
   lines?: number;
   center?: boolean;
   selectable?: boolean;
+  /** سطر واحد مستقيم دائماً: النص الطويل يصغر خطه حتى يتّسع (أسماء الطلاب) بدل القطع أو الالتفاف */
+  fit?: boolean;
 }) {
   const { c } = useTheme();
   const kind = display ? 'display' : serif ? 'serif' : 'sans';
@@ -57,7 +60,9 @@ export function T({
       : fonts[weight];
   return (
     <Text
-      numberOfLines={lines}
+      numberOfLines={fit ? (Platform.OS === 'web' ? 2 : 1) : lines}
+      adjustsFontSizeToFit={fit && Platform.OS !== 'web' ? true : undefined}
+      minimumFontScale={fit ? 0.55 : undefined}
       selectable={selectable}
       // تكبير خط الهاتف مسموح لكن بحد، حتى لا يخرج النص من الأزرار والبطاقات
       maxFontSizeMultiplier={1.3}

@@ -110,7 +110,7 @@ function RankRow({ i, name, v, id, good }: { i: number; name: string; v: number 
       <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: good ? tone.good.bg : tone.bad.bg, alignItems: 'center', justifyContent: 'center' }}>
         <T size={12} weight="bold" color={good ? tone.good.ink : tone.bad.ink} style={{ lineHeight: 18 }}>{arDigits(i + 1)}</T>
       </View>
-      <T size={15} weight="medium" style={{ flex: 1 }} lines={2}>{name}</T>
+      <T size={15} weight="medium" style={{ flex: 1 }} fit>{name}</T>
       <T size={16} weight="bold">{formatScore(v)}</T>
     </PressScale>
   );
