@@ -2,7 +2,7 @@ import {
   arDigits, cloneColumns, formatScore, MARK_LABEL, parseNumber, type GradeColumn, type SheetRow, countGrades } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, TextInput, useWindowDimensions, View } from 'react-native';
 import { Icon } from '@/components/icon';
 import { Pill } from '@/components/kit';
 import { PressScale, tap } from '@/components/motion';
@@ -161,7 +161,7 @@ function CriticalSheet({ bookId, rows, columns, onClose }: { bookId: string; row
                       {on ? <Icon name="check" size={14} color={c.accentInk} strokeWidth={2.6} /> : null}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <T weight="bold" size={14} lines={1}>{p.r.student.name}</T>
+                      <T weight="bold" size={14} lines={2}>{p.r.student.name}</T>
                       <T dim size={12}>{arDigits(p.x.name)}</T>
                     </View>
                     <T weight="bold" size={16} color={tone.warn.ink}>{formatScore(p.r.values[p.x.id])}</T>
@@ -181,7 +181,7 @@ function CriticalSheet({ bookId, rows, columns, onClose }: { bookId: string; row
               {done.map((p, i) => (
                 <View key={p.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
                   <View style={{ flex: 1 }}>
-                    <T weight="bold" size={14} lines={1}>{p.r.student.name}</T>
+                    <T weight="bold" size={14} lines={2}>{p.r.student.name}</T>
                     <T dim size={12}>{arDigits(p.x.name)}: {formatScore(p.r.raw[p.x.id])} ← {formatScore(p.r.values[p.x.id])}</T>
                   </View>
                   <Button title="تراجع" small variant="secondary" onPress={() => setOverride(bookId, p.r.student.id, p.x.id, null)} />
@@ -225,7 +225,7 @@ function Grid({ bookId, rows, columns, deciderId, onReview }: {
         {rows.map((r, ri) => (
           <View key={r.student.id} style={{ flexDirection: 'row', height: H, borderTopWidth: ri ? 1 : 0, borderTopColor: c.line, backgroundColor: ri % 2 ? c.bg : c.card }}>
             <View style={{ width: 44, justifyContent: 'center', alignItems: 'center' }}><T dim size={12} weight="bold">{arDigits(ri + 1)}</T></View>
-            <View style={{ flexGrow: 1, flexBasis: NAME_W, minWidth: NAME_W, justifyContent: 'center', paddingHorizontal: 10 }}><T size={14} weight="medium" lines={1}>{r.student.name}</T></View>
+            <View style={{ flexGrow: 1, flexBasis: NAME_W, minWidth: NAME_W, justifyContent: 'center', paddingHorizontal: 10 }}><T size={13} weight="medium" lines={2} style={{ lineHeight: 17 }}>{r.student.name}</T></View>
             {columns.map((x) => {
               const v = r.values[x.id];
               const m = r.marks[x.id];
@@ -373,7 +373,7 @@ function EntryRow({ row, index, col, bookId, decider, inputRef, onNext, divider,
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderTopWidth: divider ? 1 : 0, borderTopColor: lineColor }}>
       <T dim size={12} weight="bold" style={{ width: 24, textAlign: 'center' }}>{arDigits(index + 1)}</T>
       <View style={{ flex: 1 }}>
-        <T size={15} weight="medium" lines={1}>{row.student.name}</T>
+        <T size={15} weight="medium" lines={2}>{row.student.name}</T>
         {decider && decider.id !== col.id && dv != null ? (
           <T size={11} color={row.verdict && !row.verdict.pass ? tone.bad.ink : c.ink3}>{decider.name}: {formatScore(dv)}</T>
         ) : null}
@@ -410,9 +410,13 @@ function Table({ rows, columns, deciderId, highlight, onCell }: {
   rows: SheetRow[]; columns: GradeColumn[]; deciderId: string | null; highlight: string | null; onCell: (studentId: string, columnId: string) => void;
 }) {
   const { c, tone } = useTheme();
+  const { width } = useWindowDimensions();
   const H = 46;
-  const NAME_W = 150;
-  const COL_W = 78;
+  // الهاتف: عمود الأسماء أضيق والأعمدة تتوزع على العرض المتاح فتظهر كاملة (وتتمرر فقط إن كثرت)
+  const narrow = width < 520;
+  const NAME_W = narrow ? 124 : 150;
+  const avail = Math.min(width, 1100) - 44 - NAME_W;
+  const COL_W = Math.max(narrow ? 50 : 64, Math.min(96, Math.floor(avail / Math.max(1, columns.length))));
   return (
     <View style={{ flexDirection: 'row', borderTopWidth: 1, borderBottomWidth: 1, borderColor: c.line, backgroundColor: c.card }}>
       <View style={{ width: NAME_W, borderLeftWidth: 1, borderLeftColor: c.line }}>
@@ -421,7 +425,7 @@ function Table({ rows, columns, deciderId, highlight, onCell }: {
         </View>
         {rows.map((r, i) => (
           <View key={r.student.id} style={{ height: H, justifyContent: 'center', paddingHorizontal: 12, borderTopWidth: 1, borderTopColor: c.line, backgroundColor: r.student.id === highlight ? c.soft : i % 2 ? c.bg : c.card }}>
-            <T size={13} weight="medium" lines={1}>{arDigits(i + 1)}. {r.student.name}</T>
+            <T size={12} weight="medium" lines={2} style={{ lineHeight: 16 }}>{arDigits(i + 1)}. {r.student.name}</T>
           </View>
         ))}
       </View>

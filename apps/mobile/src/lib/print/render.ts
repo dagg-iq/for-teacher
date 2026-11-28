@@ -122,17 +122,19 @@ function headBlock(doc: PrintDoc, style: PrintStyle, ov: Overrides) {
   const left = style.schoolInfo
     ? [h.school && `المدرسة: ${esc(h.school)}`, h.subject && `المادة: ${esc(h.subject)}`, `العام الدراسي: ${esc(formatYear(h.year))}`].filter(Boolean).join('<br>')
     : '';
-  const center = `<h1>${esc(title)}</h1>${sub ? `<h2>${esc(sub)}</h2>` : ''}`;
+  const logo = style.logo ? `<img class="logo" src="${style.logo}" alt="">` : '';
+  const center = `${logo}<h1>${esc(title)}</h1>${sub ? `<h2>${esc(sub)}</h2>` : ''}`;
   if (!right && !left) return `<div class="atom doc-head solo"><div class="c">${center}</div></div>`;
   return `<div class="atom doc-head"><div class="r">${right}</div><div class="c">${center}</div><div class="l">${left}</div></div>`;
 }
 
-function signBlock(doc: PrintDoc) {
+function signBlock(doc: PrintDoc, style: PrintStyle) {
   const h = headerInfo(doc.sectionId);
-  const signers = doc.signers ?? [
+  const signers = [...(doc.signers ?? [
     { role: h.gender === 'f' ? 'مدرّسة المادة' : 'مدرّس المادة', name: h.teacher },
     { role: 'مدير المدرسة', name: h.principal },
-  ];
+  ])];
+  if (style.signExtra.trim()) signers.splice(1, 0, { role: style.signExtra.trim(), name: '' });
   return `<div class="atom sign">${signers.map((s) => `<div><b>${esc(s.role)}</b><span>${esc(s.name)}</span></div>`).join('')}</div>`;
 }
 
@@ -149,7 +151,7 @@ function themeCss(style: PrintStyle) {
   table.t{width:100%;border-collapse:collapse;margin:0 0 2mm}
   table.t th,table.t td{padding:${pad};text-align:center;line-height:${lh};vertical-align:middle}
   table.t th small{display:block;font-weight:400;opacity:.75;font-size:.82em}
-  table.t td.name{text-align:right;white-space:nowrap}
+  table.t td.name{text-align:right;white-space:${style.nameWrap ? 'normal;min-width:30mm' : 'nowrap'}}
   table.t td.txt{text-align:right}
   table.t td.mark{color:#8A4700}
   ${zebra ? 'table.t tbody tr:nth-child(even) td{background:#F6F6F3}' : ''}
@@ -198,7 +200,8 @@ const PAGINATE = `
   function el(t,c){var e=document.createElement(t);if(c)e.className=c;return e;}
   var flow=document.getElementById('flow'),out=document.getElementById('pages'),tpl=document.getElementById('foot-tpl');
   var body=null,count=0;
-  function newPage(){var p=el('div','page');body=el('div','page-body');p.appendChild(body);
+  var wmt=document.getElementById('wm-tpl');
+  function newPage(){var p=el('div','page');if(wmt){var w=el('div');w.innerHTML=wmt.innerHTML;p.appendChild(w.firstChild);}body=el('div','page-body');p.appendChild(body);
     if(tpl){var f=el('div','page-foot');f.innerHTML=tpl.innerHTML;p.appendChild(f);}out.appendChild(p);count++;}
   function fits(){return body.scrollHeight<=body.clientHeight+1;}
   function onlyKeeps(){for(var i=0;i<body.children.length;i++){if(!body.children[i].classList.contains('keep'))return false;}return true;}
@@ -257,7 +260,7 @@ export async function renderDoc(doc: PrintDoc, style: PrintStyle, layout: PrintL
     headBlock(doc, style, ov),
     ...blocks.map((b, i) => `${i && layout.breaks.includes(b.id) ? '<div class="pb"></div>' : ''}${b.html}`),
     ov.note?.trim() ? `<div class="atom note">${esc(ov.note.trim()).replace(/\n/g, '<br>')}</div>` : '',
-    style.signatures ? signBlock(doc) : '',
+    style.signatures ? signBlock(doc, style) : '',
   ].join('\n');
 
   const footParts = [
@@ -265,7 +268,10 @@ export async function renderDoc(doc: PrintDoc, style: PrintStyle, layout: PrintL
     style.pageNumbers ? '<span>صفحة <i class="pn"></i> من <i class="pt"></i></span>' : '<span></span>',
     style.printDate ? `<span>${esc(formatNumericDate(new Date(), false))}</span>` : '<span></span>',
   ];
-  const hasFoot = style.brand || style.pageNumbers || style.printDate;
+  const footText = style.footerText.trim();
+  const hasFoot = style.brand || style.pageNumbers || style.printDate || !!footText;
+  const footHtml = `${footText ? `<div class="ftxt">${esc(footText)}</div>` : ''}<div class="frow">${footParts.join('')}</div>`;
+  const wm = style.watermark.trim();
 
   const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -280,7 +286,13 @@ body{font-family:${family};color:#111;font-size:${style.size}pt;direction:rtl;ba
 #pages{zoom:var(--z);display:flex;flex-direction:column;align-items:center;gap:14px;padding:12px 0}
 .page{width:${w}mm;height:${h - 0.5}mm;padding:${m}mm ${m}mm ${Math.max(5, m - 4)}mm;background:#fff;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 .page-body{flex:1;min-height:0;overflow:hidden}
-.page-foot{height:7mm;display:flex;justify-content:space-between;align-items:flex-end;font-size:7.5pt;color:#8A8A85;border-top:.3mm solid #E4E4E0;padding-top:1mm}
+.page{position:relative}
+.page-foot{height:${footText ? 11 : 7}mm;display:flex;flex-direction:column;justify-content:flex-end;font-size:7.5pt;color:#8A8A85;border-top:.3mm solid #E4E4E0;padding-top:1mm}
+.page-foot .frow{display:flex;justify-content:space-between;align-items:flex-end}
+.page-foot .ftxt{text-align:center;color:#555;font-size:8pt;margin-bottom:.8mm}
+.wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;font-family:${display};font-size:${wm.length > 12 ? 40 : 64}pt;color:rgba(0,0,0,.07);transform:rotate(-30deg);white-space:nowrap}
+.page-body,.page-foot{position:relative;z-index:1}
+.doc-head img.logo{display:block;margin:0 auto 1.5mm;max-height:18mm;max-width:40mm;object-fit:contain}
 .page-foot i{font-style:normal}
 #flow{width:${w - 2 * m}mm}
 .doc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:4mm;padding-bottom:2.5mm;margin-bottom:3.5mm}
@@ -314,7 +326,8 @@ ${themeCss(style)}
 </style></head><body>
 <div id="pages"></div>
 <div id="flow">${flow}</div>
-${hasFoot ? `<template id="foot-tpl">${footParts.join('')}</template>` : ''}
+${hasFoot ? `<template id="foot-tpl">${footHtml}</template>` : ''}
+${wm ? `<template id="wm-tpl"><div class="wm">${esc(wm)}</div></template>` : ''}
 <script>${PAGINATE.replace('__REPEAT__', String(style.repeatHeader)).replace('__ARAB__', String(getDigitStyle() === 'arab'))}</script>
 </body></html>`;
   return { html, landscape };

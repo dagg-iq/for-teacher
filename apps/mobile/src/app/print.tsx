@@ -5,7 +5,7 @@
 import { arDigits } from '@nahj/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Platform, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, ScrollView, View } from 'react-native';
 import { Icon } from '@/components/icon';
 import { Pill, Stepper, ToggleRow } from '@/components/kit';
 import { PressScale } from '@/components/motion';
@@ -198,14 +198,25 @@ export default function PrintStudio() {
             <Divider />
             <ToggleRow title="تاريخ الطباعة" value={style.printDate} onChange={(v) => saveStyle({ printDate: v })} />
           </Section>
+          <Section title="إضافات الصفحة" hint="تُحفظ وتنطبق على كل المطبوعات">
+            <LogoPicker logo={style.logo} onChange={(logo) => saveStyle({ logo })} />
+            <Divider />
+            <View style={{ gap: 10, paddingVertical: 10 }}>
+              <TextSetting label="علامة مائية" placeholder="مثلاً: سري، أو اسم المدرسة" value={style.watermark} max={40} onSave={(watermark) => saveStyle({ watermark })} />
+              <TextSetting label="سطر أسفل كل صفحة" placeholder="مثلاً: يُرجى التوقيع وإعادة الكشف" value={style.footerText} max={160} onSave={(footerText) => saveStyle({ footerText })} />
+              {style.signatures ? <TextSetting label="توقيع إضافي (الصفة)" placeholder="مثلاً: المشرف التربوي، معاون المدير" value={style.signExtra} max={40} onSave={(signExtra) => saveStyle({ signExtra })} /> : null}
+            </View>
+          </Section>
           <Section title="الجداول">
             <ToggleRow title="تظليل الصفوف بالتناوب" value={style.zebra} onChange={(v) => saveStyle({ zebra: v })} />
             <Divider />
             <ToggleRow title="الراسب بلون مميز" value={style.highlightFail} onChange={(v) => saveStyle({ highlightFail: v })} />
             <Divider />
             <ToggleRow title="تكرار رأس الجدول في كل صفحة" value={style.repeatHeader} onChange={(v) => saveStyle({ repeatHeader: v })} />
+            <Divider />
+            <ToggleRow title="الأسماء الطويلة على سطرين" subtitle="يبقى الجدول بعرض الصفحة ويظهر الاسم كاملاً" value={style.nameWrap} onChange={(v) => saveStyle({ nameWrap: v })} />
           </Section>
-          <Button title="استعادة التنسيق الافتراضي" icon="refresh" variant="secondary" small onPress={() => { setSettings({ prefs: { ...getSettings().prefs, print: DEFAULT_PRINT } }); toast('عاد التنسيق الافتراضي', { icon: 'check' }); }} />
+          <Button title="استعادة التنسيق الافتراضي" icon="refresh" variant="secondary" small onPress={() => { setSettings({ prefs: { ...getSettings().prefs, print: { ...DEFAULT_PRINT, logo: style.logo } } }); toast('عاد التنسيق الافتراضي (والشعار باقٍ)', { icon: 'check' }); }} />
         </>
       ) : null}
     </View>
@@ -322,5 +333,59 @@ function ThemeCard({ theme, active, accent, onPress }: { theme: (typeof THEMES)[
         <T dim size={11} lines={2}>{theme.hint}</T>
       </View>
     </PressScale>
+  );
+}
+
+/** حقل نص يُحفظ عند الانتهاء من الكتابة (لا يعيد رسم المعاينة مع كل حرف) */
+function TextSetting({ label, placeholder, value, max, onSave }: { label: string; placeholder: string; value: string; max: number; onSave: (v: string) => void }) {
+  const [v, setV] = useState(value);
+  useEffect(() => { setV(value); }, [value]);
+  const save = () => { const t = v.trim().slice(0, max); if (t !== value) onSave(t); };
+  return <Field label={label} value={v} onChangeText={setV} onBlur={save} onSubmitEditing={save} placeholder={placeholder} maxLength={max} returnKeyType="done" />;
+}
+
+/** شعار المدرسة: صورة PNG/JPG حتى ٤٠٠ ك.ب تُحفظ مع إعدادات الطباعة */
+function LogoPicker({ logo, onChange }: { logo: string; onChange: (v: string) => void }) {
+  const { c } = useTheme();
+  const pick = async () => {
+    try {
+      const DocumentPicker = await import('expo-document-picker');
+      const res = await DocumentPicker.getDocumentAsync({ type: ['image/png', 'image/jpeg', 'image/webp'], copyToCacheDirectory: true });
+      if (res.canceled || !res.assets?.length) return;
+      const a = res.assets[0];
+      if ((a.size ?? 0) > 400 * 1024) { toast('الصورة كبيرة: اختر صورة أصغر من ٤٠٠ ك.ب', { tone: 'bad', icon: 'info' }); return; }
+      const type = a.mimeType && /image\/(png|jpe?g|webp)/.test(a.mimeType) ? a.mimeType : 'image/png';
+      let b64: string;
+      if (Platform.OS === 'web' && a.file) {
+        const buf = new Uint8Array(await a.file.arrayBuffer());
+        let bin = '';
+        for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+        b64 = btoa(bin);
+      } else {
+        const { File } = await import('expo-file-system');
+        b64 = await new File(a.uri).base64();
+      }
+      onChange(`data:${type};base64,${b64}`);
+      toast('أُضيف الشعار', { icon: 'check' });
+    } catch {
+      toast('تعذّر فتح الصورة', { tone: 'bad', icon: 'info' });
+    }
+  };
+  return (
+    <Row style={{ paddingVertical: 12, justifyContent: 'space-between' }}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <T weight="bold" size={15}>شعار المدرسة</T>
+        <T dim size={12}>يظهر أعلى الصفحة فوق العنوان</T>
+      </View>
+      {logo ? (
+        <Row gap={8}>
+          <View style={{ width: 44, height: 44, borderRadius: 10, borderWidth: 1, borderColor: c.line, overflow: 'hidden', backgroundColor: '#fff' }}>
+            <Image source={{ uri: logo }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+          </View>
+          <Button title="تغيير" small variant="secondary" onPress={pick} />
+          <IconButton name="trash" label="إزالة الشعار" size={36} onPress={() => onChange('')} />
+        </Row>
+      ) : <Button title="اختيار صورة" icon="image" small variant="secondary" onPress={pick} />}
+    </Row>
   );
 }

@@ -130,7 +130,7 @@ export default function Reports() {
                     {(allAbs ? rep.absences : rep.absences.slice(0, 15)).map((a, i) => (
                       <PressScale key={a.student.id} onPress={() => router.push(`/student/${a.student.id}`)} scaleTo={0.99}
                         style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
-                        <T size={14} weight="medium" style={{ flex: 1 }} lines={1}>{a.student.name}</T>
+                        <T size={14} weight="medium" style={{ flex: 1 }} lines={2}>{a.student.name}</T>
                         {a.absent ? <Pill small label={`غائب ${arDigits(a.absent)}`} tone={a.count >= alertAt ? 'bad' : 'warn'} /> : null}
                         {a.late ? <Pill small label={`متأخر ${arDigits(a.late)}`} tone="neutral" /> : null}
                       </PressScale>
@@ -172,7 +172,7 @@ function FailingList({ stages }: { stages: ReturnType<typeof sectionReport>['sta
               <View style={{ paddingBottom: 10, gap: 6 }}>
                 {s.failing.map((f) => (
                   <Row key={f.student.id} style={{ justifyContent: 'space-between', paddingHorizontal: 6 }}>
-                    <T size={14} lines={1} style={{ flex: 1 }}>{f.student.name}</T>
+                    <T size={14} lines={2} style={{ flex: 1 }}>{f.student.name}</T>
                     <T weight="bold" size={14} color={tone.bad.ink}>{formatScore(f.value)}</T>
                   </Row>
                 ))}
