@@ -97,7 +97,7 @@ export default function StudentScreen() {
               const mark = row?.marks[col.id];
               const v = row?.values[col.id];
               return (
-                <View key={col.id} style={{ backgroundColor: col.kind === 'formula' ? c.soft : c.bg, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, minWidth: 70 }}>
+                <View key={col.id} style={{ backgroundColor: col.kind === 'formula' ? c.soft : c.bg, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, minWidth: 64, flexGrow: 1, flexBasis: '22%' }}>
                   <T size={11} dim lines={1}>{arDigits(col.name)}</T>
                   <T weight="bold" size={15} color={col.kind === 'formula' ? c.softInk : c.ink}>{mark === 'absent' && !v ? 'غائب' : mark === 'exempt' ? 'معفى' : formatScore(v)}</T>
                 </View>

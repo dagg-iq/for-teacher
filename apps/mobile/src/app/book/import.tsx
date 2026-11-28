@@ -101,8 +101,8 @@ export default function ImportGrades() {
             {matched.map((m, i) => (
               <Row key={`${m.name}-${i}`} style={{ paddingVertical: 9, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
                 <View style={{ flex: 1 }}>
-                  <T size={14} weight="medium" lines={1}>{m.name}</T>
-                  {m.student && m.student.name !== m.name ? <T size={11} dim lines={1}>← {m.student.name}</T> : null}
+                  <T size={14} weight="medium" lines={2}>{m.name}</T>
+                  {m.student && m.student.name !== m.name ? <T size={11} dim lines={2}>← {m.student.name}</T> : null}
                 </View>
                 <T size={13} dim>{layout.numeric.filter((n) => map[n.col]).map((n) => formatScore(m.values[n.col])).join(' · ')}</T>
                 {m.student ? (m.sure ? null : <Pill small label="تحقق" tone="warn" />) : <Pill small label="غير موجود" tone="bad" />}

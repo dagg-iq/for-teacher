@@ -37,6 +37,16 @@ export interface PrintStyle {
   highlightFail: boolean;
   /** تكرار رأس الجدول في كل صفحة */
   repeatHeader: boolean;
+  /** شعار المدرسة (صورة data:) أعلى الصفحة — '' بلا شعار */
+  logo: string;
+  /** علامة مائية مائلة باهتة على كل صفحة («سري»، اسم المدرسة…) — '' بلا */
+  watermark: string;
+  /** سطر ثابت أسفل كل صفحة */
+  footerText: string;
+  /** توقيع ثالث بصفة يختارها المدرس («المشرف التربوي»…) — '' بلا */
+  signExtra: string;
+  /** الأسماء الطويلة على سطرين داخل الجداول بدل توسيع العمود */
+  nameWrap: boolean;
 }
 
 export const ACCENTS = ['#0B6E5E', '#1D4E89', '#7A2E8C', '#9A3412', '#14532D', '#111111'];
@@ -59,6 +69,11 @@ export const DEFAULT_PRINT: PrintStyle = {
   zebra: true,
   highlightFail: true,
   repeatHeader: true,
+  logo: '',
+  watermark: '',
+  footerText: '',
+  signExtra: '',
+  nameWrap: false,
 };
 
 export const THEMES: { key: PrintTheme; label: string; hint: string }[] = [
@@ -90,6 +105,11 @@ export function resolveStyle(saved?: Partial<PrintStyle> | null): PrintStyle {
   if (!THEMES.some((t) => t.key === s.theme)) s.theme = DEFAULT_PRINT.theme;
   if (!FONTS.some((f) => f.key === s.font)) s.font = DEFAULT_PRINT.font;
   s.size = Math.max(8, Math.min(14, Number(s.size) || DEFAULT_PRINT.size));
+  for (const k of ['logo', 'watermark', 'footerText', 'signExtra'] as const) if (typeof s[k] !== 'string') s[k] = '';
+  if (s.logo && !/^data:image\/(png|jpe?g|webp);base64,/.test(s.logo)) s.logo = '';
+  s.watermark = s.watermark.slice(0, 40);
+  s.footerText = s.footerText.slice(0, 160);
+  s.signExtra = s.signExtra.slice(0, 40);
   return s;
 }
 

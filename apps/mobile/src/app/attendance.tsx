@@ -269,7 +269,7 @@ function Log({ sectionId, onOpen }: { sectionId: string | null; onOpen: (sid: st
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {top.map((x) => (
               <PressScale key={x.s.id} onPress={() => router.push(`/student/${x.s.id}`)}>
-                <Pill small label={`${x.s.name.split(' ').slice(0, 2).join(' ')} · ${arDigits(x.n)}`} tone={x.n >= prefs.absenceAlert ? 'bad' : 'warn'} />
+                <Pill small label={`${x.s.name} · ${arDigits(x.n)}`} tone={x.n >= prefs.absenceAlert ? 'bad' : 'warn'} />
               </PressScale>
             ))}
           </View>
